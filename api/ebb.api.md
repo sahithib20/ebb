@@ -91,6 +91,34 @@ export interface CreateEbbOptions {
     ecosystems: readonly EcosystemInput[];
 }
 
+// @public (undocumented)
+export interface DataBundle {
+    // (undocumented)
+    files: Record<string, Record<string, unknown>>;
+    // Warning: (ae-forgotten-export) The symbol "DataBundleManifest" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    manifest: DataBundleManifest;
+}
+
+// @public (undocumented)
+export interface DataSourceOptions {
+    cacheDirectory?: string;
+    // (undocumented)
+    ebbVersion?: string;
+    pinnedVersion?: string;
+    // Warning: (ae-forgotten-export) The symbol "SignerPolicy" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    signerPolicy?: SignerPolicy;
+    // Warning: (ae-forgotten-export) The symbol "verifyArtifactSignature" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    trustedRoot?: Parameters<typeof verifyArtifactSignature>[3];
+    // Warning: (ae-forgotten-export) The symbol "VerifiedSigner" needs to be exported by the entry point index.d.ts
+    verifySignature?: (bytes: Uint8Array, signatureJson: string) => VerifiedSigner;
+}
+
 // Warning: (ae-forgotten-export) The symbol "EBB_ERROR_CODES" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -113,8 +141,6 @@ export interface EcosystemDataInput {
     data?: RegistryV2;
     // (undocumented)
     ecosystem?: string;
-    // Warning: (ae-forgotten-export) The symbol "RegistryV2Rule" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     rules: readonly RegistryV2Rule[];
 }
@@ -134,6 +160,50 @@ export interface EvidenceSource {
 
 // @public
 export function preload(ecosystems?: readonly string[]): Promise<void>;
+
+// @public (undocumented)
+export interface RegistryV2Rule {
+    [extension: `x-${string}`]: Record<string, unknown>;
+    // (undocumented)
+    deadline?: string;
+    // (undocumented)
+    ecosystem: string;
+    // Warning: (ae-forgotten-export) The symbol "LifecycleEvent" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    event: LifecycleEvent;
+    // (undocumented)
+    id: string;
+    // Warning: (ae-forgotten-export) The symbol "MigrationGuidance" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    migration?: MigrationGuidance;
+    // Warning: (ae-forgotten-export) The symbol "Provenance" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    provenance: Provenance;
+    // (undocumented)
+    purl: string;
+    renamedFrom?: string;
+    // (undocumented)
+    replacement?: string;
+    // Warning: (ae-forgotten-export) The symbol "ReplacementRequirements" needs to be exported by the entry point index.d.ts
+    requires?: ReplacementRequirements;
+    // (undocumented)
+    severity: Severity;
+    // (undocumented)
+    sources: EvidenceSource[];
+    // (undocumented)
+    summary: string;
+    // (undocumented)
+    title: string;
+    // Warning: (ae-forgotten-export) The symbol "UsageMatcher" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    usage?: UsageMatcher[];
+    // (undocumented)
+    vers: string;
+}
 
 // @public
 export function replacementFor(purl: string, version: string): string | null;
@@ -170,8 +240,6 @@ export type ResultStatus = (typeof resultStatuses)[number];
 // @public
 export type Rule = RegistryV2Rule;
 
-// Warning: (ae-forgotten-export) The symbol "LifecycleEvent" needs to be exported by the entry point index.d.ts
-//
 // @public
 export type RuleEvent = LifecycleEvent;
 
