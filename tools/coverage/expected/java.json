@@ -1,0 +1,186 @@
+{
+  "runtime": "java",
+  "purl": "pkg:generic/java",
+  "registry": "java.json",
+  "scheduleUrl": "https://adoptium.net/support/",
+  "reviewedAt": "2026-11-15",
+  "sources": [
+    {
+      "title": "Eclipse Temurin support",
+      "url": "https://adoptium.net/support/",
+      "accessedAt": "2026-11-15"
+    }
+  ],
+  "lines": [
+    {
+      "id": "9",
+      "sampleVersion": "9.0.4",
+      "firstReleased": "2017-09-21",
+      "status": "ended",
+      "lineVers": "vers:semver/>=9.0.0|<10.0.0"
+    },
+    {
+      "id": "10",
+      "sampleVersion": "10.0.2",
+      "firstReleased": "2018-03-20",
+      "status": "ended",
+      "lineVers": "vers:semver/>=10.0.0|<11.0.0"
+    },
+    {
+      "id": "12",
+      "sampleVersion": "12.0.2",
+      "firstReleased": "2019-03-19",
+      "status": "ended",
+      "lineVers": "vers:semver/>=12.0.0|<13.0.0"
+    },
+    {
+      "id": "13",
+      "sampleVersion": "13.0.2",
+      "firstReleased": "2019-09-17",
+      "status": "ended",
+      "lineVers": "vers:semver/>=13.0.0|<14.0.0"
+    },
+    {
+      "id": "14",
+      "sampleVersion": "14.0.2",
+      "firstReleased": "2020-03-17",
+      "status": "ended",
+      "lineVers": "vers:semver/>=14.0.0|<15.0.0"
+    },
+    {
+      "id": "15",
+      "sampleVersion": "15.0.2",
+      "firstReleased": "2020-09-15",
+      "status": "ended",
+      "lineVers": "vers:semver/>=15.0.0|<16.0.0"
+    },
+    {
+      "id": "16",
+      "sampleVersion": "16.0.2",
+      "firstReleased": "2021-03-16",
+      "end": {
+        "date": "2021-09",
+        "precision": "month"
+      },
+      "status": "ended",
+      "lineVers": "vers:semver/>=16.0.0|<17.0.0"
+    },
+    {
+      "id": "18",
+      "sampleVersion": "18.0.2",
+      "firstReleased": "2022-03-22",
+      "end": {
+        "date": "2022-09",
+        "precision": "month"
+      },
+      "status": "ended",
+      "lineVers": "vers:semver/>=18.0.0|<19.0.0"
+    },
+    {
+      "id": "19",
+      "sampleVersion": "19.0.2",
+      "firstReleased": "2022-09-20",
+      "end": {
+        "date": "2023-03",
+        "precision": "month"
+      },
+      "status": "ended",
+      "lineVers": "vers:semver/>=19.0.0|<20.0.0"
+    },
+    {
+      "id": "20",
+      "sampleVersion": "20.0.2",
+      "firstReleased": "2023-03-21",
+      "end": {
+        "date": "2023-09",
+        "precision": "month"
+      },
+      "status": "ended",
+      "lineVers": "vers:semver/>=20.0.0|<21.0.0"
+    },
+    {
+      "id": "22",
+      "sampleVersion": "22.0.2",
+      "firstReleased": "2024-03-19",
+      "end": {
+        "date": "2024-09",
+        "precision": "month"
+      },
+      "status": "ended",
+      "lineVers": "vers:semver/>=22.0.0|<23.0.0"
+    },
+    {
+      "id": "23",
+      "sampleVersion": "23.0.2",
+      "firstReleased": "2024-09-17",
+      "end": {
+        "date": "2025-03",
+        "precision": "month"
+      },
+      "status": "ended",
+      "lineVers": "vers:semver/>=23.0.0|<24.0.0"
+    },
+    {
+      "id": "24",
+      "sampleVersion": "24.0.2",
+      "firstReleased": "2025-03-18",
+      "end": {
+        "date": "2025-09",
+        "precision": "month"
+      },
+      "status": "ended",
+      "lineVers": "vers:semver/>=24.0.0|<25.0.0"
+    },
+    {
+      "id": "26",
+      "sampleVersion": "26.0.2",
+      "firstReleased": "2026-03-17",
+      "end": {
+        "date": "2026-09",
+        "precision": "month"
+      },
+      "status": "ended",
+      "lineVers": "vers:semver/>=26.0.0|<27.0.0"
+    },
+    {
+      "id": "11",
+      "sampleVersion": "11.0.33",
+      "firstReleased": "2018-09-25",
+      "status": "supported",
+      "lineVers": "vers:semver/>=11.0.0|<12.0.0"
+    },
+    {
+      "id": "17",
+      "sampleVersion": "17.0.21",
+      "firstReleased": "2021-09-14",
+      "status": "supported",
+      "lineVers": "vers:semver/>=17.0.0|<18.0.0"
+    },
+    {
+      "id": "21",
+      "sampleVersion": "21.0.13",
+      "firstReleased": "2023-09-19",
+      "status": "supported",
+      "lineVers": "vers:semver/>=21.0.0|<22.0.0"
+    },
+    {
+      "id": "25",
+      "sampleVersion": "25.0.5",
+      "firstReleased": "2025-09-16",
+      "status": "supported",
+      "lineVers": "vers:semver/>=25.0.0|<26.0.0"
+    },
+    {
+      "id": "27",
+      "sampleVersion": "27.0.1",
+      "firstReleased": "2026-09-15",
+      "end": {
+        "date": "2027-03",
+        "precision": "month"
+      },
+      "status": "supported",
+      "requiresScheduled": true,
+      "lineVers": "vers:semver/>=27.0.0|<28.0.0"
+    }
+  ]
+}
