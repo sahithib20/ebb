@@ -49,6 +49,9 @@ Usage:
   ebb update [options]                       Update lifecycle data safely and reversibly
   ebb diff [from] [to] [options]             Compare two data releases, versions, or files
   ebb data-status [options]                  Show active lifecycle data freshness and origin
+  ebb mcp                                    Start the Model Context Protocol stdio server
+  ebb mcp --print-config <agent>             Print MCP config snippet for an agent
+  ebb mcp --self-test                        Verify MCP data load with one known check
 
 Options:
   --format <text|markdown|json> Output format (default: text)
@@ -249,6 +252,8 @@ export async function runCli(
         color: { type: "boolean", default: false },
         "no-color": { type: "boolean", default: false },
         "no-hint": { type: "boolean", default: false },
+        "print-config": { type: "string" },
+        "self-test": { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", short: "v", default: false },
       },
@@ -281,6 +286,40 @@ export async function runCli(
 
   if (first === "version") {
     io.stdout.write(`ebb ${VERSION}\n`);
+    return 0;
+  }
+
+  if (first === "mcp") {
+    if (typeof values["print-config"] === "string") {
+      const { printMcpConfig } = await import("./cli/mcp-config.js");
+      try {
+        io.stdout.write(printMcpConfig(values["print-config"]));
+        return 0;
+      } catch (err) {
+        io.stderr.write(`Error: ${err instanceof Error ? err.message : String(err)}\n`);
+        return 2;
+      }
+    }
+
+    if (values["self-test"]) {
+      const { runMcpSelfTest } = await import("./mcp/self-test.js");
+      const result = await runMcpSelfTest();
+      if (result.ok) {
+        io.stdout.write(`${result.line}\n`);
+        return 0;
+      }
+      io.stderr.write(`${result.error ?? "self-test failed"}\n`);
+      return 1;
+    }
+
+    const { McpServer, listenStdio } = await import("./mcp/index.js");
+    // serverInfo.version comes from the installed package.json inside McpServer.
+    const server = new McpServer();
+    listenStdio(server, {
+      input: process.stdin,
+      output: process.stdout,
+      exitOnClose: true,
+    });
     return 0;
   }
 
@@ -838,7 +877,10 @@ export async function runCli(
 const isMain =
   import.meta.url === `file://${process.argv[1]}` ||
   (process.argv[1] &&
-    (process.argv[1].endsWith("/cli.js") || process.argv[1].endsWith("/bin/ebb") || process.argv[1].endsWith("/ebb")));
+    (process.argv[1].endsWith("/cli.js") ||
+      process.argv[1].endsWith("/bin.js") ||
+      process.argv[1].endsWith("/bin/ebb") ||
+      process.argv[1].endsWith("/ebb")));
 
 if (isMain) {
   runCli(process.argv.slice(2))

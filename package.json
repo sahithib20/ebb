@@ -1,6 +1,6 @@
 {
   "name": "@velella/ebb",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The open almanac of software end-of-life.",
   "keywords": [
     "end-of-life",
@@ -22,7 +22,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "ebb": "./dist/src/cli.js"
+    "ebb": "./dist/src/bin.js"
   },
   "exports": {
     ".": {
@@ -100,6 +100,12 @@
       "default": "./dist/src/create.js"
     },
     "./registry/*": "./registry/*",
+    "./mcp": {
+      "types": "./dist/src/mcp/index.d.ts",
+      "import": "./dist/src/mcp/index.js",
+      "default": "./dist/src/mcp/index.js"
+    },
+    "./mcp/*": null,
     "./*": {
       "types": "./dist/src/*.d.ts",
       "import": "./dist/src/*.js",
@@ -108,6 +114,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "server.json",
     "dist/src",
     "data",
     "registry",
@@ -124,9 +131,7 @@
     "!registry/github-actions-shas.json"
   ],
   "scripts": {
-    "postinstall": "node -e \"const fs=require('fs'); fs.mkdirSync('packages/mcp/node_modules/@velella', {recursive: true}); try { fs.symlinkSync('../../../..', 'packages/mcp/node_modules/@velella/ebb', 'junction'); } catch {}\"",
-    "build:mcp": "node -e \"const fs=require('fs'); fs.mkdirSync('packages/mcp/node_modules/@velella', {recursive: true}); try { fs.symlinkSync('../../../..', 'packages/mcp/node_modules/@velella/ebb', 'junction'); } catch {}\" && tsc -b packages/mcp/tsconfig.json",
-    "build": "tsc -b tsconfig.json && npm run build:mcp && node dist/tools/annotate-jsr-types.js",
+    "build": "tsc -b tsconfig.json && node dist/tools/annotate-jsr-types.js",
     "build:ecosystems": "node dist/tools/build-ecosystem-modules.js",
     "build:llms": "npm run build --silent && node dist/tools/build-llms.js",
     "build:static-api": "npm run build --silent && node dist/tools/static-api/index.js",
@@ -141,7 +146,7 @@
     "api:check": "npm run build --silent && api-extractor run --print-api-report-diff",
     "lint:rules": "npm run build --silent && node dist/tools/changed-rules.js --all",
     "check": "npm run format:check && npm test",
-    "bench": "npm run build --silent && node --input-type=module -e \"import { runAllBenchmarks } from './bench/run.ts'; runAllBenchmarks();\"",
+    "bench": "npm run build --silent && node --input-type=module -e \"import { runAllBenchmarks } from './bench/run.ts'; runAllBenchmarks();\" && node dist/tools/mcp-start-ci-check.js",
     "check:sources": "npm run build --silent && node dist/tools/check-sources.js",
     "archive:sources": "npm run build --silent && node dist/tools/archive-sources.js",
     "size": "npm run build --silent && node dist/tools/size.js",
@@ -171,5 +176,6 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "mcpName": "io.github.velella-sh/ebb"
 }
