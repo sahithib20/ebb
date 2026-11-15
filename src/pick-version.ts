@@ -10,6 +10,7 @@ import { productsFromRules, rankProductsForName } from "./product-name.js";
 import { normalizePurl, parsePurl, purlIdentity } from "./purl.js";
 import { isIsoDate, lifecycleEventPrecedence } from "./registry.js";
 import type { LifecycleEvent, RegistryV2Rule } from "./registry.js";
+import { daysLeft } from "./result.js";
 import { releaseLineFromVers } from "./rule-versions.js";
 import { versionScheme } from "./vers.js";
 
@@ -155,6 +156,42 @@ function sortBuilt(lines: readonly BuiltLine[]): BuiltLine[] {
   });
 }
 
+function recommend(
+  lines: readonly ReleaseLine[],
+  asOf: string,
+  complete: boolean,
+): { recommendation: VersionRecommendation | null; reason: string } {
+  const ending = lines.filter((line) => line.status === "ending" && line.endDate !== null);
+  if (ending.length === 0) {
+    if (lines.length === 0) return { recommendation: null, reason: "Ebb has no release lines for this component." };
+    if (lines.every((line) => line.status === "ended")) {
+      return { recommendation: null, reason: "Every known release line has already ended." };
+    }
+    return { recommendation: null, reason: "No known release line has an end date, so Ebb recommends none." };
+  }
+
+  const latest = [...ending].sort((left, right) => {
+    const byDate = (left.endDate ?? "").localeCompare(right.endDate ?? "");
+    if (byDate !== 0) return byDate;
+    return lines.indexOf(left) - lines.indexOf(right);
+  })[ending.length - 1];
+  if (!latest?.endDate) {
+    return { recommendation: null, reason: "No known release line has an end date, so Ebb recommends none." };
+  }
+
+  if ((daysLeft(latest.endDate, asOf) ?? 0) <= RECOMMEND_AFTER_DAYS) {
+    return {
+      recommendation: null,
+      reason: `The latest known end date is ${latest.endDate} (${latest.id}), which is within ${RECOMMEND_AFTER_DAYS} days, so Ebb recommends no line.`,
+    };
+  }
+
+  const reason = complete
+    ? `${latest.id} has the latest known end date (${latest.endDate}).`
+    : `${latest.id} has the latest known end date (${latest.endDate}). The answer is incomplete.`;
+  return { recommendation: { lineId: latest.id, reason }, reason };
+}
+
 function emptyResult(purl: string | null, asOf: string, note: string): SupportedVersionsResult {
   return {
     purl,
@@ -217,18 +254,8 @@ function evaluate(
     }),
   );
   const lines = built.map((entry) => entry.line);
-  return {
-    purl: selected.purl,
-    asOf,
-    lines,
-    recommendation: null,
-    reason:
-      lines.length === 0
-        ? "Ebb has no release lines for this component."
-        : "Ebb lists the release lines its rules name.",
-    complete: false,
-    notes: [],
-  };
+  const { recommendation, reason } = recommend(lines, asOf, false);
+  return { purl: selected.purl, asOf, lines, recommendation, reason, complete: false, notes: [] };
 }
 
 /**
