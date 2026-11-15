@@ -1,0 +1,9 @@
+✖ node@22.11.0: end-of-life
+  Rule: nodejs.runtime.eol-22
+  Event: end-of-life (2027-04-30)
+  Replacement: Node.js 24 LTS or later
+  Sources:
+    - https://raw.githubusercontent.com/nodejs/Release/main/schedule.json
+
+Data: bundled (0.3.0), 167d old (reviewed 2026-11-15)
+⚠ Warning: Data is 167d old (exceeds 30d threshold). Run 'ebb update' to refresh.

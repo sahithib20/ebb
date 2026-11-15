@@ -96,3 +96,58 @@ test("renderForecastText handles empty affecting events and singular months/othe
   assert.match(text, /Nothing in this repository reaches a dated end of life in this window\./);
   assert.match(text, /0 other dated events/);
 });
+
+test("CLI forecast command supports text and JSON output with a fixed date", async () => {
+  const { runCli } = await import("../src/cli.js");
+
+  function createMockIo() {
+    let stdout = "";
+    let stderr = "";
+    return {
+      io: {
+        stdout: {
+          write(str: string) {
+            stdout += str;
+            return true;
+          },
+        },
+        stderr: {
+          write(str: string) {
+            stderr += str;
+            return true;
+          },
+        },
+      },
+      get stdout() {
+        return stdout;
+      },
+      get stderr() {
+        return stderr;
+      },
+    };
+  }
+
+  // Text format
+  const mockText = createMockIo();
+  const codeText = await runCli(["forecast", "--as-of", "2026-04-01", "--months", "6"], mockText.io);
+  assert.equal(codeText, 0);
+  assert.match(mockText.stdout, /Forecast from 2026-04-01 to 2026-10-01 \(6 months\)/);
+  assert.match(mockText.stdout, /2026-04/);
+
+  // JSON format
+  const mockJson = createMockIo();
+  const codeJson = await runCli(["forecast", "--as-of", "2026-04-01", "--months", "6", "--json"], mockJson.io);
+  assert.equal(codeJson, 0);
+  const parsed = JSON.parse(mockJson.stdout) as {
+    schemaVersion: string;
+    today: string;
+    until: string;
+    months: number;
+    groups: Array<{ month: string; events: unknown[] }>;
+  };
+  assert.equal(parsed.schemaVersion, "ebb.forecast.v1");
+  assert.equal(parsed.today, "2026-04-01");
+  assert.equal(parsed.until, "2026-10-01");
+  assert.equal(parsed.months, 6);
+  assert.ok(Array.isArray(parsed.groups));
+});

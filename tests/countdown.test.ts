@@ -228,3 +228,68 @@ test("runCountdown prints once off-TTY, animates 6 frames on TTY, and exits 130 
   sigintHandler!();
   assert.equal(await interruptedPromise, 130);
 });
+
+test("runCountdown with upcoming items supports TTY, non-TTY, and respects NO_COLOR", async () => {
+  const upcomingItems = [
+    {
+      title: "Node.js 20",
+      deadline: "2026-04-30",
+      ruleId: "node.eol-20",
+      purl: "pkg:generic/node",
+    },
+    {
+      title: "Python 3.10",
+      deadline: "2026-10-01",
+      ruleId: "python.eol-310",
+      purl: "pkg:generic/python",
+    },
+  ];
+  const now = Date.parse("2026-04-01T00:00:00Z");
+
+  // Non-TTY: prints plain text once without animation
+  const nonTtyWrites: string[] = [];
+  const nonTtyCode = await runCountdown({
+    upcoming: { items: upcomingItems },
+    now,
+    asOf: "2026-04-01",
+    io: {
+      isTTY: false,
+      write: (text) => nonTtyWrites.push(text),
+      setInterval: () => {
+        throw new Error("should not be called");
+      },
+      clearInterval: () => {},
+      onInterrupt: () => () => {},
+    },
+  });
+  assert.equal(nonTtyCode, 0);
+  assert.equal(nonTtyWrites.length, 1);
+  assert.match(nonTtyWrites[0]!, /Node\.js 20/);
+  assert.match(nonTtyWrites[0]!, /Python 3\.10/);
+  assert.doesNotMatch(nonTtyWrites[0]!, /\u001b\[/); // Plain text, no ANSI
+
+  // TTY respects NO_COLOR
+  const prevNoColor = process.env.NO_COLOR;
+  try {
+    process.env.NO_COLOR = "1";
+    const noColorWrites: string[] = [];
+    await runCountdown({
+      upcoming: { items: upcomingItems },
+      now,
+      asOf: "2026-04-01",
+      once: true,
+      io: {
+        isTTY: true,
+        write: (text) => noColorWrites.push(text),
+        setInterval: () => 1,
+        clearInterval: () => {},
+        onInterrupt: () => () => {},
+      },
+    });
+    assert.equal(noColorWrites.length, 1);
+    assert.doesNotMatch(noColorWrites[0]!, /\u001b\[/);
+  } finally {
+    if (prevNoColor !== undefined) process.env.NO_COLOR = prevNoColor;
+    else delete process.env.NO_COLOR;
+  }
+});

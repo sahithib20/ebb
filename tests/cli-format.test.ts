@@ -83,9 +83,8 @@ describe("CLI output formatting and snapshots", () => {
     // Sources link
     assert.ok(out.includes("Sources:"));
     assert.ok(out.includes("npmjs.com/package/request"));
-    // Offing hint
-    assert.ok(out.includes("Offing can fix this"));
-    assert.ok(out.includes("velella-sh/offing"));
+    // Offing hint is removed
+    assert.equal(out.includes("Offing can fix this"), false);
   });
 
   it("shows days left for scheduled events in text output", async () => {
@@ -114,7 +113,7 @@ describe("CLI output formatting and snapshots", () => {
     assert.ok(out.includes("`Native fetch or a maintained HTTP client`"));
     assert.ok(out.includes("`npm.package.request.deprecated`"));
     assert.ok(out.includes("npmjs.com/package/request"));
-    assert.ok(out.includes("> 💡 **Offing can fix this:**"));
+    assert.equal(out.includes("Offing can fix this"), false);
   });
 
   it("formats check-all in markdown format with summary table", async () => {
@@ -131,24 +130,13 @@ describe("CLI output formatting and snapshots", () => {
     assert.ok(out.includes("#### Findings"));
     assert.ok(out.includes("`pkg:npm/request@2.88.2`"));
     assert.ok(out.includes("`Native fetch or a maintained HTTP client`"));
-    assert.ok(out.includes("> 💡 **Offing can fix this:**"));
+    assert.equal(out.includes("Offing can fix this"), false);
   });
 
-  it("suppresses hint when --no-hint or EBB_NO_HINT is passed", async () => {
+  it("accepts --no-hint as deprecated no-op", async () => {
     const mock1 = createMockIo();
     await runCli(["check", "pkg:npm/request@2.88.2", "--no-hint", "--no-color"], mock1.io);
     assert.equal(mock1.stdout.includes("Offing can fix this"), false);
-
-    const prevEnv = process.env.EBB_NO_HINT;
-    try {
-      process.env.EBB_NO_HINT = "1";
-      const mock2 = createMockIo();
-      await runCli(["check", "pkg:npm/request@2.88.2", "--no-color"], mock2.io);
-      assert.equal(mock2.stdout.includes("Offing can fix this"), false);
-    } finally {
-      if (prevEnv !== undefined) process.env.EBB_NO_HINT = prevEnv;
-      else delete process.env.EBB_NO_HINT;
-    }
   });
 
   it("enforces fail-on threshold correctly", async () => {

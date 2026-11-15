@@ -68,4 +68,4 @@ jobs:
 | `file` | Path to CycloneDX SBOM, JSON list, or text file. | `""` |
 | `fail-on` | Severity threshold to fail the job (`scheduled`, `deprecated`, `unsupported`, `end-of-life`, `removed`, `error`, `none`). | `"deprecated"` |
 | `as-of` | Reference date (YYYY-MM-DD) for calculating remaining days on scheduled lifecycles. | Current date |
-| `no-hint` | Set to `"true"` to disable the Offing remediation hint. | `"false"` |
+| `no-hint` | Deprecated (no-op). | `"false"` |

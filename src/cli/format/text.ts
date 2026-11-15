@@ -1,15 +1,17 @@
 import type { CheckResult, CheckMatch } from "../../check.js";
 import type { CheckAllResult, CheckAllItem } from "../../check-all.js";
+import type { Forecast } from "../../forecast.js";
 import type { RegistryV2Rule } from "../../registry.js";
+import type { RecentResult } from "../../recent.js";
 import type { UpcomingResult } from "../../upcoming.js";
 import type { DataStatus } from "../../data-status.js";
-import { getOffingHint } from "../../hint.js";
 import { createColors, type Colors } from "./color.js";
 
 export interface TextFormatOptions {
   colors?: Colors | undefined;
   noHint?: boolean | undefined;
   dataStatus?: DataStatus | undefined;
+  asOf?: string | undefined;
 }
 
 export function formatCheckText(
@@ -58,11 +60,6 @@ export function formatCheckText(
     }
   }
 
-  const hint = getOffingHint(result.status, { noHint: options?.noHint });
-  if (hint) {
-    lines.push(`  ${hint}`);
-  }
-
   if (options?.dataStatus) {
     const s = options.dataStatus;
     lines.push(c.dim(`\nData: ${s.source} (${s.version}), ${s.ageDays}d old (reviewed ${s.reviewedThrough})`));
@@ -85,6 +82,10 @@ export function formatCheckAllText(
 ): string {
   const c = options?.colors ?? createColors(false);
   const lines: string[] = [];
+
+  if (options?.asOf) {
+    lines.push(`Ebb lifecycle check (as of ${options.asOf}):\n`);
+  }
 
   for (let i = 0; i < outcome.results.length; i++) {
     const res = outcome.results[i]!;
@@ -142,21 +143,6 @@ export function formatCheckAllText(
   }
   if (outcome.summary.errors > 0) {
     lines.push(`  errors:      ${outcome.summary.errors}`);
-  }
-
-  const hasIssues =
-    outcome.summary.errors > 0 ||
-    outcome.summary.byStatus.deprecated > 0 ||
-    outcome.summary.byStatus.unsupported > 0 ||
-    outcome.summary.byStatus["end-of-life"] > 0 ||
-    outcome.summary.byStatus.removed > 0 ||
-    outcome.summary.byStatus.scheduled > 0;
-
-  if (hasIssues) {
-    const hint = getOffingHint("deprecated", { noHint: options?.noHint });
-    if (hint) {
-      lines.push(`\n${hint}`);
-    }
   }
 
   if (options?.dataStatus) {
@@ -221,4 +207,53 @@ export function formatUpcomingText(result: UpcomingResult, options?: TextFormatO
     }
   }
   return `${lines.join("\n")}\n`;
+}
+
+export function formatRecentText(result: RecentResult, options?: TextFormatOptions): string {
+  const c = options?.colors ?? createColors(false);
+  const lines: string[] = [
+    `Recent deadlines within ${result.within} (as of ${result.asOf}, since ${result.since}): ${result.count} event${result.count === 1 ? "" : "s"}`,
+  ];
+  if (result.items.length === 0) {
+    lines.push("\nNo recent deadlines found within this window.\n");
+    return lines.join("\n");
+  }
+  lines.push("");
+  for (const item of result.items) {
+    const sevColor =
+      item.severity === "critical" || item.severity === "high" ? c.red : item.severity === "medium" ? c.yellow : c.dim;
+    const est = item.estimated ? " [estimated]" : "";
+    lines.push(`- ${item.deadline} (${item.daysAgo}d ago) [${sevColor(item.severity)}] ${item.purl}${est}`);
+    lines.push(`    Rule: ${item.ruleId} (${item.event}) - ${item.title}`);
+    if (item.replacement) {
+      lines.push(`    Replacement: ${item.replacement}`);
+    }
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+export function formatForecastText(forecast: Forecast, options?: TextFormatOptions): string {
+  const c = options?.colors ?? createColors(false);
+  const lines: string[] = [
+    `Forecast from ${forecast.today} to ${forecast.until} (${forecast.months} month${forecast.months === 1 ? "" : "s"}): ${forecast.total} event${forecast.total === 1 ? "" : "s"}`,
+    "",
+  ];
+  if (forecast.groups.length === 0) {
+    lines.push("No dated lifecycle events found in this window.\n");
+    return lines.join("\n");
+  }
+  for (const group of forecast.groups) {
+    lines.push(group.month);
+    for (const event of group.events) {
+      const sevColor =
+        event.severity === "critical" || event.severity === "high"
+          ? c.red
+          : event.severity === "medium"
+            ? c.yellow
+            : c.dim;
+      lines.push(`  ${event.date}  ${event.title} [${sevColor(event.severity)}] (${event.ruleId})`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
 }

@@ -233,7 +233,6 @@ npx @velella/ebb as-of 2027-05-01 node 22.11.0
   Replacement: Native fetch or a maintained HTTP client
   Sources:
     - https://www.npmjs.com/package/request
-  Offing can fix this: https://github.com/velella-sh/offing
 ```
 
 Supports `--format <text|markdown|json>`, `--fail-on <threshold>`, `--no-color` (respects `NO_COLOR`), and `--no-hint`. See [docs/cli.md](docs/cli.md) for complete options and exit codes.

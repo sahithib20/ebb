@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "ebb.forecast.v1",
+  "root": ".",
+  "today": "2026-04-01",
+  "until": "2026-10-01",
+  "months": 6,
+  "groups": [
+    {
+      "month": "2026-04",
+      "events": [
+        {
+          "date": "2026-04-30",
+          "ruleId": "nodejs.runtime.eol-20",
+          "ecosystem": "nodejs",
+          "title": "Node.js 20 is end-of-life",
+          "severity": "high",
+          "source": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+          "findings": []
+        }
+      ]
+    },
+    {
+      "month": "2026-06",
+      "events": [
+        {
+          "date": "2026-06-01",
+          "ruleId": "nodejs.runtime.eol-25",
+          "ecosystem": "nodejs",
+          "title": "Node.js 25 is end-of-life",
+          "severity": "high",
+          "source": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+          "findings": []
+        }
+      ]
+    }
+  ],
+  "affecting": 0,
+  "total": 2
+}
