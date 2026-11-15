@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { matchingRules } from "../tools/rule-cases.js";
 import { validateRegistryV2, type RegistryV2Rule } from "../src/registry.js";
+import { parseVers, versionScheme } from "../src/vers.js";
 
 /**
  * New runtime rules introduced by runtimes-complete must have inside, outside,
@@ -68,34 +69,24 @@ function loadRules(): RegistryV2Rule[] {
   return rules;
 }
 
-function parseBound(vers: string): { low: string; highExclusive?: string } | undefined {
-  // vers:scheme/>=X|<Y or >=X
-  const body = vers.split("/")[1] ?? "";
-  const ge = body.match(/>=([^|!<]+)/);
-  const lt = body.match(/<([^|!]+)/);
-  if (!ge) return undefined;
-  const low = ge[1]!.trim();
-  const high = lt?.[1]?.trim();
-  return high === undefined ? { low } : { low, highExclusive: high };
-}
-
 test("every new runtime rule has inside, outside, and boundary cases", () => {
   const cases = loadCases();
   const rules = loadRules();
   for (const id of NEW_RULE_IDS) {
     const rule = rules.find((r) => r.id === id);
     assert.ok(rule, `missing rule ${id}`);
-    const bound = parseBound(rule.vers);
-    assert.ok(bound, `cannot parse bounds for ${id}: ${rule.vers}`);
+    const range = parseVers(rule.vers);
+    const lower = range.constraints.find((constraint) => constraint.comparator === ">=");
+    assert.ok(lower, `cannot find inclusive lower bound for ${id}: ${rule.vers}`);
+    const scheme = versionScheme(range.scheme);
+    const mentioning = cases.filter((c) => c.purl === rule.purl && c.rules.includes(id));
+    const boundary = mentioning.find((c) => scheme.compare(c.version, lower.version) === 0);
+    assert.ok(boundary, `${id} needs a boundary case at ${lower.version}`);
 
-    const mentioning = cases.filter((c) => c.rules.includes(id));
-    assert.ok(mentioning.length >= 2, `${id} needs inside and boundary cases; found ${mentioning.length}`);
-
-    const boundary = mentioning.find((c) => c.version === bound.low || c.version.startsWith(bound.low));
-    assert.ok(boundary, `${id} needs a boundary case at ${bound.low}`);
-
-    const inside = mentioning.find((c) => c.version !== boundary.version);
-    assert.ok(inside, `${id} needs an inside case distinct from the boundary`);
+    const inside = mentioning.find(
+      (c) => scheme.compare(c.version, lower.version) > 0 && matchingRules([rule], c.purl, c.version).includes(id),
+    );
+    assert.ok(inside, `${id} needs a matching inside case beyond the lower bound`);
 
     const outside = cases.find((c) => c.purl === rule.purl && !c.rules.includes(id));
     assert.ok(outside, `${id} needs an outside case for ${rule.purl}`);
