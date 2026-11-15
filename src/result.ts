@@ -32,9 +32,19 @@ export interface ResultMatch {
   event: ResultEvent;
   /**
    * Deadline from the rule (`YYYY-MM-DD`), or `null` when undated.
+   * When {@link datePrecision} is `"month"`, this is the last calendar day of that
+   * month so `daysLeft` stays backward-compatible; consumers that display the
+   * announced date should show `YYYY-MM`.
    * @stable
    */
   date: string | null;
+  /**
+   * Precision of the vendor-announced end date. `"month"` when the source
+   * publishes only `YYYY-MM` (carried as `x-*.endOfLifeMonth` on the rule).
+   * Omitted for day-precision or undated rules.
+   * @experimental
+   */
+  datePrecision?: "day" | "month";
   /**
    * Whole UTC days from the result's `asOf` until `date`; `null` when past, undated, or `asOf` is omitted.
    * @experimental

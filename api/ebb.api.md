@@ -243,6 +243,7 @@ export type ResultEvent = Exclude<ResultStatus, "ok">;
 // @public
 export interface ResultMatch {
     date: string | null;
+    datePrecision?: "day" | "month";
     daysLeft: number | null;
     event: ResultEvent;
     replacement: string | null;
@@ -397,9 +398,9 @@ export function upcoming(options?: UpcomingOptions): UpcomingResult;
 
 // @public (undocumented)
 export interface UpcomingItem {
+    readonly datePrecision?: "day" | "month";
     // (undocumented)
     readonly daysLeft: number;
-    // (undocumented)
     readonly deadline: string;
     // (undocumented)
     readonly ecosystem: string;
