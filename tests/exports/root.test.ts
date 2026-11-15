@@ -25,6 +25,7 @@ import {
   checkAll,
   createEbb,
   preload,
+  recent,
   replacementFor,
   rulesFor,
 } from "../../src/index.js";
@@ -36,6 +37,7 @@ test("root entry exports only the public functions at runtime", () => {
     "checkAll",
     "createEbb",
     "preload",
+    "recent",
     "replacementFor",
     "rulesFor",
     "sourcesOf",
@@ -94,6 +96,7 @@ test("root exports evaluate components and expose the public types", () => {
   const scoped = createEbb({ ecosystems: ["npm"] });
   assert.equal(scoped.check("pkg:npm/request", "2.88.2").status, "deprecated");
   assert.equal(typeof preload, "function");
+  assert.equal(typeof recent, "function");
 
   // Compile-time assertions that result alias types stay identical to check aliases.
   const _resultStatus: ResultStatus = status;

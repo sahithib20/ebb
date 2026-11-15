@@ -11,9 +11,19 @@ export function addDays(date: string, days: number): string {
 }
 
 export function addMonths(date: string, months: number): string {
-  const result = new Date(`${date}T00:00:00Z`);
-  result.setUTCMonth(result.getUTCMonth() + months);
-  return result.toISOString().slice(0, 10);
+  const [yearStr, monthStr, dayStr] = date.split("-");
+  const year = Number.parseInt(yearStr!, 10);
+  const month = Number.parseInt(monthStr!, 10);
+  const day = Number.parseInt(dayStr!, 10);
+
+  const targetDate = new Date(Date.UTC(year, month - 1 + months, 1));
+  const targetYear = targetDate.getUTCFullYear();
+  const targetMonth = targetDate.getUTCMonth();
+  const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const clampedDay = Math.min(day, daysInTargetMonth);
+
+  const finalDate = new Date(Date.UTC(targetYear, targetMonth, clampedDay));
+  return finalDate.toISOString().slice(0, 10);
 }
 
 export const DEFAULT_FORECAST_MONTHS = 12;

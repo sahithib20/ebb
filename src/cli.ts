@@ -19,6 +19,7 @@ import { diff, formatDiffMarkdown, formatDiffText } from "./diff.js";
 import { verify, verifyArtifactSignature, type VerifiedSigner } from "./verify.js";
 import { UpcomingError } from "./upcoming.js";
 import { CheckError } from "./check.js";
+import type { RegistryV2Rule } from "./registry.js";
 import { checkAllWith, type CheckAllItem } from "./check-all.js";
 import {
   createColors,
@@ -26,6 +27,10 @@ import {
   formatCheckAllText,
   formatCheckMarkdown,
   formatCheckText,
+  formatForecastMarkdown,
+  formatForecastText,
+  formatRecentMarkdown,
+  formatRecentText,
   formatReplacementMarkdown,
   formatReplacementText,
   formatRulesMarkdown,
@@ -39,6 +44,7 @@ import {
   formatVersionsText,
   isColorSupported,
 } from "./cli/format/index.js";
+import { DEFAULT_FORECAST_MONTHS } from "./forecast.js";
 import { EbbError } from "./errors.js";
 import { formatPurl, parsePurl, PurlError } from "./purl.js";
 import { RulesForError, type RuleEvent } from "./rules-for.js";
@@ -56,6 +62,8 @@ Usage:
   ebb versions <purl> [options]              List release lines and recommend one
   ebb rules <purl> [options]                 List registered lifecycle rules for a package
   ebb upcoming [options]                     List upcoming end-of-life events
+  ebb forecast [options]                     Forecast end-of-life events grouped by month
+  ebb recent [options]                       List recent end-of-life events
   ebb stale [options]                        List rules whose review window has expired
   ebb sources <rule-id> [options]            Show evidence sources and review status for a rule
   ebb verify <file> [options]                Verify a data bundle or artifact signature
@@ -67,10 +75,13 @@ Usage:
   ebb mcp --self-test                        Verify MCP data load with one known check
 
 Options:
-  --format <text|markdown|json> Output format (default: text)
+  --format <text|markdown|json|ical> Output format (default: text)
   --json                        Shortcut for --format json
   --as-of <YYYY-MM-DD>          Reference date for time-travel lifecycle evaluation (UTC)
   --within <span|days>          Time window: 30d, 2w, 3m, 1y, or days (default: 90d)
+  --fail-within <span|days>     Fail if a deadline falls within window (upcoming command)
+  --months <count>              Forecast window in months (default: 12)
+  --countdown                   Show live or static countdown view (upcoming command)
   --older-than <span|days>     Override review age for stale (e.g. 90d); default uses each registry
   --max-age <days>              Freshness warning threshold in days (default: 30)
   --ecosystem <name>            Filter by ecosystem (e.g. npm, python)
@@ -85,7 +96,7 @@ Options:
   --data-version <version>      Specify a data version to download
   --color                       Force colored output
   --no-color                    Disable colored output (respects NO_COLOR env)
-  --no-hint                     Disable the Offing remediation hint
+  --no-hint                     Deprecated (no-op)
   -h, --help                    Show help
   -v, --version                 Show version
 
@@ -99,6 +110,8 @@ Examples:
   ebb rules pkg:npm/express
   ebb upcoming --within 90d --ecosystem npm
   ebb upcoming --purl pkg:npm/express --json
+  ebb forecast --months 6
+  ebb recent --within 30d
   ebb stale --as-of 2026-11-14
   ebb stale --older-than 90d --json
   ebb verify dist/data/bundle.json
@@ -251,6 +264,9 @@ export async function runCli(
         format: { type: "string" },
         "as-of": { type: "string" },
         within: { type: "string" },
+        "fail-within": { type: "string" },
+        months: { type: "string" },
+        countdown: { type: "boolean", default: false },
         "older-than": { type: "string" },
         "max-age": { type: "string" },
         ecosystem: { type: "string" },
@@ -338,15 +354,15 @@ export async function runCli(
   }
 
   // Determine output format
-  let format: "text" | "markdown" | "json" = "text";
+  let format: "text" | "markdown" | "json" | "ical" = "text";
   if (values.json) {
     format = "json";
   } else if (values.format) {
     const f = String(values.format).toLowerCase();
-    if (f === "json" || f === "markdown" || f === "text") {
+    if (f === "json" || f === "markdown" || f === "text" || f === "ical") {
       format = f;
     } else {
-      io.stderr.write(`Error: Invalid format "${values.format}". Expected: text, markdown, json.\n`);
+      io.stderr.write(`Error: Invalid format "${values.format}". Expected: text, markdown, json, ical.\n`);
       return 2;
     }
   }
@@ -487,9 +503,9 @@ export async function runCli(
       if (format === "json") {
         io.stdout.write(`${JSON.stringify(outcome, null, 2)}\n`);
       } else if (format === "markdown") {
-        io.stdout.write(formatCheckAllMarkdown(items, outcome, { noHint, dataStatus: status }));
+        io.stdout.write(formatCheckAllMarkdown(items, outcome, { noHint, dataStatus: status, asOf }));
       } else {
-        io.stdout.write(formatCheckAllText(items, outcome, { colors, noHint, dataStatus: status }));
+        io.stdout.write(formatCheckAllText(items, outcome, { colors, noHint, dataStatus: status, asOf }));
       }
 
       // Check whether any status exceeds failOn threshold
@@ -587,7 +603,121 @@ export async function runCli(
       const purlArg = typeof values.purl === "string" ? values.purl : positionals[1];
       const asOfArg = typeof values["as-of"] === "string" ? values["as-of"] : undefined;
 
+      if (format === "ical") {
+        const { toICal } = await import("./export/ical.js");
+        const icalText = toICal({
+          within: withinArg,
+          ecosystem: ecoArg,
+          purl: purlArg ? [purlArg] : undefined,
+          asOf: asOfArg,
+        });
+        io.stdout.write(icalText);
+        return 0;
+      }
+
       const result = upcoming({
+        within: withinArg,
+        ecosystem: ecoArg,
+        purls: purlArg ? [purlArg] : undefined,
+        asOf: asOfArg,
+      });
+
+      if (values.countdown) {
+        const { buildCountdownRowsFromUpcoming, renderCountdownJson, runCountdown } = await import("./countdown.js");
+        const asOfDate = result.asOf;
+        const nowMs = Date.parse(`${asOfDate}T00:00:00Z`);
+        if (format === "json") {
+          const rows = buildCountdownRowsFromUpcoming(result.items, { now: nowMs });
+          io.stdout.write(`${renderCountdownJson(rows, nowMs)}\n`);
+        } else {
+          await runCountdown({
+            upcoming: result,
+            now: nowMs,
+            asOf: asOfDate,
+            color: enableColor,
+            noAnimation: !Boolean(process.stdout.isTTY),
+            io: {
+              isTTY: Boolean(process.stdout.isTTY),
+              write: (s) => io.stdout.write(s),
+              setInterval: (cb, ms) => setInterval(cb, ms),
+              clearInterval: (h) => clearInterval(h as ReturnType<typeof setInterval>),
+              onInterrupt: (h) => {
+                process.on("SIGINT", h);
+                return () => process.off("SIGINT", h);
+              },
+            },
+          });
+        }
+      } else if (format === "json") {
+        io.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      } else if (format === "markdown") {
+        io.stdout.write(formatUpcomingMarkdown(result));
+      } else {
+        io.stdout.write(formatUpcomingText(result, { colors }));
+      }
+
+      if (typeof values["fail-within"] === "string") {
+        const { parseWithinWindow } = await import("./upcoming.js");
+        const parsedFail = parseWithinWindow(values["fail-within"] as string, result.asOf);
+        const hasFailing = result.items.some(
+          (item) => item.deadline >= result.asOf && item.deadline <= parsedFail.until,
+        );
+        return hasFailing ? 1 : 0;
+      }
+
+      return 0;
+    }
+
+    if (first === "forecast") {
+      const asOfArg = (values["as-of"] as string | undefined) ?? new Date().toISOString().slice(0, 10);
+      let monthsArg = DEFAULT_FORECAST_MONTHS;
+      if (values.months) {
+        const m = Number.parseInt(values.months as string, 10);
+        if (!Number.isFinite(m) || m < 1) {
+          io.stderr.write("Error: Invalid months argument. Expected a positive integer.\n");
+          return 2;
+        }
+        monthsArg = m;
+      }
+      const ecoArg = values.ecosystem as string | undefined;
+      const { BUNDLED_ECOSYSTEMS } = await import("./data/ecosystems.js");
+      const { loadEcosystemSync } = await import("./data/load.js");
+      const { buildForecast } = await import("./forecast.js");
+
+      const candidateRules: RegistryV2Rule[] = [];
+      if (ecoArg) {
+        const ecoLower = ecoArg.toLowerCase();
+        if ((BUNDLED_ECOSYSTEMS as readonly string[]).includes(ecoLower)) {
+          candidateRules.push(...loadEcosystemSync(ecoLower));
+        }
+      } else {
+        for (const eco of BUNDLED_ECOSYSTEMS) {
+          candidateRules.push(...loadEcosystemSync(eco));
+        }
+      }
+
+      const scan = { root: ".", findings: [] };
+      const forecastResult = buildForecast(scan, candidateRules, asOfArg, monthsArg);
+
+      if (format === "json") {
+        io.stdout.write(`${JSON.stringify(forecastResult, null, 2)}\n`);
+      } else if (format === "markdown") {
+        io.stdout.write(formatForecastMarkdown(forecastResult));
+      } else {
+        io.stdout.write(formatForecastText(forecastResult, { colors }));
+      }
+
+      return 0;
+    }
+
+    if (first === "recent") {
+      const withinArg = typeof values.within === "string" ? values.within : undefined;
+      const ecoArg = typeof values.ecosystem === "string" ? values.ecosystem : undefined;
+      const purlArg = typeof values.purl === "string" ? values.purl : positionals[1];
+      const asOfArg = typeof values["as-of"] === "string" ? values["as-of"] : undefined;
+
+      const { recent } = await import("./recent.js");
+      const result = recent({
         within: withinArg,
         ecosystem: ecoArg,
         purls: purlArg ? [purlArg] : undefined,
@@ -597,9 +727,9 @@ export async function runCli(
       if (format === "json") {
         io.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
       } else if (format === "markdown") {
-        io.stdout.write(formatUpcomingMarkdown(result));
+        io.stdout.write(formatRecentMarkdown(result));
       } else {
-        io.stdout.write(formatUpcomingText(result, { colors }));
+        io.stdout.write(formatRecentText(result, { colors }));
       }
 
       return 0;

@@ -1,0 +1,7 @@
+Forecast from 2026-04-01 to 2026-10-01 (6 months): 2 events
+
+2026-04
+  2026-04-30  Node.js 20 is end-of-life [high] (nodejs.runtime.eol-20)
+
+2026-06
+  2026-06-01  Node.js 25 is end-of-life [high] (nodejs.runtime.eol-25)

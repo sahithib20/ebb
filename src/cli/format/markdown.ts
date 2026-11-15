@@ -1,14 +1,16 @@
 import type { CheckResult, CheckMatch } from "../../check.js";
 import type { CheckAllResult, CheckAllItem } from "../../check-all.js";
+import type { Forecast } from "../../forecast.js";
 import type { RegistryV2Rule } from "../../registry.js";
+import type { RecentResult } from "../../recent.js";
 import type { StaleResult } from "../../stale.js";
 import type { UpcomingResult } from "../../upcoming.js";
 import type { DataStatus } from "../../data-status.js";
-import { getOffingHint } from "../../hint.js";
 
 export interface MarkdownFormatOptions {
   noHint?: boolean | undefined;
   dataStatus?: DataStatus | undefined;
+  asOf?: string | undefined;
 }
 
 function statusEmoji(status: string): string {
@@ -77,11 +79,6 @@ export function formatCheckMarkdown(
     }
   }
 
-  const hint = getOffingHint(result.status, { noHint: options?.noHint, markdown: true });
-  if (hint) {
-    lines.push(`\n> ${hint}`);
-  }
-
   if (options?.dataStatus) {
     const s = options.dataStatus;
     lines.push(
@@ -104,7 +101,10 @@ export function formatCheckAllMarkdown(
   options?: MarkdownFormatOptions,
 ): string {
   const lines: string[] = [];
-  lines.push("### Ebb Lifecycle Check Summary\n");
+  const header = options?.asOf
+    ? `### Ebb Lifecycle Check Summary (as of ${options.asOf})\n`
+    : "### Ebb Lifecycle Check Summary\n";
+  lines.push(header);
 
   lines.push("| Metric | Count |");
   lines.push("| :--- | :--- |");
@@ -179,21 +179,6 @@ export function formatCheckAllMarkdown(
       lines.push(
         `| \`${f.label}\` | ${statusEmoji(f.status)} | ${f.event} | ${f.daysLeft} | ${f.replacement} | ${f.ruleId} | ${f.source} |`,
       );
-    }
-  }
-
-  const hasIssues =
-    outcome.summary.errors > 0 ||
-    outcome.summary.byStatus.deprecated > 0 ||
-    outcome.summary.byStatus.unsupported > 0 ||
-    outcome.summary.byStatus["end-of-life"] > 0 ||
-    outcome.summary.byStatus.removed > 0 ||
-    outcome.summary.byStatus.scheduled > 0;
-
-  if (hasIssues) {
-    const hint = getOffingHint("deprecated", { noHint: options?.noHint, markdown: true });
-    if (hint) {
-      lines.push(`\n> ${hint}`);
     }
   }
 
@@ -305,5 +290,51 @@ export function formatUpcomingMarkdown(result: UpcomingResult): string {
     );
   }
   lines.push("");
+  return lines.join("\n");
+}
+
+export function formatRecentMarkdown(result: RecentResult): string {
+  const lines: string[] = [
+    `### Recent Lifecycle Deadlines`,
+    "",
+    `**Window:** \`${result.within}\` (as of ${result.asOf}, since ${result.since})  `,
+    `**Total events:** ${result.count}`,
+    "",
+  ];
+  if (result.items.length === 0) {
+    lines.push("No recent deadlines found within this window.\n");
+    return lines.join("\n");
+  }
+  lines.push("| Deadline | Days Ago | Severity | PURL | Event | Replacement |");
+  lines.push("| :--- | :--- | :--- | :--- | :--- | :--- |");
+  for (const item of result.items) {
+    const rep = item.replacement ? `\`${item.replacement}\`` : "-";
+    const est = item.estimated ? " *(estimated)*" : "";
+    lines.push(
+      `| ${item.deadline}${est} | ${item.daysAgo}d | ${item.severity} | \`${item.purl}\` | ${item.event} | ${rep} |`,
+    );
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
+export function formatForecastMarkdown(forecast: Forecast): string {
+  const lines: string[] = [
+    `### Ebb Lifecycle Forecast (${forecast.today} to ${forecast.until})\n`,
+    `Total events: **${forecast.total}** across **${forecast.groups.length}** month${forecast.groups.length === 1 ? "" : "s"}.\n`,
+  ];
+  if (forecast.groups.length === 0) {
+    lines.push("No dated lifecycle events found in this window.\n");
+    return lines.join("\n");
+  }
+  for (const group of forecast.groups) {
+    lines.push(`#### ${group.month}\n`);
+    lines.push("| Date | Component | Severity | Rule |");
+    lines.push("| :--- | :--- | :--- | :--- |");
+    for (const event of group.events) {
+      lines.push(`| ${event.date} | ${event.title} | ${event.severity} | \`${event.ruleId}\` |`);
+    }
+    lines.push("");
+  }
   return lines.join("\n");
 }

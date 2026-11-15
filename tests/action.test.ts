@@ -111,9 +111,9 @@ describe("GitHub Action (action/main.js)", () => {
     assert.ok(mock.stdout.includes("::error title=Ebb Lifecycle Finding::"));
     assert.ok(mock.stdout.includes("pkg:npm/request@2.88.2"));
 
-    // Summary includes findings and Offing remediation hint
+    // Summary includes findings and no Offing remediation hint
     const summaryContent = readFileSync(summaryPath, "utf8");
-    assert.ok(summaryContent.includes("Offing can fix this"));
+    assert.equal(summaryContent.includes("Offing can fix this"), false);
     unlinkSync(summaryPath);
   });
 

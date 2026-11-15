@@ -1,0 +1,8 @@
+Upcoming deadlines within 90d (as of 2026-04-01, until 2026-06-30): 2 events
+
+- 2026-04-30 (29d left) [high] pkg:generic/nodejs
+    Rule: nodejs.runtime.eol-20 (end-of-life) - Node.js 20 is end-of-life
+    Replacement: Node.js 22 LTS or later
+- 2026-06-01 (61d left) [high] pkg:generic/nodejs
+    Rule: nodejs.runtime.eol-25 (end-of-life) - Node.js 25 is end-of-life
+    Replacement: Node.js 22 LTS or later

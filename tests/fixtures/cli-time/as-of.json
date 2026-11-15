@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "status": "end-of-life",
+  "matches": [
+    {
+      "ruleId": "nodejs.runtime.eol-22",
+      "event": "end-of-life",
+      "date": "2027-04-30",
+      "daysLeft": null,
+      "replacement": "Node.js 24 LTS or later",
+      "sources": [
+        {
+          "title": "Node.js Release Working Group schedule",
+          "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+          "accessedAt": "2026-10-24",
+          "archiveUrl": "https://web.archive.org/web/20261024000000/https://github.com/nodejs/Release/blob/main/schedule.json",
+          "archivedAt": "2026-10-24",
+          "pointer": "/v22/end"
+        }
+      ],
+      "reviewedAt": "2026-10-24"
+    }
+  ],
+  "version": "22.11.0",
+  "asOf": "2027-05-01"
+}

@@ -67,6 +67,7 @@ assert.deepEqual(Object.keys(root).sort(), [
   "checkAll",
   "createEbb",
   "preload",
+  "recent",
   "replacementFor",
   "rulesFor",
   "sourcesOf",

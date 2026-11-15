@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it } from "node:test";
 import { promisify } from "node:util";
@@ -330,6 +331,124 @@ describe("CLI versions", () => {
     const code = await runCli(["versions", "node", "--as-of", "yesterday"], mock.io);
     assert.equal(code, 2);
     assert.match(mock.stderr, /not a date/);
+  });
+});
+
+describe("CLI docs coverage (cli-time-1)", () => {
+  it("ensures every command in the help text has a section in docs/cli.md", async () => {
+    const mock = createMockIo();
+    await runCli(["--help"], mock.io);
+    const docs = readFileSync(resolve(process.cwd(), "docs/cli.md"), "utf8");
+
+    const usageMatch = /Usage:\s*([\s\S]*?)\n\nOptions:/i.exec(mock.stdout);
+    assert.ok(usageMatch, "Usage section found in help text");
+    const commandLines = usageMatch[1]!
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("ebb "));
+
+    for (const cmdLine of commandLines) {
+      const parts = cmdLine.split(/\s+/);
+      const cmdName = parts[1];
+      assert.ok(cmdName, `Valid command name from ${cmdLine}`);
+      const hasSection =
+        docs.includes(`### \`ebb ${cmdName}\``) ||
+        docs.includes(`### \`ebb ${cmdName} `) ||
+        docs.includes(`### \`ebb ${cmdName}<`);
+      assert.ok(hasSection, `docs/cli.md has section for command "ebb ${cmdName}"`);
+    }
+  });
+});
+
+describe("CLI check-all with --as-of (cli-time-6)", () => {
+  it("gives different results for the same input on two dates and prints reference date in header", async () => {
+    const input = JSON.stringify(["pkg:docker/library/node@22.0.0"]);
+
+    // Date 1: 2026-01-01 (484 days left)
+    const mock1 = createMockIo(input);
+    const code1 = await runCli(["check-all", "-", "--as-of", "2026-01-01", "--format", "markdown"], mock1.io);
+    assert.equal(code1, 0);
+    assert.ok(mock1.stdout.includes("### Ebb Lifecycle Check Summary (as of 2026-01-01)"));
+    assert.ok(mock1.stdout.includes("484 days"));
+
+    // Date 2: 2027-01-01 (119 days left)
+    const mock2 = createMockIo(input);
+    const code2 = await runCli(["check-all", "-", "--as-of", "2027-01-01", "--format", "markdown"], mock2.io);
+    assert.equal(code2, 0);
+    assert.ok(mock2.stdout.includes("### Ebb Lifecycle Check Summary (as of 2027-01-01)"));
+    assert.ok(mock2.stdout.includes("119 days"));
+
+    assert.notEqual(mock1.stdout, mock2.stdout);
+
+    // Absent --as-of: header does not contain "(as of"
+    const mock3 = createMockIo(input);
+    await runCli(["check-all", "-", "--format", "markdown"], mock3.io);
+    assert.ok(mock3.stdout.includes("### Ebb Lifecycle Check Summary\n"));
+    assert.equal(mock3.stdout.includes("(as of"), false);
+  });
+});
+
+describe("CLI upcoming --format ical (cli-time-7)", () => {
+  it("outputs a valid iCalendar with expected events", async () => {
+    const mock = createMockIo();
+    const code = await runCli(["upcoming", "--as-of", "2026-04-01", "--within", "90d", "--format", "ical"], mock.io);
+    assert.equal(code, 0);
+    const out = mock.stdout;
+    assert.ok(out.includes("BEGIN:VCALENDAR"));
+    assert.ok(out.includes("VERSION:2.0"));
+    assert.ok(out.includes("PRODID:-//Velella//Ebb//EN"));
+    assert.ok(out.includes("BEGIN:VEVENT"));
+    assert.ok(out.includes("END:VEVENT"));
+    assert.ok(out.includes("END:VCALENDAR"));
+  });
+});
+
+describe("CLI upcoming exit codes with --fail-within (cli-time-8)", () => {
+  it("exits 0 when no events fall within --fail-within", async () => {
+    const mock = createMockIo();
+    const code = await runCli(
+      ["upcoming", "--as-of", "2026-04-01", "--purl", "pkg:generic/erlang", "--fail-within", "10d"],
+      mock.io,
+    );
+    assert.equal(code, 0);
+  });
+
+  it("exits 1 when a deadline falls within --fail-within", async () => {
+    const mock = createMockIo();
+    const code = await runCli(
+      ["upcoming", "--as-of", "2026-04-01", "--purl", "pkg:generic/erlang", "--fail-within", "50d"],
+      mock.io,
+    );
+    assert.equal(code, 1);
+  });
+
+  it("exits 2 on invalid --fail-within window argument", async () => {
+    const mock = createMockIo();
+    const code = await runCli(["upcoming", "--fail-within", "invalid-syntax"], mock.io);
+    assert.equal(code, 2);
+    assert.match(mock.stderr, /Error:/);
+  });
+});
+
+describe("CLI upcoming --countdown (cli-time-4)", () => {
+  it("runs upcoming --countdown in non-TTY mode with plain text bars", async () => {
+    const mock = createMockIo();
+    const code = await runCli(["upcoming", "--as-of", "2026-04-01", "--within", "90d", "--countdown"], mock.io);
+    assert.equal(code, 0);
+    assert.match(mock.stdout, /Lifecycle countdown as of 2026-04-01/);
+    assert.doesNotMatch(mock.stdout, /\u001b\[/);
+  });
+
+  it("runs upcoming --countdown --json", async () => {
+    const mock = createMockIo();
+    const code = await runCli(
+      ["upcoming", "--as-of", "2026-04-01", "--within", "90d", "--countdown", "--json"],
+      mock.io,
+    );
+    assert.equal(code, 0);
+    const parsed = JSON.parse(mock.stdout) as { schemaVersion: string; rows: unknown[] };
+    assert.equal(parsed.schemaVersion, "ebb.countdown.v1");
+    assert.ok(Array.isArray(parsed.rows));
   });
 });
 

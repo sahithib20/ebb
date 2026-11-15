@@ -36,16 +36,18 @@ export interface CountdownRow {
 export interface CountdownRowsOptions {
   /** Milliseconds since the epoch the countdown is measured from. */
   now: number;
-  limit?: number;
+  limit?: number | undefined;
 }
 
 export interface CountdownRenderOptions {
   /** The day the countdown is for, shown in the header. */
-  asOf?: string;
+  asOf?: string | undefined;
   /** Total bar width in columns. Defaults to `COUNTDOWN_BAR_WIDTH`. */
-  barWidth?: number;
+  barWidth?: number | undefined;
   /** When false, the output is plain ASCII. Defaults to false. */
-  color?: boolean;
+  color?: boolean | undefined;
+  /** Empty state message. */
+  emptyMessage?: string | undefined;
 }
 
 /** Green while more than 180 days remain, yellow from 30 to 180, red under 30, dim once ended. */
@@ -110,6 +112,30 @@ export function buildCountdownRows(forecast: Forecast, options: CountdownRowsOpt
   return rows.slice(0, options.limit ?? DEFAULT_COUNTDOWN_LIMIT);
 }
 
+/**
+ * Builds countdown rows directly from upcoming items.
+ */
+export function buildCountdownRowsFromUpcoming(
+  items: readonly { title?: string; purl?: string; deadline: string; ruleId: string }[],
+  options: { now: number; limit?: number | undefined },
+): CountdownRow[] {
+  const rows: CountdownRow[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    const subject = item.title || item.purl || item.ruleId;
+    if (seen.has(subject)) continue;
+    seen.add(subject);
+    rows.push({
+      subject,
+      deadline: item.deadline,
+      remainingSeconds: Math.floor((Date.parse(`${item.deadline}T00:00:00Z`) - options.now) / 1000),
+      ruleId: item.ruleId,
+      location: { path: item.purl || "" },
+    });
+  }
+  return rows.slice(0, options.limit ?? DEFAULT_COUNTDOWN_LIMIT);
+}
+
 function renderBar(remainingSeconds: number, width: number, color: boolean): string {
   const ratio = Math.min(1, Math.max(0, remainingSeconds / (COUNTDOWN_WINDOW_DAYS * DAY_SECONDS)));
   const cells = Math.round(ratio * width);
@@ -124,7 +150,9 @@ export function renderCountdown(rows: readonly CountdownRow[], options: Countdow
     options.asOf === undefined
       ? "Lifecycle countdown"
       : `Lifecycle countdown as of ${options.asOf} (deadlines at 00:00 UTC)`;
-  if (rows.length === 0) return `${header}\n\nNo dated lifecycle deadlines affect this repository.`;
+  if (rows.length === 0) {
+    return `${header}\n\n${options.emptyMessage ?? "No dated lifecycle deadlines affect this repository."}`;
+  }
   const width =
     options.barWidth === undefined || options.barWidth < 1 ? COUNTDOWN_BAR_WIDTH : Math.floor(options.barWidth);
   const durations = rows.map((row) => formatCountdown(row.remainingSeconds));
@@ -154,7 +182,9 @@ export interface CountdownIo {
 }
 
 export interface CountdownOptions {
-  forecast: Forecast;
+  forecast?: Forecast | undefined;
+  upcoming?: { items: readonly { title?: string; purl?: string; deadline: string; ruleId: string }[] } | undefined;
+  rows?: CountdownRow[] | undefined;
   /** Milliseconds since the epoch the first frame counts down from. */
   now: number;
   /** The day the countdown is for, shown in the header. */
@@ -197,17 +227,35 @@ function defaultIo(): CountdownIo {
 export async function runCountdown(options: CountdownOptions): Promise<number> {
   const io = options.io ?? defaultIo();
   const color = options.color ?? (io.isTTY && !process.env.NO_COLOR);
-  const frame = (elapsedSeconds: number): string =>
-    renderCountdown(
-      buildCountdownRows(options.forecast, {
-        now: options.now + elapsedSeconds * 1000,
+  const getRows = (elapsedSeconds: number): CountdownRow[] => {
+    const currentNow = options.now + elapsedSeconds * 1000;
+    if (options.upcoming) {
+      return buildCountdownRowsFromUpcoming(options.upcoming.items, {
+        now: currentNow,
         ...(options.limit === undefined ? {} : { limit: options.limit }),
-      }),
-      {
-        asOf: options.asOf,
-        color,
-      },
-    );
+      });
+    }
+    if (options.rows) {
+      return options.rows.map((r) => ({
+        ...r,
+        remainingSeconds: Math.floor((Date.parse(`${r.deadline}T00:00:00Z`) - currentNow) / 1000),
+      }));
+    }
+    if (options.forecast) {
+      return buildCountdownRows(options.forecast, {
+        now: currentNow,
+        ...(options.limit === undefined ? {} : { limit: options.limit }),
+      });
+    }
+    return [];
+  };
+
+  const frame = (elapsedSeconds: number): string =>
+    renderCountdown(getRows(elapsedSeconds), {
+      asOf: options.asOf,
+      color,
+      ...(options.upcoming ? { emptyMessage: "No upcoming lifecycle deadlines found within this window." } : {}),
+    });
 
   const first = frame(0);
   io.write(`${first}\n`);

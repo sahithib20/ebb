@@ -81,6 +81,13 @@ export {
   upcoming,
 } from "./upcoming.js";
 
+export {
+  type RecentItem,
+  type RecentOptions,
+  type RecentResult,
+  recent,
+} from "./recent.js";
+
 export { type ToICalOptions, toICal } from "./export/ical.js";
 
 export {

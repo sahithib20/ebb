@@ -52,6 +52,11 @@ describe("upcoming: parseWithinWindow", () => {
     assert.equal(res.span, "2w");
     assert.equal(res.days, 14);
     assert.equal(res.until, "2026-11-25");
+
+    const res12 = parseWithinWindow("12w", asOf);
+    assert.equal(res12.span, "12w");
+    assert.equal(res12.days, 84);
+    assert.equal(res12.until, "2027-02-03");
   });
 
   it("parses month units (m)", () => {
@@ -59,6 +64,24 @@ describe("upcoming: parseWithinWindow", () => {
     assert.equal(res.span, "3m");
     assert.equal(res.until, "2027-02-11");
     assert.ok(res.days >= 89 && res.days <= 92);
+
+    const res6 = parseWithinWindow("6m", asOf);
+    assert.equal(res6.span, "6m");
+    assert.equal(res6.until, "2027-05-11");
+  });
+
+  it("uses calendar months and clamps month-end dates correctly", () => {
+    const resJan31 = parseWithinWindow("1m", "2026-01-31");
+    assert.equal(resJan31.span, "1m");
+    assert.equal(resJan31.until, "2026-02-28"); // non-leap year clamps to Feb 28
+
+    const resLeapJan31 = parseWithinWindow("1m", "2024-01-31");
+    assert.equal(resLeapJan31.span, "1m");
+    assert.equal(resLeapJan31.until, "2024-02-29"); // leap year clamps to Feb 29
+
+    const resMay31 = parseWithinWindow("1m", "2026-05-31");
+    assert.equal(resMay31.span, "1m");
+    assert.equal(resMay31.until, "2026-06-30"); // June has 30 days
   });
 
   it("parses year units (y)", () => {

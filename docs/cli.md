@@ -36,7 +36,6 @@ $ ebb check pkg:npm/request@2.88.2
   Replacement: Native fetch or a maintained HTTP client
   Sources:
     - https://www.npmjs.com/package/request
-  Offing can fix this: https://github.com/velella-sh/offing
 :::
 
 For scheduled upcoming events:
@@ -49,7 +48,6 @@ $ ebb check pkg:docker/library/node@22.0.0
   Replacement: A node image on a later supported release line, such as node:24
   Sources:
     - https://nodejs.org/en/about/eol
-  Offing can fix this: https://github.com/velella-sh/offing
 :::
 
 ---
@@ -77,13 +75,42 @@ ebb check pkg:docker/library/node@22.0.0 --as-of 2026-04-01
 ebb check pkg:npm/request@2.88.2 --json
 ```
 
+### `ebb as-of <date> <purl> [version]`
+
+Evaluates a component against active lifecycle rules as of a specific date in the past or future with deterministic replay. See [Time-travel evaluation](as-of.md).
+
+Options:
+- `--format <text|markdown|json>`: Choose output format (default: `text`).
+- `--json`: Shortcut for `--format json`.
+- `--fail-on <threshold>`: Minimum severity threshold to fail with exit code `1` (default: `deprecated`).
+- `--max-age <days>`: Freshness warning threshold in days (default: `30`).
+
+Examples:
+```bash
+# Evaluate package status as of April 1, 2026
+ebb as-of 2026-04-01 pkg:npm/request@2.88.2
+
+# Check future status of Node.js 22 with JSON output
+ebb as-of 2027-05-01 node 22.11.0 --json
+```
+
 ### `ebb check-all [file]`
 
 Evaluates multiple dependencies in batch mode. Supports JSON lists, CycloneDX SBOM files, or newline-delimited PURLs from files or standard input (`stdin`).
 
+Options:
+- `--format <text|markdown|json>`: Output format (default: `text`).
+- `--json`: Shortcut for `--format json`.
+- `--as-of <YYYY-MM-DD>`: Reference date for time-travel lifecycle evaluation (UTC).
+- `--fail-on <threshold>`: Severity threshold (default: `deprecated`).
+
+Examples:
 ```bash
 # From a CycloneDX SBOM or JSON list
 ebb check-all bom.json
+
+# Time-travel batch evaluation
+ebb check-all bom.json --as-of 2026-04-01
 
 # Markdown summary for CI PR comment
 ebb check-all bom.json --format markdown
@@ -124,6 +151,80 @@ ebb rules pkg:npm/request
 
 # Filter by event
 ebb rules pkg:npm/request --event deprecated --json
+```
+
+### `ebb upcoming [options]`
+
+Lists scheduled and upcoming end-of-life and deprecation deadlines within a specified time window. See [Upcoming deadlines](upcoming.md).
+
+Options:
+- `--within <span|days>`: Time window: `30d`, `2w`, `3m`, `1y`, or number of days (default: `90d`).
+- `--fail-within <span|days>`: Exit with code `1` when any matching event deadline falls inside this window.
+- `--countdown`: Show days left and a progress bar for each event, falling back to plain text off-terminal.
+- `--format <text|markdown|json|ical>`: Choose output format (default: `text`). Use `ical` to generate an RFC 5545 calendar.
+- `--ecosystem <name>`: Filter by ecosystem (e.g. `npm`, `python`).
+- `--purl <purl>`: Filter by package URL.
+- `--as-of <YYYY-MM-DD>`: Reference date for calculation (UTC).
+
+Exit codes for `ebb upcoming`:
+
+| Exit code | Meaning | Description |
+|-----------|---------|-------------|
+| `0` | Success | No matching events fall inside `--fail-within` (or `--fail-within` omitted). |
+| `1` | Deadline approaching | At least one matching deadline falls inside the `--fail-within` window. |
+| `2` | Error | CLI error (invalid window, malformed date, or invalid argument). |
+
+Examples:
+```bash
+# Query deadlines within 90 days for npm packages
+ebb upcoming --within 90d --ecosystem npm
+
+# Export upcoming deadlines to an iCalendar file
+ebb upcoming --format ical > upcoming.ics
+
+# Fail in CI if any deadline falls within 30 days
+ebb upcoming --fail-within 30d
+```
+
+### `ebb forecast [options]`
+
+Forecasts lifecycle deadlines grouped by month across a forward-looking window using registered rules.
+
+Options:
+- `--months <count>`: Forecast window in months (default: `12`).
+- `--ecosystem <name>`: Filter by ecosystem (e.g. `nodejs`, `python`).
+- `--as-of <YYYY-MM-DD>`: Reference date for forecast calculation (UTC).
+- `--format <text|markdown|json>`: Output format (default: `text`).
+- `--json`: Shortcut for `--format json`.
+
+Examples:
+```bash
+# 6-month forecast across all ecosystems
+ebb forecast --months 6
+
+# Forecast Node.js runtime deadlines in JSON format
+ebb forecast --ecosystem nodejs --as-of 2026-04-01 --json
+```
+
+### `ebb recent [options]`
+
+Lists software lifecycle events whose deadlines have passed within a recent time window.
+
+Options:
+- `--within <span|days>`: Past time window: `30d`, `2w`, `3m`, `1y`, or number of days (default: `90d`).
+- `--ecosystem <name>`: Filter by ecosystem.
+- `--purl <purl>`: Filter by package URL.
+- `--as-of <YYYY-MM-DD>`: Reference date for calculation (UTC).
+- `--format <text|markdown|json>`: Output format (default: `text`).
+- `--json`: Shortcut for `--format json`.
+
+Examples:
+```bash
+# What reached end-of-life in the last 30 days
+ebb recent --within 30d
+
+# Recent events for npm packages as JSON
+ebb recent --ecosystem npm --within 6m --json
 ```
 
 ### `ebb stale`
@@ -231,11 +332,28 @@ ebb data-status --json
 ebb data-status --max-age 14
 ```
 
+### `ebb mcp`
+
+Starts the Model Context Protocol (MCP) server over standard input/output (stdio), providing tools and resources for AI coding agents. See [MCP Server](mcp.md).
+
+Options:
+- `--print-config <agent>`: Print MCP configuration snippet for an agent (`claude-desktop`, `cursor`, `cline`, `windsurf`).
+- `--self-test`: Verify MCP data loading and tool execution offline.
+
+Examples:
+```bash
+# Print configuration for Claude Desktop
+ebb mcp --print-config claude-desktop
+
+# Run MCP self-test
+ebb mcp --self-test
+```
+
 ---
 
 ## Formatting & Output Options
 
-- `--format <text|markdown|json>`: Choose output format. Defaults to `text`.
+- `--format <text|markdown|json|ical>`: Choose output format. Defaults to `text`.
 - `--json`: Shortcut for `--format json`.
 - `--fail-on <threshold>`: Minimum severity that exits with code `1`. Supported values:
   - `scheduled`: Fails on scheduled, deprecated, unsupported, end-of-life, removed, or error.
@@ -246,7 +364,7 @@ ebb data-status --max-age 14
   - `none`: Always exits with code 0 on findings.
 - `--no-color` / `NO_COLOR`: Disables ANSI colors, conforming to the [NO_COLOR specification](https://no-color.org/).
 - `--color`: Forces colored output.
-- `--no-hint` / `EBB_NO_HINT=1`: Disables the Offing remediation hint line.
+- `--no-hint`: Deprecated (no-op).
 
 > [!TIP]
 > In CI workflows, use `--format markdown` to generate clean PR comment summaries, or `--json` to pipe into downstream automation.
