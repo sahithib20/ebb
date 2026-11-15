@@ -10,6 +10,7 @@ import { productsFromRules, rankProductsForName } from "./product-name.js";
 import { normalizePurl, parsePurl, purlIdentity } from "./purl.js";
 import { isIsoDate, lifecycleEventPrecedence } from "./registry.js";
 import type { LifecycleEvent, RegistryV2Rule } from "./registry.js";
+import { daysLeft } from "./result.js";
 import { releaseLineFromVers } from "./rule-versions.js";
 import { parseVers, versContains, versionScheme } from "./vers.js";
 
@@ -67,34 +68,6 @@ function requireIsoDate(value: string): void {
 /** The UTC calendar day. Called only when the caller did not pass `asOf`. */
 function utcToday(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-function daysInMonth(year: number, month: number): number {
-  if (month === 2) return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 29 : 28;
-  if (month === 4 || month === 6 || month === 9 || month === 11) return 30;
-  return 31;
-}
-
-/** `days` calendar days after `isoDate`. Does not read the system clock. */
-function addUtcDays(isoDate: string, days: number): string {
-  let [year, month, day] = isoDate.split("-").map(Number) as [number, number, number];
-  let left = days;
-  while (left > 0) {
-    const room = daysInMonth(year, month) - day;
-    if (left <= room) {
-      day += left;
-      left = 0;
-    } else {
-      left -= room + 1;
-      day = 1;
-      month += 1;
-      if (month === 13) {
-        month = 1;
-        year += 1;
-      }
-    }
-  }
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function isReleaseRule(rule: RegistryV2Rule): boolean {
@@ -257,8 +230,7 @@ function recommend(
     return { recommendation: null, reason: "No known release line has an end date, so Ebb recommends none." };
   }
 
-  const horizon = addUtcDays(asOf, RECOMMEND_AFTER_DAYS);
-  if (latest.endDate <= horizon) {
+  if ((daysLeft(latest.endDate, asOf) ?? 0) <= RECOMMEND_AFTER_DAYS) {
     return {
       recommendation: null,
       reason: `The latest known end date is ${latest.endDate} (${latest.id}), which is within ${RECOMMEND_AFTER_DAYS} days, so Ebb recommends no line.`,

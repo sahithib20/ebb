@@ -74,6 +74,29 @@ describe("release line recommendation", () => {
     assert.match(result.reason, /2027-01-01/);
   });
 
+  it("requires more than 180 calendar days for four-digit reference years with leading zeros", () => {
+    const base = rule({
+      id: "example.open",
+      vers: "vers:semver/>=1.0.0|<2.0.0",
+      event: "scheduled-end-of-life",
+    });
+    const candidate = { ...base, provenance: { ...base.provenance, observedAt: "0101-01-01" } };
+    assert.equal(
+      supportedVersions(candidate.purl, {
+        asOf: "0101-01-01",
+        rules: [{ ...candidate, deadline: "0101-06-30" }],
+      }).recommendation,
+      null,
+    );
+    assert.equal(
+      supportedVersions(candidate.purl, {
+        asOf: "0101-01-01",
+        rules: [{ ...candidate, deadline: "0101-07-01" }],
+      }).recommendation?.lineId,
+      "1.x",
+    );
+  });
+
   it("recommends nothing when no line has an end date", () => {
     const result = supportedVersions("pkg:npm/example", {
       asOf: "2026-11-15",
