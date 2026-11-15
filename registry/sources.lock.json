@@ -1825,6 +1825,13 @@
       "archiveUrl": "https://web.archive.org/web/20261107000000/https://pypi.org/simple/typing/",
       "archivedAt": "2026-11-07"
     },
+    "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json": {
+      "finalUrl": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+      "title": null,
+      "checkedAt": "2026-11-15",
+      "status": "ok",
+      "archiveUrl": "https://web.archive.org/web/20261107000000/https://github.com/nodejs/Release/blob/main/schedule.json"
+    },
     "https://react-native-community.github.io/upgrade-helper/": {
       "finalUrl": "https://react-native-community.github.io/upgrade-helper/",
       "title": "Upgrade React Native applications",

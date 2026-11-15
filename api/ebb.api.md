@@ -158,6 +158,8 @@ export interface EvidenceSource {
     // (undocumented)
     archiveUrl?: string;
     // (undocumented)
+    pointer?: string;
+    // (undocumented)
     title: string;
     // (undocumented)
     url: string;
@@ -211,8 +213,10 @@ export interface RegistryV2Rule {
     requires?: ReplacementRequirements;
     // (undocumented)
     severity: Severity;
+    sourceCheckedAt?: string;
     // (undocumented)
     sources: EvidenceSource[];
+    sourceStatus?: string;
     // (undocumented)
     summary: string;
     // (undocumented)

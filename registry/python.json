@@ -2165,7 +2165,8 @@
           "url": "https://peps.python.org/api/release-cycle.json",
           "accessedAt": "2026-10-17",
           "archiveUrl": "https://web.archive.org/web/20261017000000/https://peps.python.org/api/release-cycle.json",
-          "archivedAt": "2026-10-17"
+          "archivedAt": "2026-10-17",
+          "pointer": "/3.10/end_of_life"
         },
         {
           "title": "PEP 619 — Python 3.10 release schedule",

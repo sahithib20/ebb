@@ -110,3 +110,38 @@ Ebb stores verified bundles in `~/.cache/ebb/data` (Linux) or `~/Library/Caches/
     path: ~/.cache/ebb
     key: ebb-data-\{{ runner.os }}-\{{ steps.date.outputs.date }}
 ```
+
+## Automated source health and verification
+
+The automated source check verifies that cited evidence URLs remain reachable and that documented dates continue to appear in upstream sources. It does not replace a human review: a passing check proves the citation is alive, but only a human maintainer can confirm that surrounding text or policy changes have not altered the underlying meaning.
+
+### Source health statuses
+
+Each cited source tracked by Ebb is evaluated against the following report statuses:
+
+- **`ok`**: The source is reachable (HTTP 200), unchanged, and confirms rule claims.
+- **`archived-only`**: The primary source is unreachable, but a verified snapshot exists at the recorded archive URL confirming the date.
+- **`changed`**: The source has permanently redirected, updated its title, or changed structure from the locked reference.
+- **`date-changed`**: A structured JSON source with a pointer resolved to a date that differs from the rule's recorded deadline.
+- **`date-missing`**: The rule records a deadline date, but that date was not found in the source text or HTML.
+- **`unreachable`**: The server returned an HTTP error (404, 500) or timed out, and no archive fallback is available.
+- **`blocked`**: The source returned an anti-bot challenge (such as Cloudflare or HTTP 403) and cannot be verified automatically.
+- **`unrecorded`**: The source is cited in a rule but not yet locked in `registry/sources.lock.json`.
+- **`stale`**: The rule has not undergone human review within its registry's configured review window (`maxReviewAgeDays`).
+
+### Current source health counts
+
+<!-- ebb-source-status-counts:start -->
+| Status | Count | Description |
+|---|---|---|
+| `ok` | 353 | Reachable and verified unchanged |
+| `archived-only` | 0 | Unreachable primary, verified via archive snapshot |
+| `changed` | 0 | Title or URL redirected |
+| `date-changed` | 0 | Structured pointer value differs from rule date |
+| `date-missing` | 0 | Stated deadline not found in source text |
+| `unreachable` | 0 | HTTP error or connection timeout |
+| `blocked` | 0 | Anti-bot challenge or unverified response |
+| `unrecorded` | 108 | Cited in a rule but not yet locked |
+| `stale` | 0 | Past human review freshness window |
+<!-- ebb-source-status-counts:end -->
+

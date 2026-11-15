@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -273,4 +273,63 @@ test("fetchComponent and fetchRule query static API correctly with mock fetch", 
     () => fetchComponent("pkg:npm/request", { fetch: failingFetch }),
     /Failed to fetch static API component at .* HTTP 500 Internal Server Error/,
   );
+});
+
+test("static API build with and without a source report", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "ebb-api-report-test-"));
+  const outWithout = join(tempDir, "without-report");
+  const outWith = join(tempDir, "with-report");
+  const reportPath = join(tempDir, "mock-report.json");
+
+  try {
+    const ajv = new Ajv2020({ allErrors: true });
+    const schema = JSON.parse(await readFile("schemas/static-api.v1.schema.json", "utf8")) as object;
+    const regSchema = JSON.parse(await readFile("schemas/registry.v2.schema.json", "utf8")) as object;
+    ajv.addSchema(regSchema, "registry.v2.schema.json");
+    const validate = ajv.compile(schema);
+
+    // 1. Build WITHOUT a report (does not fail, leaves fields out)
+    await generateStaticApi({
+      outDir: outWithout,
+      reportPath: join(tempDir, "missing-report.json"),
+    });
+
+    const docWithout = JSON.parse(await readFile(join(outWithout, "npm/request.json"), "utf8"));
+    assert.equal(validate(docWithout), true, `Validation failed: ${JSON.stringify(validate.errors)}`);
+    assert.equal(docWithout.rules[0]?.sourceCheckedAt, undefined);
+    assert.equal(docWithout.rules[0]?.sourceStatus, undefined);
+
+    // 2. Build WITH a report (populates sourceCheckedAt and sourceStatus)
+    await writeFile(
+      reportPath,
+      JSON.stringify({
+        schemaVersion: "ebb.source-check.v1",
+        checkedAt: "2026-11-15T12:00:00Z",
+        unreachable: [
+          { url: "https://example.com/dead", reason: "HTTP 404", ruleIds: ["npm.package.request.deprecated"] },
+        ],
+      }),
+      "utf8",
+    );
+
+    await generateStaticApi({
+      outDir: outWith,
+      reportPath,
+    });
+
+    const docWith = JSON.parse(await readFile(join(outWith, "npm/request.json"), "utf8"));
+    assert.equal(validate(docWith), true, `Validation failed: ${JSON.stringify(validate.errors)}`);
+    assert.equal(docWith.rules[0]?.sourceCheckedAt, "2026-11-15");
+    assert.equal(docWith.rules[0]?.sourceStatus, "unreachable");
+
+    // Check another rule that was ok
+    const allDoc = JSON.parse(await readFile(join(outWith, "all.json"), "utf8"));
+    assert.equal(validate(allDoc), true);
+    const otherRule = allDoc.rules.find((r: { id: string }) => r.id !== "npm.package.request.deprecated");
+    assert.ok(otherRule);
+    assert.equal(otherRule.sourceCheckedAt, "2026-11-15");
+    assert.equal(otherRule.sourceStatus, "ok");
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
 });

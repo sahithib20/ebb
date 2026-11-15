@@ -1,17 +1,22 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
+import { resolve } from "node:path";
 import { test } from "node:test";
+import { Ajv2020 } from "ajv/dist/2020.js";
 
 import {
   checkSources,
   DEAD_SOURCE_LABELS,
   DEAD_SOURCE_MARKER_PREFIX,
+  evaluateJsonPointer,
   extractDeadSourceHash,
   extractRuleVersionTokens,
   failingCategories,
   fetchObservation,
   formatDeadSourceMarker,
+  HostRateLimiter,
   isBotChallenge,
   main,
   openDeadSourceIssues,
@@ -560,4 +565,184 @@ test("dead source issue generator and deduplication", async () => {
   assert.equal(res2.opened.length, 1);
   assert.equal(created.length, 1);
   assert.equal(res2.opened[0]?.url, deadUrl);
+});
+
+test("source check report conforms to schemas/source-report.v1.schema.json", async () => {
+  const url = "https://example.com/ok";
+  const { report } = await checkSources({
+    registries: [registry([rule("npm.package.a.deprecated", [url])])],
+    lock: lockOf({ [url]: { finalUrl: url, title: "Page" } }),
+    now: NOW,
+    observe: async (u) => page(u),
+  });
+
+  const schemaPath = resolve("schemas/source-report.v1.schema.json");
+  const schema = JSON.parse(await readFile(schemaPath, "utf8")) as object;
+  const ajv = new Ajv2020({ allErrors: true });
+  const validate = ajv.compile(schema);
+  const valid = validate(report);
+  assert.equal(valid, true, `Validation failed: ${JSON.stringify(validate.errors)}`);
+});
+
+test("JSON pointer structured source checks: match, changed value, and unresolved pointer", async () => {
+  const jsonUrl = "https://example.com/schedule.json";
+  const ruleMatch: RegistryV2Rule = {
+    ...rule("npm.pkg.match.deprecated", [jsonUrl]),
+    deadline: "2026-04-30",
+    sources: [{ title: "Schedule", url: jsonUrl, accessedAt: "2026-10-01", pointer: "/v20/end" }],
+  };
+  const ruleChanged: RegistryV2Rule = {
+    ...rule("npm.pkg.changed.deprecated", [jsonUrl]),
+    deadline: "2026-04-30",
+    sources: [{ title: "Schedule", url: jsonUrl, accessedAt: "2026-10-01", pointer: "/v18/end" }],
+  };
+  const ruleUnresolved: RegistryV2Rule = {
+    ...rule("npm.pkg.unresolved.deprecated", [jsonUrl]),
+    deadline: "2026-04-30",
+    sources: [{ title: "Schedule", url: jsonUrl, accessedAt: "2026-10-01", pointer: "/missing/key" }],
+  };
+
+  const scheduleDoc = {
+    v20: { end: "2026-04-30" },
+    v18: { end: "2025-04-30" }, // differs from 2026-04-30
+  };
+
+  // 1. Evaluate pointer helper directly
+  assert.equal(evaluateJsonPointer(scheduleDoc, "/v20/end"), "2026-04-30");
+  assert.equal(evaluateJsonPointer(scheduleDoc, "/v18/end"), "2025-04-30");
+  assert.equal(evaluateJsonPointer(scheduleDoc, "/missing/key"), undefined);
+
+  // 2. checkSources integration
+  const { report } = await checkSources({
+    registries: [
+      {
+        name: "npm",
+        registry: {
+          schemaVersion: "ebb.registry.v2",
+          ecosystem: "npm",
+          rules: [ruleMatch, ruleChanged, ruleUnresolved],
+        },
+      },
+    ],
+    lock: lockOf({ [jsonUrl]: { finalUrl: jsonUrl, title: null } }),
+    now: NOW,
+    observe: async () => ({
+      status: 200,
+      finalUrl: jsonUrl,
+      title: null,
+      contentSnippet: JSON.stringify(scheduleDoc),
+    }),
+  });
+
+  const changed = report["date-changed"] ?? [];
+  assert.equal(changed.length, 2);
+
+  // Changed value finding
+  const changedFinding = changed.find((c) => c.ruleIds.includes("npm.pkg.changed.deprecated"));
+  assert.ok(changedFinding);
+  assert.equal(changedFinding.expected, "2026-04-30");
+  assert.equal(changedFinding.actual, "2025-04-30");
+
+  // Unresolved pointer finding
+  const unresolvedFinding = changed.find((c) => c.ruleIds.includes("npm.pkg.unresolved.deprecated"));
+  assert.ok(unresolvedFinding);
+  assert.equal(unresolvedFinding.expected, "2026-04-30");
+  assert.equal(unresolvedFinding.actual, null);
+});
+
+test("dead source fallback with and without archived copy", async () => {
+  const deadWithArchive = "https://example.com/dead-with-archive";
+  const deadWithoutArchive = "https://example.com/dead-without-archive";
+  const archiveSnapshotUrl = "https://web.archive.org/web/20261001000000/https://example.com/dead-with-archive";
+
+  const ruleWithArchive: RegistryV2Rule = {
+    ...rule("npm.pkg.archived.deprecated", [deadWithArchive]),
+    deadline: "2026-04-30",
+    sources: [
+      {
+        title: "Dead source",
+        url: deadWithArchive,
+        accessedAt: "2026-10-01",
+        archiveUrl: archiveSnapshotUrl,
+        archivedAt: "2026-10-01",
+      },
+    ],
+  };
+
+  const ruleWithoutArchive: RegistryV2Rule = {
+    ...rule("npm.pkg.no-archive.deprecated", [deadWithoutArchive]),
+    deadline: "2026-04-30",
+    sources: [
+      {
+        title: "Dead source without archive",
+        url: deadWithoutArchive,
+        accessedAt: "2026-10-01",
+      },
+    ],
+  };
+
+  const { report } = await checkSources({
+    registries: [
+      {
+        name: "npm",
+        registry: {
+          schemaVersion: "ebb.registry.v2",
+          ecosystem: "npm",
+          rules: [ruleWithArchive, ruleWithoutArchive],
+        },
+      },
+    ],
+    lock: lockOf({
+      [deadWithArchive]: { finalUrl: deadWithArchive, title: "Dead" },
+      [deadWithoutArchive]: { finalUrl: deadWithoutArchive, title: "Dead" },
+    }),
+    now: NOW,
+    observe: async (url) => {
+      if (url === deadWithArchive || url === deadWithoutArchive) {
+        return { status: 404, finalUrl: url, title: "Not Found", error: "HTTP 404" };
+      }
+      if (url === archiveSnapshotUrl) {
+        return {
+          status: 200,
+          finalUrl: archiveSnapshotUrl,
+          title: "Archived Snapshot",
+          contentSnippet: "Snapshot preserved from April 30, 2026.",
+        };
+      }
+      return page(url);
+    },
+  });
+
+  // With archive -> reported in archived-only, not in unreachable
+  const archived = report["archived-only"] ?? [];
+  assert.equal(archived.length, 1);
+  assert.equal(archived[0]?.url, deadWithArchive);
+  assert.equal(archived[0]?.archiveUrl, archiveSnapshotUrl);
+
+  // Without archive -> reported in unreachable
+  assert.equal(report.unreachable.length, 1);
+  assert.equal(report.unreachable[0]?.url, deadWithoutArchive);
+});
+
+test("per-host concurrency limiter limits concurrent requests to two per host", async () => {
+  const limiter = new HostRateLimiter(2);
+  let activeHost1 = 0;
+  let peakHost1 = 0;
+
+  const runRequest = async (url: string) => {
+    const release = await limiter.acquire(url);
+    try {
+      activeHost1++;
+      peakHost1 = Math.max(peakHost1, activeHost1);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    } finally {
+      activeHost1--;
+      release();
+    }
+  };
+
+  const urls = Array.from({ length: 6 }, (_, i) => `https://example.com/page${i}`);
+  await Promise.all(urls.map(runRequest));
+
+  assert.ok(peakHost1 <= 2, `Peak host concurrency was ${peakHost1}, expected <= 2`);
 });
