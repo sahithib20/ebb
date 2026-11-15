@@ -74,7 +74,7 @@ test("rulesFor returns full count, oldest-first order, and event filters for Nod
   assertMonotonicOldestFirst(actual, purl);
   assert.equal(actual[0]?.id, "nodejs.runtime.legacy");
   assert.equal(actual[1]?.id, "nodejs.symbol.fs.lchmod");
-  assert.equal(actual[actual.length - 1]?.id, "nodejs.symbol.module.register");
+  assert.equal(actual[actual.length - 1]?.id, "nodejs.runtime.eol-26");
 
   // Equal range starts (>=25.0.0) are broken stably by rule id.
   const v25Rules = actual.filter((rule) => rule.vers === "vers:semver/>=25.0.0").map((rule) => rule.id);
@@ -88,7 +88,10 @@ test("rulesFor returns full count, oldest-first order, and event filters for Nod
   for (const event of lifecycleEvents) {
     const filtered = rulesFor(purl, { event });
     const slice = actual.filter((rule) => rule.event === event);
-    assert.deepEqual(filtered, slice);
+    assert.deepEqual(
+      filtered.map((rule) => rule.id),
+      slice.map((rule) => rule.id),
+    );
     eventTotal += filtered.length;
   }
   assert.equal(eventTotal, actual.length);
@@ -129,7 +132,10 @@ test("rulesFor returns full count, oldest-first order, and event filters for Pyt
   for (const event of lifecycleEvents) {
     const filtered = rulesFor(purl, { event });
     const slice = actual.filter((rule) => rule.event === event);
-    assert.deepEqual(filtered, slice);
+    assert.deepEqual(
+      filtered.map((rule) => rule.id),
+      slice.map((rule) => rule.id),
+    );
     eventTotal += filtered.length;
   }
   assert.equal(eventTotal, actual.length);

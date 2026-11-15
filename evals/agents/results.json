@@ -1,14 +1,14 @@
 {
-  "timestamp": "2026-11-12T10:53:12.101Z",
+  "timestamp": "2026-11-15T10:20:37.987Z",
   "totalTasks": 100,
   "runs": [
     {
       "agent": "Claude Code",
       "mode": "baseline",
       "totalTasks": 100,
-      "deprecatedOrEolCount": 38,
-      "supportedCount": 62,
-      "deprecationRatePct": 38,
+      "deprecatedOrEolCount": 39,
+      "supportedCount": 61,
+      "deprecationRatePct": 39,
       "picks": [
         {
           "taskId": "task-001",
@@ -878,10 +878,10 @@
           "taskId": "task-097",
           "purl": "pkg:generic/nodejs",
           "version": "24.0.0",
-          "status": "ok",
-          "isDeprecatedOrEol": false,
-          "replacement": null,
-          "ruleId": null
+          "status": "scheduled",
+          "isDeprecatedOrEol": true,
+          "replacement": "Node.js 24 LTS or later",
+          "ruleId": "nodejs.runtime.eol-24"
         },
         {
           "taskId": "task-098",
@@ -916,9 +916,9 @@
       "agent": "Claude Code",
       "mode": "mcp",
       "totalTasks": 100,
-      "deprecatedOrEolCount": 0,
-      "supportedCount": 100,
-      "deprecationRatePct": 0,
+      "deprecatedOrEolCount": 1,
+      "supportedCount": 99,
+      "deprecationRatePct": 1,
       "picks": [
         {
           "taskId": "task-001",
@@ -1788,10 +1788,10 @@
           "taskId": "task-097",
           "purl": "pkg:generic/nodejs",
           "version": "24.0.0",
-          "status": "ok",
-          "isDeprecatedOrEol": false,
-          "replacement": null,
-          "ruleId": null
+          "status": "scheduled",
+          "isDeprecatedOrEol": true,
+          "replacement": "Node.js 24 LTS or later",
+          "ruleId": "nodejs.runtime.eol-24"
         },
         {
           "taskId": "task-098",
@@ -1826,9 +1826,9 @@
       "agent": "Claude Code",
       "mode": "skill",
       "totalTasks": 100,
-      "deprecatedOrEolCount": 0,
-      "supportedCount": 100,
-      "deprecationRatePct": 0,
+      "deprecatedOrEolCount": 1,
+      "supportedCount": 99,
+      "deprecationRatePct": 1,
       "picks": [
         {
           "taskId": "task-001",
@@ -2698,10 +2698,10 @@
           "taskId": "task-097",
           "purl": "pkg:generic/nodejs",
           "version": "24.0.0",
-          "status": "ok",
-          "isDeprecatedOrEol": false,
-          "replacement": null,
-          "ruleId": null
+          "status": "scheduled",
+          "isDeprecatedOrEol": true,
+          "replacement": "Node.js 24 LTS or later",
+          "ruleId": "nodejs.runtime.eol-24"
         },
         {
           "taskId": "task-098",
@@ -2736,9 +2736,9 @@
       "agent": "Codex / Cursor",
       "mode": "baseline",
       "totalTasks": 100,
-      "deprecatedOrEolCount": 38,
-      "supportedCount": 62,
-      "deprecationRatePct": 38,
+      "deprecatedOrEolCount": 39,
+      "supportedCount": 61,
+      "deprecationRatePct": 39,
       "picks": [
         {
           "taskId": "task-001",
@@ -3608,10 +3608,10 @@
           "taskId": "task-097",
           "purl": "pkg:generic/nodejs",
           "version": "24.0.0",
-          "status": "ok",
-          "isDeprecatedOrEol": false,
-          "replacement": null,
-          "ruleId": null
+          "status": "scheduled",
+          "isDeprecatedOrEol": true,
+          "replacement": "Node.js 24 LTS or later",
+          "ruleId": "nodejs.runtime.eol-24"
         },
         {
           "taskId": "task-098",
@@ -3646,9 +3646,9 @@
       "agent": "Codex / Cursor",
       "mode": "mcp",
       "totalTasks": 100,
-      "deprecatedOrEolCount": 0,
-      "supportedCount": 100,
-      "deprecationRatePct": 0,
+      "deprecatedOrEolCount": 1,
+      "supportedCount": 99,
+      "deprecationRatePct": 1,
       "picks": [
         {
           "taskId": "task-001",
@@ -4518,10 +4518,10 @@
           "taskId": "task-097",
           "purl": "pkg:generic/nodejs",
           "version": "24.0.0",
-          "status": "ok",
-          "isDeprecatedOrEol": false,
-          "replacement": null,
-          "ruleId": null
+          "status": "scheduled",
+          "isDeprecatedOrEol": true,
+          "replacement": "Node.js 24 LTS or later",
+          "ruleId": "nodejs.runtime.eol-24"
         },
         {
           "taskId": "task-098",
@@ -4554,8 +4554,8 @@
     }
   ],
   "headlineSummary": {
-    "baselineDeprecationRatePct": 38,
-    "withEbbDeprecationRatePct": 0,
+    "baselineDeprecationRatePct": 39,
+    "withEbbDeprecationRatePct": 1,
     "reductionPercentagePoints": 38
   }
 }
