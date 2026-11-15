@@ -14,7 +14,7 @@ A runtime is **complete** when both are true:
 1. **Every release line first released since 2018** has a registry rule that covers its end (end-of-life, end-of-support, or an equivalent catch-all that matches that line).
 2. **Every still-supported line with an official end date** has a `scheduled-end-of-life` (or scheduled end-of-support) rule for that date.
 
-Dates keep the precision the official source publishes. Month-only announcements stay month-precision; Ebb does not invent a day-of-month from a month-only source, and it does not copy dates from third-party aggregators.
+Dates keep the precision the official source publishes. Month-only announcements stay month-precision in expected files and registry hints. The offline checker requires each end rule to cover the release line’s full `lineVers` range and scheduled milestones to match the official date at that precision. Ebb does not invent a day-of-month from a month-only source, and it does not copy dates from third-party aggregators.
 
 Runtimes with **no published support schedule** are listed only to document that limit. They are not treated as incomplete for lacking dated rules.
 
@@ -32,4 +32,13 @@ Runtimes with **no published support schedule** are listed only to document that
 | Rust | [Rust Book — maintenance time](https://doc.rust-lang.org/book/appendix-07-nightly-rust.html#maintenance-time) ([security policy](https://www.rust-lang.org/policies/security)) | Yes |
 | Deno | [Deno stability and releases (LTS)](https://docs.deno.com/runtime/fundamentals/stability_and_releases/) | Yes (dated LTS lines only) |
 | Bun | No official dated support schedule | Limits only — no dated rules required |
+
+## Checker
+
+```bash
+npm run build --silent
+node dist/tools/coverage/runtimes.js
+```
+
+The checker reads only local expected JSON and `registry/`. It does not fetch the network. It validates that one end rule covers each expected `lineVers` range and that a scheduled rule covering that range matches the official deadline at published precision. Exit code `0` means complete, `1` means gaps remain (the docs table is still written with `--write-docs`), and `2` means a checker or write error.
 
