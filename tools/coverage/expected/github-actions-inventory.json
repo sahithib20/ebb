@@ -1,11 +1,7 @@
 {
   "schemaVersion": "ebb.actions-inventory.v1",
   "reviewedAt": "2026-11-15",
-  "retiredRuntimes": [
-    "node12",
-    "node16",
-    "node20"
-  ],
+  "retiredRuntimes": ["node12", "node16", "node20"],
   "actions": {
     "actions/add-to-project": {
       "majors": [
@@ -26,6 +22,11 @@
     "actions/ai-inference": {
       "majors": [
         {
+          "major": 0,
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
           "major": 1,
           "using": "node20",
           "file": "action.yml"
@@ -43,6 +44,10 @@
       ],
       "aliases": [
         {
+          "major": 0,
+          "version": "0.0.1"
+        },
+        {
           "major": 1,
           "version": "1.2.8"
         },
@@ -52,6 +57,11 @@
         }
       ],
       "retiredMajors": [
+        {
+          "major": 0,
+          "using": "node20",
+          "file": "action.yml"
+        },
         {
           "major": 1,
           "using": "node20",
@@ -373,6 +383,11 @@
     "actions/configure-pages": {
       "majors": [
         {
+          "major": 0,
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
           "major": 1,
           "using": "node16",
           "file": "action.yml"
@@ -405,6 +420,10 @@
       ],
       "aliases": [
         {
+          "major": 0,
+          "version": "0.1.0"
+        },
+        {
           "major": 1,
           "version": "1.2.1"
         },
@@ -430,6 +449,11 @@
         }
       ],
       "retiredMajors": [
+        {
+          "major": 0,
+          "using": "node16",
+          "file": "action.yml"
+        },
         {
           "major": 1,
           "using": "node16",
@@ -2381,6 +2405,11 @@
     "actions/upload-pages-artifact": {
       "majors": [
         {
+          "major": 0,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
           "major": 1,
           "using": "composite",
           "file": "action.yml"
@@ -2407,6 +2436,10 @@
         }
       ],
       "aliases": [
+        {
+          "major": 0,
+          "version": "0.1.0"
+        },
         {
           "major": 1,
           "version": "1.0.10"
