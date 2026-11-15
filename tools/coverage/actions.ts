@@ -72,11 +72,19 @@ export interface InventoryRelease {
   file: string;
 }
 
+/** Moving major tag (`v6`) resolved to the exact release that tag currently points at. */
+export interface InventoryAlias {
+  major: number;
+  version: string;
+}
+
 export interface InventoryAction {
   majors: InventoryMajor[];
   retiredMajors?: InventoryMajor[];
   /** Present when `runs.using` changes inside a major, so a major-tag probe cannot hide a retired patch. */
   releases?: InventoryRelease[];
+  /** Reviewed resolution of moving major tags to an exact release. */
+  aliases?: InventoryAlias[];
   notes?: string;
 }
 
@@ -301,6 +309,21 @@ export function parseActionsInventory(value: unknown, label = INVENTORY_NAME): A
     const releases = (entry as { releases?: unknown }).releases;
     if (releases !== undefined && (!Array.isArray(releases) || !releases.every(isInventoryRelease))) {
       throw new Error(`${label} entry ${name} has a malformed releases array`);
+    }
+    const aliases = (entry as { aliases?: unknown }).aliases;
+    if (
+      aliases !== undefined &&
+      (!Array.isArray(aliases) ||
+        !aliases.every(
+          (alias) =>
+            typeof alias === "object" &&
+            alias !== null &&
+            Number.isInteger((alias as { major?: unknown }).major) &&
+            typeof (alias as { version?: unknown }).version === "string" &&
+            RELEASE_VERSION.test((alias as { version: string }).version),
+        ))
+    ) {
+      throw new Error(`${label} entry ${name} has a malformed alias`);
     }
   }
   return inventory as unknown as ActionsInventory;

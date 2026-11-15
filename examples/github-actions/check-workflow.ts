@@ -18,14 +18,34 @@ interface ShaMapFile {
   actions: Record<string, Record<string, string>>;
 }
 
+interface InventoryFile {
+  actions: Record<string, { aliases?: Array<{ major: number; version: string }> }>;
+}
+
 let shaTags: Record<string, Record<string, string>> | undefined;
+let aliases: InventoryFile["actions"] | undefined;
+
+function repoRoot(): string {
+  return resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+}
 
 function releaseTag(repo: string, sha: string): string | undefined {
   if (!shaTags) {
-    const mapPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../registry/github-actions-shas.json");
-    shaTags = (JSON.parse(readFileSync(mapPath, "utf8")) as ShaMapFile).actions;
+    shaTags = (JSON.parse(readFileSync(resolve(repoRoot(), "registry/github-actions-shas.json"), "utf8")) as ShaMapFile)
+      .actions;
   }
   return shaTags[repo.toLowerCase()]?.[sha.toLowerCase()];
+}
+
+/** Exact release a moving major tag currently points at, from the reviewed inventory. */
+export function majorAlias(action: string, major: number): string | undefined {
+  if (!aliases) {
+    aliases = (
+      JSON.parse(readFileSync(resolve(repoRoot(), "tools/coverage/expected/github-actions-inventory.json"), "utf8")) as InventoryFile
+    ).actions;
+  }
+  const key = action.toLowerCase();
+  return aliases[key]?.aliases?.find((entry) => entry.major === major)?.version;
 }
 
 /** `owner/repo` or `owner/repo/subpath` → `pkg:github/owner/repo` or `pkg:github/owner/repo#subpath`. */
@@ -35,13 +55,24 @@ export function actionPurl(action: string): string {
   return subpath ? `pkg:github/${owner}/${repo}#${subpath}` : `pkg:github/${owner}/${repo}`;
 }
 
-/** A 40-character pin becomes the release tag recorded for that commit. Other refs are unchanged. */
+/**
+ * Resolve a workflow ref before version rules run.
+ * A 40-character pin becomes its exact release tag. A moving major (`v6`) becomes the
+ * reviewed release that tag currently points at, so `v6` is not treated as `6.0.0`.
+ */
 export function versionForRef(action: string, ref: string): string {
-  if (!SHA.test(ref)) return ref;
-  const repo = action.split("/").slice(0, 2).join("/");
-  const tag = releaseTag(repo, ref);
-  if (!tag) throw new Error(`No release tag for ${repo}@${ref} in registry/github-actions-shas.json`);
-  return tag;
+  if (SHA.test(ref)) {
+    const repo = action.split("/").slice(0, 2).join("/");
+    const tag = releaseTag(repo, ref);
+    if (!tag) throw new Error(`No release tag for ${repo}@${ref} in registry/github-actions-shas.json`);
+    return tag.replace(/^[vV]/, "");
+  }
+  const bare = ref.replace(/^[vV]/, "");
+  if (/^\d+$/.test(bare)) {
+    const resolved = majorAlias(action, Number(bare));
+    if (resolved) return resolved;
+  }
+  return bare;
 }
 
 export interface GitHubActionReference {

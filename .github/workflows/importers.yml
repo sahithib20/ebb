@@ -380,7 +380,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -397,13 +396,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'EOF'
           import { writeFileSync } from "node:fs";
-          import {
-            checkActionCoverage,
-            coverageIssueMarker,
-            coverageIssueTitle,
-            formatCoverageIssueBody,
-            formatCoverageText,
-          } from "./dist/tools/coverage/actions.js";
+          import { checkActionCoverage, formatCoverageText } from "./dist/tools/coverage/actions.js";
 
           const report = await checkActionCoverage();
           const text = formatCoverageText(report);
@@ -412,42 +405,8 @@ jobs:
             writeFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`, { flag: "a" });
           }
           writeFileSync("actions-coverage.json", `${JSON.stringify(report, null, 2)}\n`);
-
-          const gaps = report.actions.filter((action) => !action.complete);
-          for (const action of gaps) {
-            writeFileSync(`actions-coverage-issue-${action.slug}.md`, formatCoverageIssueBody(action));
-            writeFileSync(`actions-coverage-title-${action.slug}.txt`, coverageIssueTitle(action.action));
-            writeFileSync(`actions-coverage-marker-${action.slug}.txt`, coverageIssueMarker(action.action));
-          }
           EOF
-
-          slugs="$(jq -r '.actions[] | select(.complete == false) | .slug' actions-coverage.json)"
-          if [ -z "$slugs" ]; then
-            echo "No Actions coverage gaps; leaving issues unchanged."
-            exit 0
-          fi
-
-          # The REST list includes pull requests and emits one array per page.
-          issues="$(gh api --paginate --slurp "repos/$GH_REPO/issues?state=open&per_page=100")"
-          while IFS= read -r slug; do
-            marker="$(cat "actions-coverage-marker-${slug}.txt")"
-            existing="$(
-              jq -r --arg marker "$marker" '
-                first(.[][] | select(has("pull_request") | not)
-                  | select((.body // "" | split("\n") | map(rtrimstr("\r")) | index($marker)) != null)
-                  | .number) // empty
-              ' <<< "$issues"
-            )"
-            if [ -n "$existing" ]; then
-              echo "Coverage gap issue #$existing already open for $slug"
-            else
-              echo "Opening coverage gap issue for $slug"
-              gh issue create \
-                --title "$(cat "actions-coverage-title-${slug}.txt")" \
-                --body-file "actions-coverage-issue-${slug}.md" \
-                --label "type:task"
-            fi
-          done <<< "$slugs"
+          # Gap issues are opened only by the actions-inventory job, so the two jobs cannot race.
       - name: Upload the coverage report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -468,6 +427,8 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
         # zizmor: ignore[artipacked] -- it pushes the inventory branch with the checkout token
       - uses: $/.github/actions/setup
         with:
@@ -477,30 +438,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node dist/tools/coverage/refresh-actions-inventory.js
-      - name: Open or update an inventory-only pull request
-        env:
-          GH_TOKEN: ${{ github.token }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- tools/coverage/expected/github-actions-inventory.json; then
-            echo "no change"
-          else
-            branch="importers/actions-inventory"
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git checkout -B "$branch"
-            git add -- tools/coverage/expected/github-actions-inventory.json
-            git commit -m "chore: refresh the GitHub Actions inventory snapshot"
-            git push --force origin "$branch"
-            title="chore: refresh the GitHub Actions inventory"
-            body="Refreshes \`tools/coverage/expected/github-actions-inventory.json\` only. It does not edit \`registry/\`."
-            if gh pr view "$branch" --json number >/dev/null 2>&1; then
-              gh pr edit "$branch" --title "$title" --body "$body"
-            else
-              gh pr create --head "$branch" --base "$DEFAULT_BRANCH" --title "$title" --body "$body"
-            fi
-          fi
       - name: Report gaps and publish the coverage table
         env:
           GH_TOKEN: ${{ github.token }}
@@ -559,6 +496,11 @@ jobs:
                 --label "type:task"
             fi
           done <<< "$slugs"
+      - name: Open or update an inventory-only pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node dist/tools/coverage/publish-inventory-pr.js
       - name: Upload the refreshed coverage table
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

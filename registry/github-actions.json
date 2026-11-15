@@ -260,13 +260,64 @@
       }
     },
     {
+      "id": "github-actions.upload-artifact.v1-v2",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/upload-artifact",
+      "vers": "vers:semver/<3.0.0",
+      "event": "removed",
+      "title": "Removed actions/upload-artifact v1 and v2",
+      "summary": "v1 and v2 of actions/upload-artifact were removed on 2024-06-30. This removal does not affect GitHub Enterprise Server. v3 was removed later, on 2025-01-30.",
+      "severity": "critical",
+      "replacement": "actions/upload-artifact@v4 or later",
+      "deadline": "2024-06-30",
+      "sources": [
+        {
+          "title": "Deprecation notice: v1 and v2 of the artifact actions",
+          "url": "https://github.blog/changelog/2024-02-13-deprecation-notice-v1-and-v2-of-the-artifact-actions/",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "reviewers": [
+          "unreviewed"
+        ],
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Preserve artifact names, selected paths, retention settings, and overwrite behavior."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade upload-artifact",
+            "instructions": "Change the uses reference to actions/upload-artifact@v4 or a later release. v3 was removed on 2025-01-30, and v4 and v5 still run on Node.js 20.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/upload-artifact",
+        "supportedFromMajor": 4
+      }
+    },
+    {
       "id": "github-actions.upload-artifact.retired",
       "ecosystem": "github-actions",
       "purl": "pkg:github/actions/upload-artifact",
-      "vers": "vers:semver/<4.0.0",
+      "vers": "vers:semver/>=3.0.0|<4.0.0",
       "event": "removed",
       "title": "Retired actions/upload-artifact release",
-      "summary": "v1 and v2 of actions/upload-artifact were removed on 2024-06-30 and v3 on 2025-01-30. Brownouts ran on 2025-01-09, 2025-01-16, and 2025-01-23. This removal does not affect GitHub Enterprise Server. v4 restores the artifact service and runs on Node.js 20.",
+      "summary": "v3 of actions/upload-artifact was removed on 2025-01-30. Brownouts ran on 2025-01-09, 2025-01-16, and 2025-01-23. This removal does not affect GitHub Enterprise Server. v1 and v2 were removed earlier, on 2024-06-30. v4 restores the artifact service and runs on Node.js 20.",
       "severity": "critical",
       "replacement": "actions/upload-artifact@v4 or later",
       "deadline": "2025-01-30",
@@ -380,13 +431,64 @@
       }
     },
     {
+      "id": "github-actions.download-artifact.v1-v2",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/download-artifact",
+      "vers": "vers:semver/<3.0.0",
+      "event": "removed",
+      "title": "Removed actions/download-artifact v1 and v2",
+      "summary": "v1 and v2 of actions/download-artifact were removed on 2024-06-30. This removal does not affect GitHub Enterprise Server. v3 was removed later, on 2025-01-30.",
+      "severity": "critical",
+      "replacement": "actions/download-artifact@v4 or later",
+      "deadline": "2024-06-30",
+      "sources": [
+        {
+          "title": "Deprecation notice: v1 and v2 of the artifact actions",
+          "url": "https://github.blog/changelog/2024-02-13-deprecation-notice-v1-and-v2-of-the-artifact-actions/",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "reviewers": [
+          "unreviewed"
+        ],
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Preserve artifact selection, download paths, merge behavior, and downstream file locations."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade download-artifact",
+            "instructions": "Change the uses reference to actions/download-artifact@v4 or a later release. v3 was removed on 2025-01-30, and v4, v5, and v6 still run on Node.js 20.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/download-artifact",
+        "supportedFromMajor": 4
+      }
+    },
+    {
       "id": "github-actions.download-artifact.retired",
       "ecosystem": "github-actions",
       "purl": "pkg:github/actions/download-artifact",
-      "vers": "vers:semver/<4.0.0",
+      "vers": "vers:semver/>=3.0.0|<4.0.0",
       "event": "removed",
       "title": "Retired actions/download-artifact release",
-      "summary": "v1 and v2 of actions/download-artifact were removed on 2024-06-30 and v3 on 2025-01-30. Brownouts ran on 2025-01-09, 2025-01-16, and 2025-01-23. This removal does not affect GitHub Enterprise Server. v4 restores the artifact service and runs on Node.js 20.",
+      "summary": "v3 of actions/download-artifact was removed on 2025-01-30. Brownouts ran on 2025-01-09, 2025-01-16, and 2025-01-23. This removal does not affect GitHub Enterprise Server. v1 and v2 were removed earlier, on 2024-06-30. v4 restores the artifact service and runs on Node.js 20.",
       "severity": "critical",
       "replacement": "actions/download-artifact@v4 or later",
       "deadline": "2025-01-30",
@@ -2776,6 +2878,116 @@
         ]
       },
       "deadline": "2020-11-16"
+    },
+    {
+      "id": "github-actions.hello-world-javascript-action.node12",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/hello-world-javascript-action",
+      "vers": "vers:semver/<2.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/hello-world-javascript-action runtime",
+      "summary": "v1 sets runs.using to node12. GitHub removed Node.js 12 from Actions runners on 2023-08-14. No later major is published.",
+      "severity": "high",
+      "replacement": "No supported major of actions/hello-world-javascript-action is published",
+      "deadline": "2023-08-14",
+      "sources": [
+        {
+          "title": "Removal of Node12 from the Actions runner",
+          "url": "https://github.blog/changelog/2023-07-16-github-actions-removal-of-node12-from-the-actions-runner/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/hello-world-javascript-action v1 action.yml",
+          "url": "https://github.com/actions/hello-world-javascript-action/blob/v1/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "reviewers": [
+          "unreviewed"
+        ],
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "This repository is a starter template. v1 is the only published major and it sets runs.using to node12."
+        ],
+        "steps": [
+          {
+            "id": "stop-using-retired-major",
+            "title": "Stop pinning v1",
+            "instructions": "Do not pin actions/hello-world-javascript-action@v1. Copy the template and set runs.using to node24 before publishing a workflow that uses it.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/hello-world-javascript-action"
+      }
+    },
+    {
+      "id": "github-actions.javascript-action.node12",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/javascript-action",
+      "vers": "vers:semver/<2.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/javascript-action runtime",
+      "summary": "v1 sets runs.using to node12. GitHub removed Node.js 12 from Actions runners on 2023-08-14. No later major is published.",
+      "severity": "high",
+      "replacement": "No supported major of actions/javascript-action is published",
+      "deadline": "2023-08-14",
+      "sources": [
+        {
+          "title": "Removal of Node12 from the Actions runner",
+          "url": "https://github.blog/changelog/2023-07-16-github-actions-removal-of-node12-from-the-actions-runner/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/javascript-action v1 action.yml",
+          "url": "https://github.com/actions/javascript-action/blob/v1/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "reviewers": [
+          "unreviewed"
+        ],
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "This repository is a starter template. v1 is the only published major and it sets runs.using to node12."
+        ],
+        "steps": [
+          {
+            "id": "stop-using-retired-major",
+            "title": "Stop pinning v1",
+            "instructions": "Do not pin actions/javascript-action@v1. Copy the template and set runs.using to node24 before publishing a workflow that uses it.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/javascript-action"
+      }
     }
   ]
 }

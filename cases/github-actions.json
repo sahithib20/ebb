@@ -137,6 +137,16 @@
     },
     {
       "purl": "pkg:github/actions/download-artifact",
+      "version": "1.0.0",
+      "rules": ["github-actions.download-artifact.v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
+      "version": "2.0.0",
+      "rules": ["github-actions.download-artifact.v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
       "version": "3.0.0",
       "rules": ["github-actions.download-artifact.retired"]
     },
@@ -277,6 +287,16 @@
     },
     {
       "purl": "pkg:github/actions/upload-artifact",
+      "version": "1.0.0",
+      "rules": ["github-actions.upload-artifact.v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
+      "version": "2.0.0",
+      "rules": ["github-actions.upload-artifact.v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
       "version": "3.0.0",
       "rules": ["github-actions.upload-artifact.retired"]
     },
@@ -403,6 +423,26 @@
     {
       "purl": "pkg:github/softprops/action-gh-release",
       "version": "3.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/hello-world-javascript-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.hello-world-javascript-action.node12"]
+    },
+    {
+      "purl": "pkg:github/actions/hello-world-javascript-action",
+      "version": "2.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/javascript-action",
+      "version": "1.0.1",
+      "rules": ["github-actions.javascript-action.node12"]
+    },
+    {
+      "purl": "pkg:github/actions/javascript-action",
+      "version": "2.0.0",
       "rules": []
     }
   ]

@@ -11,10 +11,21 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 2,
+          "version": "2.0.1"
+        }
+      ],
       "retiredMajors": []
     },
     "actions/ai-inference": {
       "majors": [
+        {
+          "major": 0,
+          "using": "node20",
+          "file": "action.yml"
+        },
         {
           "major": 1,
           "using": "node20",
@@ -31,7 +42,26 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 0,
+          "version": "0.0.1"
+        },
+        {
+          "major": 1,
+          "version": "1.2.8"
+        },
+        {
+          "major": 2,
+          "version": "2.1.1"
+        }
+      ],
       "retiredMajors": [
+        {
+          "major": 0,
+          "using": "node20",
+          "file": "action.yml"
+        },
         {
           "major": 1,
           "using": "node20",
@@ -62,6 +92,24 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.4.1"
+        },
+        {
+          "major": 2,
+          "version": "2.4.0"
+        },
+        {
+          "major": 3,
+          "version": "3.0.0"
+        },
+        {
+          "major": 4,
+          "version": "4.2.2"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -76,12 +124,92 @@
       ]
     },
     "actions/attest-build-provenance": {
-      "majors": [],
-      "retiredMajors": []
+      "majors": [
+        {
+          "major": 1,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 2,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 3,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 4,
+          "using": "composite",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.4.4"
+        },
+        {
+          "major": 2,
+          "version": "2.4.0"
+        },
+        {
+          "major": 3,
+          "version": "3.0.0"
+        },
+        {
+          "major": 4,
+          "version": "4.2.2"
+        }
+      ],
+      "retiredMajors": [],
+      "notes": "Composite action. Published root action.yml files set runs.using to composite, so no Node.js runtime rule is required."
     },
     "actions/attest-sbom": {
-      "majors": [],
-      "retiredMajors": []
+      "majors": [
+        {
+          "major": 1,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 2,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 3,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 4,
+          "using": "composite",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.4.1"
+        },
+        {
+          "major": 2,
+          "version": "2.4.0"
+        },
+        {
+          "major": 3,
+          "version": "3.0.0"
+        },
+        {
+          "major": 4,
+          "version": "4.1.0"
+        }
+      ],
+      "retiredMajors": [],
+      "notes": "Composite action. Published root action.yml files set runs.using to composite, so no Node.js runtime rule is required."
     },
     "actions/cache": {
       "majors": [
@@ -116,6 +244,28 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.2.1"
+        },
+        {
+          "major": 3,
+          "version": "3.5.0"
+        },
+        {
+          "major": 4,
+          "version": "4.3.0"
+        },
+        {
+          "major": 5,
+          "version": "5.1.0"
+        },
+        {
+          "major": 6,
+          "version": "6.1.0"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -143,7 +293,7 @@
       "majors": [
         {
           "major": 1,
-          "using": "node12",
+          "using": null,
           "file": "action.yml"
         },
         {
@@ -177,12 +327,37 @@
           "file": "action.yml"
         }
       ],
-      "retiredMajors": [
+      "aliases": [
         {
           "major": 1,
-          "using": "node12",
-          "file": "action.yml"
+          "version": "1.2.0"
         },
+        {
+          "major": 2,
+          "version": "2.8.0"
+        },
+        {
+          "major": 3,
+          "version": "3.7.0"
+        },
+        {
+          "major": 4,
+          "version": "4.4.0"
+        },
+        {
+          "major": 5,
+          "version": "5.1.0"
+        },
+        {
+          "major": 6,
+          "version": "6.1.0"
+        },
+        {
+          "major": 7,
+          "version": "7.0.1"
+        }
+      ],
+      "retiredMajors": [
         {
           "major": 2,
           "using": "node12",
@@ -202,10 +377,16 @@
     },
     "actions/component-detection-dependency-submission-action": {
       "majors": [],
-      "retiredMajors": []
+      "retiredMajors": [],
+      "notes": "No git tags were published as of 2026-11-15, so there is no major whose runtime can be classified."
     },
     "actions/configure-pages": {
       "majors": [
+        {
+          "major": 0,
+          "using": "node16",
+          "file": "action.yml"
+        },
         {
           "major": 1,
           "using": "node16",
@@ -237,7 +418,42 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 0,
+          "version": "0.1.0"
+        },
+        {
+          "major": 1,
+          "version": "1.2.1"
+        },
+        {
+          "major": 2,
+          "version": "2.1.3"
+        },
+        {
+          "major": 3,
+          "version": "3.0.7"
+        },
+        {
+          "major": 4,
+          "version": "4.0.0"
+        },
+        {
+          "major": 5,
+          "version": "5.0.0"
+        },
+        {
+          "major": 6,
+          "version": "6.0.0"
+        }
+      ],
       "retiredMajors": [
+        {
+          "major": 0,
+          "using": "node16",
+          "file": "action.yml"
+        },
         {
           "major": 1,
           "using": "node16",
@@ -298,6 +514,327 @@
           "file": "action.yml"
         }
       ],
+      "releases": [
+        {
+          "version": "1.0.0",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.0.1",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.0.2",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.0.3",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.0.4",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.0.5",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.1.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.1.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.1.2",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.1.3",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.1.4",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.1.5",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.2.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.2.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.2.2",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.3.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.4.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.5.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.5.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.6.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.6.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.6.2",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.6.3",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.6.4",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.7.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.8.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.8.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.8.2",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.9.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.9.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.9.2",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.9.3",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.10.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.10.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.10.2",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.10.3",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.10.4",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.11.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.11.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.11.2",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.11.3",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.11.4",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.11.5",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.11.6",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.11.7",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "1.12.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.0.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.0.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.0.2",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.0.3",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.0.4",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.0.5",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.0.6",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.1.0",
+          "using": "node24",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.1.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.1.2",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.1.3",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.1.4",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.2.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.2.1",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "2.2.2",
+          "using": "node20",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.12.0"
+        },
+        {
+          "major": 2,
+          "version": "2.2.2"
+        },
+        {
+          "major": 3,
+          "version": "3.3.0"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -337,6 +874,28 @@
           "major": 5,
           "using": "node20",
           "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.0.3"
+        },
+        {
+          "major": 2,
+          "version": "2.0.2"
+        },
+        {
+          "major": 3,
+          "version": "3.0.0"
+        },
+        {
+          "major": 4,
+          "version": "4.1.1"
+        },
+        {
+          "major": 5,
+          "version": "5.0.0"
         }
       ],
       "retiredMajors": [
@@ -383,16 +942,93 @@
           "major": 3,
           "using": "node16",
           "file": "action.yml"
+        }
+      ],
+      "releases": [
+        {
+          "version": "3.0.0",
+          "using": "node16",
+          "file": "action.yml"
         },
         {
-          "major": 4,
+          "version": "3.0.1",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.0.2",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.0.3",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.0.4",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.0.5",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.0.6",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.0.7",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.0.8",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.1.0",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.1.1",
           "using": "node20",
           "file": "action.yml"
         },
         {
-          "major": 5,
-          "using": "node24",
+          "version": "3.1.2",
+          "using": "node16",
           "file": "action.yml"
+        },
+        {
+          "version": "3.1.3",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.1.4",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.1.5",
+          "using": "node16",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.0.2"
+        },
+        {
+          "major": 2,
+          "version": "2.5.1"
         }
       ],
       "retiredMajors": [
@@ -409,11 +1045,6 @@
         {
           "major": 3,
           "using": "node16",
-          "file": "action.yml"
-        },
-        {
-          "major": 4,
-          "using": "node20",
           "file": "action.yml"
         }
       ]
@@ -437,13 +1068,35 @@
         },
         {
           "major": 4,
-          "using": "node16",
+          "using": "node20",
           "file": "action.yml"
         },
         {
           "major": 5,
           "using": "node24",
           "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.2.9"
+        },
+        {
+          "major": 2,
+          "version": "2.0.5"
+        },
+        {
+          "major": 3,
+          "version": "3.0.1"
+        },
+        {
+          "major": 4,
+          "version": "4.0.5"
+        },
+        {
+          "major": 5,
+          "version": "5.0.1"
         }
       ],
       "retiredMajors": [
@@ -464,7 +1117,7 @@
         },
         {
           "major": 4,
-          "using": "node16",
+          "using": "node20",
           "file": "action.yml"
         }
       ]
@@ -473,7 +1126,7 @@
       "majors": [
         {
           "major": 1,
-          "using": "node12",
+          "using": null,
           "file": "action.yml"
         },
         {
@@ -512,12 +1165,63 @@
           "file": "action.yml"
         }
       ],
-      "retiredMajors": [
+      "releases": [
         {
-          "major": 1,
-          "using": "node12",
+          "version": "3.0.0",
+          "using": "node16",
           "file": "action.yml"
         },
+        {
+          "version": "3.0.1",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.0.2",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.1.0",
+          "using": "node24",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.0.0"
+        },
+        {
+          "major": 2,
+          "version": "2.1.1"
+        },
+        {
+          "major": 3,
+          "version": "3.0.2"
+        },
+        {
+          "major": 4,
+          "version": "4.3.0"
+        },
+        {
+          "major": 5,
+          "version": "5.0.0"
+        },
+        {
+          "major": 6,
+          "version": "6.0.0"
+        },
+        {
+          "major": 7,
+          "version": "7.0.0"
+        },
+        {
+          "major": 8,
+          "version": "8.0.2"
+        }
+      ],
+      "retiredMajors": [
         {
           "major": 2,
           "using": "node12",
@@ -561,6 +1265,16 @@
           "major": 3,
           "using": "node24",
           "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 2,
+          "version": "2.0.0"
+        },
+        {
+          "major": 3,
+          "version": "3.1.0"
         }
       ],
       "retiredMajors": [
@@ -619,6 +1333,44 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.1.0"
+        },
+        {
+          "major": 2,
+          "version": "2.1.0"
+        },
+        {
+          "major": 3,
+          "version": "3.2.0"
+        },
+        {
+          "major": 4,
+          "version": "4.2.0"
+        },
+        {
+          "major": 5,
+          "version": "5.2.0"
+        },
+        {
+          "major": 6,
+          "version": "6.4.1"
+        },
+        {
+          "major": 7,
+          "version": "7.1.0"
+        },
+        {
+          "major": 8,
+          "version": "8.0.0"
+        },
+        {
+          "major": 9,
+          "version": "9.0.0"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -670,6 +1422,16 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.0.3"
+        },
+        {
+          "major": 2,
+          "version": "2.0.3"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -689,23 +1451,77 @@
       "notes": "No vN tags on 2026-11-15. The default-branch root action.yml is composite and exits with an error telling callers to use gradle/actions/setup-gradle or gradle/actions/dependency-submission."
     },
     "actions/hello-world-docker-action": {
-      "majors": [],
+      "majors": [
+        {
+          "major": 1,
+          "using": "docker",
+          "file": "action.yml"
+        },
+        {
+          "major": 2,
+          "using": "docker",
+          "file": "action.yml"
+        }
+      ],
       "retiredMajors": [],
-      "notes": "Starter template. No released major is classified."
+      "notes": "Starter template. Published majors set runs.using to docker."
     },
     "actions/hello-world-javascript-action": {
-      "majors": [],
-      "retiredMajors": [],
-      "notes": "Starter template. No released major is classified."
+      "majors": [
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "action.yml"
+        }
+      ],
+      "retiredMajors": [
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "action.yml"
+        }
+      ],
+      "notes": "Starter template. v1 sets runs.using to node12."
     },
     "actions/javascript-action": {
-      "majors": [],
-      "retiredMajors": [],
-      "notes": "Starter template. No released major is classified."
+      "majors": [
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.0.1"
+        }
+      ],
+      "retiredMajors": [
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "action.yml"
+        }
+      ],
+      "notes": "Starter template. v1 sets runs.using to node12."
     },
     "actions/jekyll-build-pages": {
-      "majors": [],
-      "retiredMajors": []
+      "majors": [
+        {
+          "major": 1,
+          "using": "docker",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.0.13"
+        }
+      ],
+      "retiredMajors": [],
+      "notes": "Docker action. The published major sets runs.using to docker, so no Node.js runtime rule is required."
     },
     "actions/labeler": {
       "majors": [
@@ -726,7 +1542,7 @@
         },
         {
           "major": 5,
-          "using": "node16",
+          "using": "node20",
           "file": "action.yml"
         },
         {
@@ -738,6 +1554,28 @@
           "major": 7,
           "using": "node24",
           "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 3,
+          "version": "3.1.0"
+        },
+        {
+          "major": 4,
+          "version": "4.3.0"
+        },
+        {
+          "major": 5,
+          "version": "5.0.0"
+        },
+        {
+          "major": 6,
+          "version": "6.2.0"
+        },
+        {
+          "major": 7,
+          "version": "7.0.0"
         }
       ],
       "retiredMajors": [
@@ -758,22 +1596,25 @@
         },
         {
           "major": 5,
-          "using": "node16",
+          "using": "node20",
           "file": "action.yml"
         }
       ]
     },
     "actions/maven-dependency-submission-action": {
       "majors": [],
-      "retiredMajors": []
+      "retiredMajors": [],
+      "notes": "No git tags were published as of 2026-11-15, so there is no major whose runtime can be classified."
     },
     "actions/publish-action": {
       "majors": [],
-      "retiredMajors": []
+      "retiredMajors": [],
+      "notes": "Only 0.x tags are published (v0.1.0 through v0.4.0 as of 2026-11-15). There is no v1 major to classify."
     },
     "actions/publish-immutable-action": {
       "majors": [],
-      "retiredMajors": []
+      "retiredMajors": [],
+      "notes": "Only 0.x tags are published (v0 through v0.0.4 as of 2026-11-15). There is no v1 major to classify."
     },
     "actions/setup-dotnet": {
       "majors": [
@@ -794,7 +1635,7 @@
         },
         {
           "major": 4,
-          "using": "node16",
+          "using": "node20",
           "file": "action.yml"
         },
         {
@@ -806,6 +1647,32 @@
           "major": 6,
           "using": "node24",
           "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.10.1"
+        },
+        {
+          "major": 2,
+          "version": "2.2.1"
+        },
+        {
+          "major": 3,
+          "version": "3.4.2"
+        },
+        {
+          "major": 4,
+          "version": "4.3.1"
+        },
+        {
+          "major": 5,
+          "version": "5.4.0"
+        },
+        {
+          "major": 6,
+          "version": "6.1.0"
         }
       ],
       "retiredMajors": [
@@ -826,7 +1693,7 @@
         },
         {
           "major": 4,
-          "using": "node16",
+          "using": "node20",
           "file": "action.yml"
         }
       ]
@@ -884,6 +1751,51 @@
           "version": "6.2.0",
           "using": "node24",
           "file": "action.yml"
+        },
+        {
+          "version": "6.3.0",
+          "using": "node24",
+          "file": "action.yml"
+        },
+        {
+          "version": "6.4.0",
+          "using": "node24",
+          "file": "action.yml"
+        },
+        {
+          "version": "6.5.0",
+          "using": "node24",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.1.3"
+        },
+        {
+          "major": 2,
+          "version": "2.2.0"
+        },
+        {
+          "major": 3,
+          "version": "3.6.1"
+        },
+        {
+          "major": 4,
+          "version": "4.3.0"
+        },
+        {
+          "major": 5,
+          "version": "5.6.0"
+        },
+        {
+          "major": 6,
+          "version": "6.5.0"
+        },
+        {
+          "major": 7,
+          "version": "7.0.0"
         }
       ],
       "retiredMajors": [
@@ -947,6 +1859,32 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.4.5"
+        },
+        {
+          "major": 2,
+          "version": "2.5.2"
+        },
+        {
+          "major": 3,
+          "version": "3.14.2"
+        },
+        {
+          "major": 4,
+          "version": "4.9.1"
+        },
+        {
+          "major": 5,
+          "version": "5.7.0"
+        },
+        {
+          "major": 6,
+          "version": "6.3.0"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -1006,6 +1944,36 @@
           "major": 7,
           "using": "node24",
           "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.4.6"
+        },
+        {
+          "major": 2,
+          "version": "2.5.2"
+        },
+        {
+          "major": 3,
+          "version": "3.9.1"
+        },
+        {
+          "major": 4,
+          "version": "4.4.0"
+        },
+        {
+          "major": 5,
+          "version": "5.0.0"
+        },
+        {
+          "major": 6,
+          "version": "6.5.0"
+        },
+        {
+          "major": 7,
+          "version": "7.1.0"
         }
       ],
       "retiredMajors": [
@@ -1069,6 +2037,36 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.2.4"
+        },
+        {
+          "major": 2,
+          "version": "2.3.4"
+        },
+        {
+          "major": 3,
+          "version": "3.1.4"
+        },
+        {
+          "major": 4,
+          "version": "4.9.1"
+        },
+        {
+          "major": 5,
+          "version": "5.6.0"
+        },
+        {
+          "major": 6,
+          "version": "6.3.0"
+        },
+        {
+          "major": 7,
+          "version": "7.1.0"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -1116,17 +2114,17 @@
         },
         {
           "major": 4,
-          "using": "composite",
+          "using": "node12",
           "file": "action.yml"
         },
         {
           "major": 5,
-          "using": "composite",
+          "using": "node16",
           "file": "action.yml"
         },
         {
           "major": 6,
-          "using": "composite",
+          "using": "node16",
           "file": "action.yml"
         },
         {
@@ -1155,6 +2153,52 @@
           "file": "action.yml"
         }
       ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.1.1"
+        },
+        {
+          "major": 2,
+          "version": "2.0.1"
+        },
+        {
+          "major": 3,
+          "version": "3.0.19"
+        },
+        {
+          "major": 4,
+          "version": "4.1.1"
+        },
+        {
+          "major": 5,
+          "version": "5.2.1"
+        },
+        {
+          "major": 6,
+          "version": "6.0.1"
+        },
+        {
+          "major": 7,
+          "version": "7.0.0"
+        },
+        {
+          "major": 8,
+          "version": "8.0.0"
+        },
+        {
+          "major": 9,
+          "version": "9.1.0"
+        },
+        {
+          "major": 10,
+          "version": "10.4.0"
+        },
+        {
+          "major": 11,
+          "version": "11.0.0"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -1169,6 +2213,21 @@
         {
           "major": 3,
           "using": "node12",
+          "file": "action.yml"
+        },
+        {
+          "major": 4,
+          "using": "node12",
+          "file": "action.yml"
+        },
+        {
+          "major": 5,
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "major": 6,
+          "using": "node16",
           "file": "action.yml"
         },
         {
@@ -1197,7 +2256,7 @@
       "majors": [
         {
           "major": 1,
-          "using": "node12",
+          "using": null,
           "file": "action.yml"
         },
         {
@@ -1231,12 +2290,79 @@
           "file": "action.yml"
         }
       ],
-      "retiredMajors": [
+      "releases": [
         {
-          "major": 1,
-          "using": "node12",
+          "version": "3.0.0",
+          "using": "node16",
           "file": "action.yml"
         },
+        {
+          "version": "3.1.0",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.1.1",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.1.2",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.1.3",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.2.0",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.2.1",
+          "using": "node16",
+          "file": "action.yml"
+        },
+        {
+          "version": "3.2.2",
+          "using": "node24",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.0.0"
+        },
+        {
+          "major": 2,
+          "version": "2.3.1"
+        },
+        {
+          "major": 3,
+          "version": "3.2.1"
+        },
+        {
+          "major": 4,
+          "version": "4.6.2"
+        },
+        {
+          "major": 5,
+          "version": "5.0.0"
+        },
+        {
+          "major": 6,
+          "version": "6.0.0"
+        },
+        {
+          "major": 7,
+          "version": "7.0.2"
+        }
+      ],
+      "retiredMajors": [
         {
           "major": 2,
           "using": "node12",
@@ -1260,12 +2386,83 @@
       ]
     },
     "actions/upload-code-coverage": {
-      "majors": [],
-      "retiredMajors": []
+      "majors": [
+        {
+          "major": 1,
+          "using": "composite",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.4.4"
+        }
+      ],
+      "retiredMajors": [],
+      "notes": "Composite action. Published root action.yml files set runs.using to composite, so no Node.js runtime rule is required."
     },
     "actions/upload-pages-artifact": {
-      "majors": [],
-      "retiredMajors": []
+      "majors": [
+        {
+          "major": 0,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 1,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 2,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 3,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 4,
+          "using": "composite",
+          "file": "action.yml"
+        },
+        {
+          "major": 5,
+          "using": "composite",
+          "file": "action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 0,
+          "version": "0.1.0"
+        },
+        {
+          "major": 1,
+          "version": "1.0.10"
+        },
+        {
+          "major": 2,
+          "version": "2.0.0"
+        },
+        {
+          "major": 3,
+          "version": "3.0.1"
+        },
+        {
+          "major": 4,
+          "version": "4.0.0"
+        },
+        {
+          "major": 5,
+          "version": "5.0.0"
+        }
+      ],
+      "retiredMajors": [],
+      "notes": "Composite action. Published root action.yml files set runs.using to composite, so no Node.js runtime rule is required."
     },
     "github/codeql-action/init": {
       "majors": [
@@ -1288,6 +2485,391 @@
           "major": 4,
           "using": "node24",
           "file": "init/action.yml"
+        }
+      ],
+      "releases": [
+        {
+          "version": "1.0.0",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.1",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.2",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.3",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.4",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.5",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.6",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.7",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.8",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.9",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.10",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.11",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.12",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.13",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.14",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.15",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.16",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.17",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.18",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.19",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.20",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.21",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.22",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.23",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.24",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.25",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.26",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.27",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.28",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.29",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.30",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.31",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.0.32",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.0",
+          "using": "node16",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.1",
+          "using": "node16",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.2",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.3",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.4",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.5",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.6",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.7",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.8",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.9",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.10",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.11",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.12",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.13",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.14",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.15",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.16",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.17",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.18",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.19",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.20",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.21",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.22",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.23",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.24",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.25",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.26",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.27",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.28",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.29",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.30",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.31",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.32",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.33",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.34",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.35",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.36",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.37",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.38",
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "version": "1.1.39",
+          "using": "node12",
+          "file": "init/action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.1.39"
+        },
+        {
+          "major": 2,
+          "version": "2.28.1"
+        },
+        {
+          "major": 3,
+          "version": "3.39.3"
+        },
+        {
+          "major": 4,
+          "version": "4.39.3"
         }
       ],
       "retiredMajors": [
@@ -1331,6 +2913,391 @@
           "file": "autobuild/action.yml"
         }
       ],
+      "releases": [
+        {
+          "version": "1.0.0",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.1",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.2",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.3",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.4",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.5",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.6",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.7",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.8",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.9",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.10",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.11",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.12",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.13",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.14",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.15",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.16",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.17",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.18",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.19",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.20",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.21",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.22",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.23",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.24",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.25",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.26",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.27",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.28",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.29",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.30",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.31",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.0.32",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.0",
+          "using": "node16",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.1",
+          "using": "node16",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.2",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.3",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.4",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.5",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.6",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.7",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.8",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.9",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.10",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.11",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.12",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.13",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.14",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.15",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.16",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.17",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.18",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.19",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.20",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.21",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.22",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.23",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.24",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.25",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.26",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.27",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.28",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.29",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.30",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.31",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.32",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.33",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.34",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.35",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.36",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.37",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.38",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "version": "1.1.39",
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.1.39"
+        },
+        {
+          "major": 2,
+          "version": "2.28.1"
+        },
+        {
+          "major": 3,
+          "version": "3.39.3"
+        },
+        {
+          "major": 4,
+          "version": "4.39.3"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -1372,6 +3339,391 @@
           "file": "analyze/action.yml"
         }
       ],
+      "releases": [
+        {
+          "version": "1.0.0",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.1",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.2",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.3",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.4",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.5",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.6",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.7",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.8",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.9",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.10",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.11",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.12",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.13",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.14",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.15",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.16",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.17",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.18",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.19",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.20",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.21",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.22",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.23",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.24",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.25",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.26",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.27",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.28",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.29",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.30",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.31",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.0.32",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.0",
+          "using": "node16",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.1",
+          "using": "node16",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.2",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.3",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.4",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.5",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.6",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.7",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.8",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.9",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.10",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.11",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.12",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.13",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.14",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.15",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.16",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.17",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.18",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.19",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.20",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.21",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.22",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.23",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.24",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.25",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.26",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.27",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.28",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.29",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.30",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.31",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.32",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.33",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.34",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.35",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.36",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.37",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.38",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "version": "1.1.39",
+          "using": "node12",
+          "file": "analyze/action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.1.39"
+        },
+        {
+          "major": 2,
+          "version": "2.28.1"
+        },
+        {
+          "major": 3,
+          "version": "3.39.3"
+        },
+        {
+          "major": 4,
+          "version": "4.39.3"
+        }
+      ],
       "retiredMajors": [
         {
           "major": 1,
@@ -1411,6 +3763,391 @@
           "major": 4,
           "using": "node24",
           "file": "upload-sarif/action.yml"
+        }
+      ],
+      "releases": [
+        {
+          "version": "1.0.0",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.1",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.2",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.3",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.4",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.5",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.6",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.7",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.8",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.9",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.10",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.11",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.12",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.13",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.14",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.15",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.16",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.17",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.18",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.19",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.20",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.21",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.22",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.23",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.24",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.25",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.26",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.27",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.28",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.29",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.30",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.31",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.0.32",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.0",
+          "using": "node16",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.1",
+          "using": "node16",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.2",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.3",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.4",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.5",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.6",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.7",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.8",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.9",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.10",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.11",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.12",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.13",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.14",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.15",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.16",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.17",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.18",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.19",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.20",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.21",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.22",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.23",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.24",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.25",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.26",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.27",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.28",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.29",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.30",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.31",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.32",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.33",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.34",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.35",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.36",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.37",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.38",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "version": "1.1.39",
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        }
+      ],
+      "aliases": [
+        {
+          "major": 1,
+          "version": "1.1.39"
+        },
+        {
+          "major": 2,
+          "version": "2.28.1"
+        },
+        {
+          "major": 3,
+          "version": "3.39.3"
+        },
+        {
+          "major": 4,
+          "version": "4.39.3"
         }
       ],
       "retiredMajors": [

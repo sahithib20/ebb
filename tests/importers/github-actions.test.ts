@@ -102,11 +102,23 @@ test("reproduces the hand-written rules for checkout, setup-node, and cache", as
 test("shows where the registry and the actions' own metadata disagree", async () => {
   const existing = JSON.parse(await readFile(resolve("registry/github-actions.json"), "utf8")) as RegistryV2;
   const diff = diffDrafts(await execute(githubActionsRuntimeImporter, { replay: recording }), existing);
-  // The importer still drafts one catch-all from the major tag. The registry splits the service removal from the node20 band.
+  // The importer still drafts one catch-all from the major tag. The registry splits v1/v2, v3, and the node20 band.
   assert.deepEqual(diff.duplicates, []);
   assert.equal(
+    existing.rules.find((rule) => rule.id === "github-actions.upload-artifact.v1-v2")!.vers,
+    "vers:semver/<3.0.0",
+  );
+  assert.equal(
     existing.rules.find((rule) => rule.id === "github-actions.upload-artifact.retired")!.vers,
-    "vers:semver/<4.0.0",
+    "vers:semver/>=3.0.0|<4.0.0",
+  );
+  assert.equal(
+    existing.rules.find((rule) => rule.id === "github-actions.download-artifact.v1-v2")!.vers,
+    "vers:semver/<3.0.0",
+  );
+  assert.equal(
+    existing.rules.find((rule) => rule.id === "github-actions.download-artifact.retired")!.vers,
+    "vers:semver/>=3.0.0|<4.0.0",
   );
   assert.equal(
     existing.rules.find((rule) => rule.id === "github-actions.upload-artifact.node20")!.vers,

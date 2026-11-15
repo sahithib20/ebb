@@ -16,8 +16,9 @@ import {
   type InventoryMajor,
   type InventoryRelease,
 } from "../tools/coverage/actions.js";
-import { releasesToRecord } from "../tools/coverage/refresh-actions-inventory.js";
+import { check } from "../src/check.js";
 import type { RegistryV2Rule } from "../src/registry.js";
+import { aliasesFor, releasesToRecord } from "../tools/coverage/refresh-actions-inventory.js";
 
 const action = (over: Partial<ExpectedAction> & Pick<ExpectedAction, "action">): ExpectedAction => ({
   repoUrl: `https://github.com/${over.action.split("/").slice(0, 2).join("/")}`,
@@ -270,6 +271,58 @@ test("new node20 rules record the passed removal date as end-of-support", async 
   assert.doesNotMatch(byId("github-actions.go-dependency-submission.node20").replacement ?? "", /@v[12]/);
   assert.equal(byId("github-actions.delete-package-versions.node12").deadline, "2023-08-14");
   assert.equal(byId("github-actions.go-dependency-submission.node16").deadline, "2024-11-12");
+});
+
+test("artifact v1/v2 and v3 keep separate removal deadlines", () => {
+  const hit = (purl: string, version: string) => {
+    const result = check(purl, version);
+    return { rule: result.matches[0]?.ruleId, date: result.matches[0]?.date ?? null, status: result.status };
+  };
+  assert.deepEqual(hit("pkg:github/actions/upload-artifact", "1.0.0"), {
+    rule: "github-actions.upload-artifact.v1-v2",
+    date: "2024-06-30",
+    status: "removed",
+  });
+  assert.deepEqual(hit("pkg:github/actions/upload-artifact", "2.9.0"), {
+    rule: "github-actions.upload-artifact.v1-v2",
+    date: "2024-06-30",
+    status: "removed",
+  });
+  assert.deepEqual(hit("pkg:github/actions/upload-artifact", "3.0.0"), {
+    rule: "github-actions.upload-artifact.retired",
+    date: "2025-01-30",
+    status: "removed",
+  });
+  assert.equal(check("pkg:github/actions/upload-artifact", "6.0.0").status, "ok");
+  assert.deepEqual(hit("pkg:github/actions/download-artifact", "2.0.0"), {
+    rule: "github-actions.download-artifact.v1-v2",
+    date: "2024-06-30",
+    status: "removed",
+  });
+  assert.deepEqual(hit("pkg:github/actions/download-artifact", "3.0.0"), {
+    rule: "github-actions.download-artifact.retired",
+    date: "2025-01-30",
+    status: "removed",
+  });
+});
+
+test("a moving major tag resolves to the exact release on the same commit", () => {
+  assert.deepEqual(
+    aliasesFor([
+      { name: "v6", sha: "aaa" },
+      { name: "v6.0.0", sha: "old" },
+      { name: "v6.1.0", sha: "old" },
+      { name: "v6.2.0", sha: "mid" },
+      { name: "v6.5.0", sha: "aaa" },
+    ]),
+    [{ major: 6, version: "6.5.0" }],
+  );
+});
+
+test("only the inventory job opens Actions coverage gap issues", async () => {
+  const workflow = await readFile(".github/workflows/importers.yml", "utf8");
+  assert.equal(workflow.split("Opening coverage gap issue for $slug").length - 1, 1);
+  assert.match(workflow, /publish-inventory-pr\.js/);
 });
 
 test("checkActionCoverage fails closed when a retired major has no rule", async () => {

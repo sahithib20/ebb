@@ -17,6 +17,7 @@ import {
   parseActionsInventory,
   parseActionsScope,
   type InventoryAction,
+  type InventoryAlias,
   type InventoryMajor,
   type InventoryRelease,
 } from "./actions.js";
@@ -28,6 +29,7 @@ const MAJOR_TAG = /^v(\d+)$/;
 
 interface GitHubTag {
   name: string;
+  commit?: { sha?: string };
 }
 
 function headers(): HeadersInit {
@@ -54,6 +56,25 @@ function compareVersion(left: string, right: string): number {
   return 0;
 }
 
+/** Moving major tag → the highest exact release that shares its commit. */
+export function aliasesFor(tags: readonly { name: string; sha: string }[]): InventoryAlias[] {
+  const exact = tags.filter((tag) => EXACT.test(tag.name) && tag.sha);
+  const aliases: InventoryAlias[] = [];
+  for (const tag of tags) {
+    const major = MAJOR_TAG.exec(tag.name);
+    if (!major || !tag.sha || Number(major[1]) < 1) continue;
+    const matches = exact
+      .filter((candidate) => candidate.sha === tag.sha)
+      .map((candidate) => candidate.name.slice(1))
+      .sort(compareVersion);
+    const version = matches.at(-1);
+    if (!version) continue;
+    aliases.push({ major: Number(major[1]), version });
+  }
+  aliases.sort((left, right) => left.major - right.major);
+  return aliases;
+}
+
 /** Releases in a major whose `runs.using` is not uniform. A single using is already covered by the major probe. */
 export function releasesToRecord(observed: readonly InventoryRelease[]): InventoryRelease[] {
   const groups = new Map<number, InventoryRelease[]>();
@@ -72,14 +93,17 @@ export function releasesToRecord(observed: readonly InventoryRelease[]): Invento
   return recorded;
 }
 
-async function tags(repo: string): Promise<GitHubTag[]> {
-  const results: GitHubTag[] = [];
+async function tags(repo: string): Promise<Array<{ name: string; sha: string }>> {
+  const results: Array<{ name: string; sha: string }> = [];
   for (let page = 1; ; page++) {
     const url = `https://api.github.com/repos/${repo}/tags?per_page=100&page=${page}`;
     const response = await fetch(url, { headers: headers() });
     if (!response.ok) throw new Error(`GET ${url} failed: HTTP ${response.status}`);
     const batch = (await response.json()) as GitHubTag[];
-    results.push(...batch);
+    for (const tag of batch) {
+      const sha = tag.commit?.sha?.toLowerCase();
+      if (sha) results.push({ name: tag.name, sha });
+    }
     if (batch.length < 100) return results;
   }
 }
@@ -123,10 +147,13 @@ async function refreshAction(action: string, notes: string | undefined): Promise
   const subpath = action.split("/")[2];
   const files = subpath ? [`${subpath}/action.yml`, `${subpath}/action.yaml`] : ["action.yml", "action.yaml"];
   const names = await tags(repo);
+  const aliases = aliasesFor(names);
   // Integer major tags only (v1, v2, …). Pre-1.0 tags are not majors and are not probed here.
   const majorTags = [
     ...new Set(
-      names.map((tag) => MAJOR_TAG.exec(tag.name)?.[1]).filter((major): major is string => major !== undefined),
+      names
+        .map((tag) => MAJOR_TAG.exec(tag.name)?.[1])
+        .filter((major): major is string => major !== undefined && Number(major) >= 1),
     ),
   ];
   const exact = names
@@ -158,6 +185,7 @@ async function refreshAction(action: string, notes: string | undefined): Promise
   return {
     majors,
     ...(releases.length > 0 ? { releases } : {}),
+    ...(aliases.length > 0 ? { aliases } : {}),
     retiredMajors,
     ...(notes ? { notes } : {}),
   };
@@ -172,18 +200,8 @@ export async function refreshActionsInventory(root = ROOT): Promise<boolean> {
   const actions: Record<string, InventoryAction> = {};
   for (const action of scope.actions) {
     const previous = inventory.actions[action.action];
-    // Documented limits stay empty in the refreshed snapshot so a network refresh cannot
-    // invent retired majors that the limit is not allowed to hide.
-    if (action.coverageLimit) {
-      actions[action.action] = {
-        majors: [],
-        retiredMajors: [],
-        ...(previous?.notes || action.coverageLimit ? { notes: previous?.notes ?? action.coverageLimit } : {}),
-      };
-      process.stdout.write(`skipped ${action.action} (coverage limit)\n`);
-      continue;
-    }
-    actions[action.action] = await refreshAction(action.action, previous?.notes);
+    // Coverage limits do not skip the manifest. A retired runtime on a limited action stays a gap.
+    actions[action.action] = await refreshAction(action.action, previous?.notes ?? action.coverageLimit);
     process.stdout.write(`refreshed ${action.action}\n`);
   }
   if (isDeepStrictEqual(inventory.actions, actions)) {

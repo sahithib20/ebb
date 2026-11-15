@@ -129,19 +129,19 @@
       "action": "actions/hello-world-docker-action",
       "repoUrl": "https://github.com/actions/hello-world-docker-action",
       "kind": "template",
-      "coverageLimit": "Starter template repository. Workflows do not pin a released major of it, so retired-runtime rules are not required."
+      "coverageLimit": "Starter template. Published majors set runs.using to docker."
     },
     {
       "action": "actions/hello-world-javascript-action",
       "repoUrl": "https://github.com/actions/hello-world-javascript-action",
       "kind": "template",
-      "coverageLimit": "Starter template repository. Workflows do not pin a released major of it, so retired-runtime rules are not required."
+      "coverageLimit": "Starter template. v1 sets runs.using to node12."
     },
     {
       "action": "actions/javascript-action",
       "repoUrl": "https://github.com/actions/javascript-action",
       "kind": "template",
-      "coverageLimit": "Starter template repository. Workflows do not pin a released major of it, so retired-runtime rules are not required."
+      "coverageLimit": "Starter template. v1 sets runs.using to node12."
     },
     {
       "action": "actions/jekyll-build-pages",
