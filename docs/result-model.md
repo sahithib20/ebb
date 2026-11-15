@@ -33,6 +33,7 @@ Stability tags on `Result` and `ResultMatch` match the JSDoc annotations in `src
 | `replacement` | `string \| null` | `@stable` | Suggested replacement from the rule, or `null` when none. |
 | `sources` | `EvidenceSource[]` | `@stable` | Authoritative evidence pages the rule cites. |
 | `reviewedAt` | `string` | `@stable` | Date (`YYYY-MM-DD`) a maintainer last reviewed the rule against its sources. |
+| `confidence` | `"confirmed" \| "likely" \| "tentative"` (optional) | `@stable` | Confidence level of the rule match. |
 
 ## Shared: `EvidenceSource`
 
@@ -268,6 +269,18 @@ Example:
 
 ```json
 "2026-10-24"
+```
+
+### `confidence`
+
+- **Stability:** `@stable`
+- **Type:** `"confirmed" | "likely" | "tentative"` (optional)
+- **Meaning:** Confidence level of the rule match, indicating publisher authority, cadence derivation, or known uncertainty.
+
+Example:
+
+```json
+"confirmed"
 ```
 
 ## Field reference: `EvidenceSource`

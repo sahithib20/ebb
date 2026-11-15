@@ -17,6 +17,7 @@ import { loadEcosystemSync } from "./data/load.js";
 import { productsFromRules, rankProductsForName, type ProductRecord } from "./product-name.js";
 import { normalizePurl, parsePurl, purlIdentity } from "./purl.js";
 import { lifecycleEventPrecedence, type LifecycleEvent, type RegistryV2, type RegistryV2Rule } from "./registry.js";
+import { confidenceOf } from "./confidence.js";
 import type { Rule, RulesForOptions } from "./rules-for-core.js";
 import { compileRulesVers, getCompiledVers } from "./vers/compile.js";
 import { VersError, versContains } from "./vers.js";
@@ -83,6 +84,7 @@ function toCheckMatch(rule: RegistryV2Rule, asOf: string | undefined): CheckMatc
     replacement: rule.replacement ?? null,
     sources: rule.sources,
     reviewedAt: rule.provenance.reviewedAt,
+    confidence: confidenceOf(rule),
   };
 }
 

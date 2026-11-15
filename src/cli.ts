@@ -18,9 +18,10 @@ import { rollback, update } from "./data-update.js";
 import { diff, formatDiffMarkdown, formatDiffText } from "./diff.js";
 import { verify, verifyArtifactSignature, type VerifiedSigner } from "./verify.js";
 import { UpcomingError } from "./upcoming.js";
-import { CheckError } from "./check.js";
+import { CheckError, type CheckResult } from "./check.js";
 import type { RegistryV2Rule } from "./registry.js";
-import { checkAllWith, type CheckAllItem } from "./check-all.js";
+import { statusFromMatches } from "./check-core.js";
+import { checkAllWith, type CheckAllItem, type CheckAllResult } from "./check-all.js";
 import {
   createColors,
   formatCheckAllMarkdown,
@@ -87,6 +88,7 @@ Options:
   --ecosystem <name>            Filter by ecosystem (e.g. npm, python)
   --purl <purl>                 Filter by package URL
   --fail-on <threshold>         Fail threshold: scheduled, deprecated, unsupported, end-of-life, removed, error (default: deprecated)
+  --min-confidence <level>      Filter by minimum confidence: tentative, likely, confirmed
   --event <name>                Filter rules by event (rules command only)
   --signature <file>            Explicit signature file path (default: <file>.sigstore.json)
   --check                       Check for data updates without downloading
@@ -251,6 +253,73 @@ async function readStream(stream: AsyncIterable<string | Buffer>): Promise<strin
   return Buffer.concat(chunks).toString("utf8");
 }
 
+const CONFIDENCE_RANKS: Record<string, number> = {
+  tentative: 1,
+  likely: 2,
+  confirmed: 3,
+};
+
+function filterResultByMinConfidence(result: CheckResult, minConfidence?: string): CheckResult {
+  if (!minConfidence) return result;
+  const minRank = CONFIDENCE_RANKS[minConfidence.toLowerCase()] ?? 1;
+  const filteredMatches = result.matches.filter((m) => (CONFIDENCE_RANKS[m.confidence ?? "likely"] ?? 1) >= minRank);
+  if (filteredMatches.length === 0) {
+    return {
+      ...result,
+      status: "ok",
+      matches: [],
+    };
+  }
+  return {
+    ...result,
+    status: statusFromMatches(filteredMatches),
+    matches: filteredMatches,
+  };
+}
+
+function filterCheckAllByMinConfidence(outcome: CheckAllResult, minConfidence?: string): CheckAllResult {
+  if (!minConfidence) return outcome;
+  const byStatus: Record<string, number> = {
+    ok: 0,
+    deprecated: 0,
+    unsupported: 0,
+    "end-of-life": 0,
+    removed: 0,
+    scheduled: 0,
+  };
+  const byEvent: Record<string, number> = {
+    deprecated: 0,
+    unsupported: 0,
+    "end-of-life": 0,
+    removed: 0,
+    scheduled: 0,
+  };
+
+  const results = outcome.results.map((entry) => {
+    if ("status" in entry && entry.status === "error") return entry;
+    const checkRes = filterResultByMinConfidence(entry as CheckResult, minConfidence);
+    if (checkRes.status === "ok") {
+      byStatus.ok = (byStatus.ok ?? 0) + 1;
+    } else {
+      byStatus[checkRes.status] = (byStatus[checkRes.status] ?? 0) + 1;
+      for (const m of checkRes.matches) {
+        byEvent[m.event] = (byEvent[m.event] ?? 0) + 1;
+      }
+    }
+    return checkRes;
+  });
+
+  return {
+    results,
+    summary: {
+      total: outcome.summary.total,
+      byStatus: byStatus as CheckAllResult["summary"]["byStatus"],
+      byEvent: byEvent as CheckAllResult["summary"]["byEvent"],
+      errors: outcome.summary.errors,
+    },
+  };
+}
+
 export async function runCli(
   args: string[],
   io: CliIo = { stdout: process.stdout, stderr: process.stderr, stdin: process.stdin },
@@ -274,6 +343,7 @@ export async function runCli(
         event: { type: "string" },
         signature: { type: "string" },
         "fail-on": { type: "string" },
+        "min-confidence": { type: "string" },
         check: { type: "boolean", default: false },
         rollback: { type: "boolean", default: false },
         channel: { type: "string" },
@@ -374,6 +444,16 @@ export async function runCli(
   const colors = createColors(enableColor);
   const noHint = Boolean(values["no-hint"]);
   const failOn = typeof values["fail-on"] === "string" ? values["fail-on"] : "deprecated";
+  const minConfidence = values["min-confidence"] as string | undefined;
+  if (minConfidence !== undefined) {
+    const validLevels = ["tentative", "likely", "confirmed"];
+    if (!validLevels.includes(minConfidence.toLowerCase())) {
+      io.stderr.write(
+        `Error: Invalid min-confidence "${minConfidence}". Must be one of: tentative, likely, confirmed\n`,
+      );
+      return 2;
+    }
+  }
 
   try {
     if (first === "check" || first.toLowerCase().startsWith("pkg:") || first.includes("/")) {
@@ -395,7 +475,8 @@ export async function runCli(
       }
 
       const asOf = values["as-of"] as string | undefined;
-      const result = check(purl, version, asOf);
+      const rawResult = check(purl, version, asOf);
+      const result = filterResultByMinConfidence(rawResult, minConfidence);
       const maxAgeArg = values["max-age"] ? Number.parseInt(values["max-age"] as string, 10) : undefined;
       const status = dataStatus({ now: asOf, maxAgeDays: maxAgeArg });
 
@@ -429,7 +510,8 @@ export async function runCli(
       }
 
       const client = asOf(dateArg);
-      const result = client.check(purl, version);
+      const rawResult = client.check(purl, version);
+      const result = filterResultByMinConfidence(rawResult, minConfidence);
       const maxAgeArg = values["max-age"] ? Number.parseInt(values["max-age"] as string, 10) : undefined;
       const status = dataStatus({ now: dateArg, maxAgeDays: maxAgeArg });
 
@@ -496,7 +578,8 @@ export async function runCli(
       }
 
       const asOf = values["as-of"] as string | undefined;
-      const outcome = asOf ? checkAllWith(items, (p, v) => check(p, v, asOf)) : checkAll(items);
+      const rawOutcome = asOf ? checkAllWith(items, (p, v) => check(p, v, asOf)) : checkAll(items);
+      const outcome = filterCheckAllByMinConfidence(rawOutcome, minConfidence);
       const maxAgeArg = values["max-age"] ? Number.parseInt(values["max-age"] as string, 10) : undefined;
       const status = dataStatus({ now: asOf, maxAgeDays: maxAgeArg });
 

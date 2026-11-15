@@ -1,5 +1,6 @@
 import type { EvidenceSource, MigrationGuidance, ReplacementRequirements, Severity, UsageMatcher } from "./domain.js";
 import { severityValues } from "./domain.js";
+import type { RuleConfidence } from "./confidence.js";
 import { parsePurl, purlIdentity } from "./purl.js";
 import { isMigrationGuidance, isUsageMatcher, RegistryValidationError, validateRegistry } from "./rule-guards.js";
 import type { Registry, RegistryDefinition } from "./rule-guards.js";
@@ -57,6 +58,8 @@ export function isCalendarSequence(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 2_147_483_647;
 }
 
+export type { RuleConfidence };
+
 export interface RegistryV2Rule {
   id: string;
   ecosystem: string;
@@ -70,6 +73,10 @@ export interface RegistryV2Rule {
   /** Lowest runtime versions the replacement works on, such as `{ "node": "18.0.0" }`. */
   requires?: ReplacementRequirements;
   deadline?: string;
+  /** How far this rule can be trusted. */
+  confidence?: RuleConfidence;
+  /** Written explanation for the confidence level (required when tentative). */
+  confidenceNote?: string;
   sources: EvidenceSource[];
   provenance: Provenance;
   migration?: MigrationGuidance;
@@ -116,10 +123,15 @@ const RULE_FIELDS = new Set([
   "replacement",
   "requires",
   "deadline",
+  "confidence",
+  "confidenceNote",
   "sources",
   "provenance",
   "migration",
   "usage",
+  "renamedFrom",
+  "sourceCheckedAt",
+  "sourceStatus",
 ]);
 
 /** Version schemes each PURL type may use. Types not listed accept any registered scheme. */
@@ -325,6 +337,26 @@ function provenanceIssues(rule: UnknownRecord, problem: Problem): void {
   }
 }
 
+function confidenceIssues(rule: UnknownRecord, problem: Problem): void {
+  if (rule.confidence !== undefined) {
+    if (rule.confidence !== "confirmed" && rule.confidence !== "likely" && rule.confidence !== "tentative") {
+      problem('confidence must be one of "confirmed", "likely", "tentative"');
+    }
+  }
+  if (rule.confidenceNote !== undefined && !isNonEmptyString(rule.confidenceNote)) {
+    problem("confidenceNote must be a non-empty string");
+  }
+  if (rule.confidence === "tentative" && !isNonEmptyString(rule.confidenceNote)) {
+    problem("confidenceNote is required when confidence is tentative");
+  }
+  if (rule.confidence === "confirmed") {
+    const prov = isRecord(rule.provenance) ? rule.provenance : undefined;
+    if (!prov || !isIsoDate(prov.reviewedAt)) {
+      problem("confirmed confidence requires a valid reviewedAt date in provenance");
+    }
+  }
+}
+
 function ruleIssues(rule: unknown, index: number, ecosystem: string | undefined): string[] {
   if (!isRecord(rule)) return [`rules[${index}]: must be an object`];
   const name = isNonEmptyString(rule.id) ? `rule "${rule.id}"` : `rules[${index}]`;
@@ -340,6 +372,7 @@ function ruleIssues(rule: unknown, index: number, ecosystem: string | undefined)
   versIssues(rule, problem, purlIssues(rule, problem));
   sourcesIssues(rule, problem);
   provenanceIssues(rule, problem);
+  confidenceIssues(rule, problem);
 
   if (rule.migration !== undefined && !isMigrationGuidance(rule.migration)) {
     problem("migration is not valid migration guidance");

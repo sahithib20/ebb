@@ -44,3 +44,12 @@ test("every check output on cases/ validates against result.v1.schema.json", asy
   assert.ok(checked > 0, "cases/ holds at least one case");
   assert.deepEqual(failures, []);
 });
+
+test("every match in check results carries confidence", () => {
+  const result = check("pkg:npm/request", "2.88.2");
+  assert.ok(result.matches.length > 0);
+  for (const match of result.matches) {
+    assert.ok(match.confidence !== undefined);
+    assert.ok(["confirmed", "likely", "tentative"].includes(match.confidence));
+  }
+});

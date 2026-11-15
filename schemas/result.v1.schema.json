@@ -57,7 +57,11 @@
           "minItems": 1,
           "items": { "$ref": "#/$defs/source" }
         },
-        "reviewedAt": { "$ref": "#/$defs/date" }
+        "reviewedAt": { "$ref": "#/$defs/date" },
+        "confidence": {
+          "description": "How far this rule match can be trusted: confirmed, likely, or tentative.",
+          "enum": ["confirmed", "likely", "tentative"]
+        }
       }
     },
     "source": {

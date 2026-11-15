@@ -82,6 +82,14 @@
           "description": "Result of automated source verification for this rule.",
           "enum": ["ok", "stale", "changed", "unreachable", "blocked", "unrecorded", "date-missing", "date-changed", "archived-only"]
         },
+        "confidence": {
+          "description": "How far this rule can be trusted: confirmed (stated by primary vendor), likely (imported or inferred from standard schedule), or tentative (inferred date or incomplete vendor source).",
+          "enum": ["confirmed", "likely", "tentative"]
+        },
+        "confidenceNote": {
+          "description": "Written reason explaining the confidence level (required when tentative).",
+          "$ref": "#/$defs/nonEmpty"
+        },
         "sources": {
           "type": "array",
           "minItems": 1,

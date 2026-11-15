@@ -44,6 +44,9 @@ export function formatCheckText(
 
   for (const match of result.matches) {
     lines.push(`  Rule: ${match.ruleId}`);
+    if (match.confidence) {
+      lines.push(`  Confidence: ${match.confidence}`);
+    }
     const dateStr = match.date ? ` (${match.date})` : "";
     const daysStr = match.daysLeft !== null && match.daysLeft !== undefined ? ` [${match.daysLeft} days left]` : "";
     lines.push(`  Event: ${match.event}${dateStr}${daysStr}`);
@@ -102,6 +105,11 @@ export function formatCheckAllText(
         const icon = checkRes.status === "scheduled" ? c.yellow("⚠") : c.red("✖");
         const ruleIds = checkRes.matches.map((m: CheckMatch) => m.ruleId).join(", ");
         lines.push(`${icon} ${label}: ${checkRes.status}${ruleIds ? ` (${ruleIds})` : ""}`);
+
+        const matchWithConfidence = checkRes.matches.find((m: CheckMatch) => m.confidence);
+        if (matchWithConfidence?.confidence) {
+          lines.push(`    Confidence: ${matchWithConfidence.confidence}`);
+        }
 
         // Show days left if present
         const matchWithDays = checkRes.matches.find((m: CheckMatch) => m.daysLeft !== null && m.daysLeft !== undefined);

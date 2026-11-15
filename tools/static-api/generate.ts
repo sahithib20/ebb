@@ -8,6 +8,7 @@ import { OFFING_HINT_TEXT } from "../../src/hint.js";
 import { supportedVersions } from "../../src/pick-version.js";
 import { parsePurl, purlIdentity } from "../../src/purl.js";
 import type { RegistryV2, RegistryV2Rule } from "../../src/registry.js";
+import { confidenceOf } from "../../src/confidence.js";
 import { sourcesOf } from "../../src/sources-of.js";
 import { writeCalendars } from "./calendar.js";
 
@@ -106,13 +107,16 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
   }
 
   const formatRule = (rule: RegistryV2Rule): RegistryV2Rule => {
-    if (!reportCheckedAt) return rule;
-    const sourceStatus = ruleStatusMap.get(rule.id) ?? "ok";
-    return {
+    const confidence = confidenceOf(rule);
+    const updated: RegistryV2Rule = {
       ...rule,
-      sourceCheckedAt: reportCheckedAt,
-      sourceStatus,
+      confidence,
     };
+    if (reportCheckedAt) {
+      updated.sourceCheckedAt = reportCheckedAt;
+      updated.sourceStatus = ruleStatusMap.get(rule.id) ?? "ok";
+    }
+    return updated;
   };
 
   // Read all registry files

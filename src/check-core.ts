@@ -10,6 +10,7 @@ import type { ProductRecord } from "./product-name.js";
 import { normalizePurl, parsePurl, purlIdentity } from "./purl.js";
 import { lifecycleEventPrecedence } from "./registry.js";
 import type { LifecycleEvent, RegistryV2Rule } from "./registry.js";
+import { confidenceOf } from "./confidence.js";
 import {
   daysLeft as daysUntil,
   RESULT_SCHEMA_VERSION,
@@ -213,6 +214,7 @@ function toCheckMatch(rule: RegistryV2Rule, asOf: string | undefined): CheckMatc
     replacement: rule.replacement ?? null,
     sources: rule.sources,
     reviewedAt: rule.provenance.reviewedAt,
+    confidence: confidenceOf(rule),
   };
   if (endOfLifeMonth !== undefined) {
     match.datePrecision = "month";

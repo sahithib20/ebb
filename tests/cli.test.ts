@@ -133,6 +133,52 @@ describe("CLI - runCli commands", () => {
     assert.match(mock.stdout, /Rule:/);
   });
 
+  it("shows confidence level in text, markdown, and json output", async () => {
+    // Text
+    const mockText = createMockIo();
+    await runCli(["check", "pkg:generic/redis", "5.0.0"], mockText.io);
+    assert.match(mockText.stdout, /Confidence:\s+tentative/);
+
+    // Markdown
+    const mockMd = createMockIo();
+    await runCli(["check", "pkg:generic/redis", "5.0.0", "--format", "markdown"], mockMd.io);
+    assert.match(mockMd.stdout, /\| Confidence \|/);
+    assert.match(mockMd.stdout, /tentative/);
+
+    // JSON
+    const mockJson = createMockIo();
+    await runCli(["check", "pkg:generic/redis", "5.0.0", "--json"], mockJson.io);
+    const parsed = JSON.parse(mockJson.stdout);
+    assert.equal(parsed.matches[0]?.confidence, "tentative");
+  });
+
+  it("filters weaker findings with --min-confidence", async () => {
+    // Redis 5.0 is tentative. With --min-confidence confirmed, it should be filtered out to ok.
+    const mockFiltered = createMockIo();
+    const code = await runCli(
+      ["check", "pkg:generic/redis", "5.0.0", "--min-confidence", "confirmed"],
+      mockFiltered.io,
+    );
+    assert.equal(code, 0);
+    assert.match(mockFiltered.stdout, /is ok/);
+
+    // With --min-confidence tentative, it should still be reported
+    const mockTentative = createMockIo();
+    const codeTentative = await runCli(
+      ["check", "pkg:generic/redis", "5.0.0", "--min-confidence", "tentative"],
+      mockTentative.io,
+    );
+    assert.equal(codeTentative, 1);
+    assert.match(mockTentative.stdout, /Confidence:\s+tentative/);
+  });
+
+  it("rejects invalid --min-confidence with exit code 2", async () => {
+    const mock = createMockIo();
+    const code = await runCli(["check", "pkg:npm/request@2.88.2", "--min-confidence", "invalid-level"], mock.io);
+    assert.equal(code, 2);
+    assert.match(mock.stderr, /Invalid min-confidence/);
+  });
+
   it("supports --json output on check", async () => {
     const mock = createMockIo();
     const code = await runCli(["check", "pkg:npm/request@2.88.2", "--json"], mock.io);

@@ -108,7 +108,7 @@ describe("CLI output formatting and snapshots", () => {
 
     const out = mock.stdout;
     assert.ok(out.includes("### Ebb Lifecycle Check: `pkg:npm/request@2.88.2`"));
-    assert.ok(out.includes("| Status | Event | Days Left | Replacement | Rule |"));
+    assert.ok(out.includes("| Status | Event | Confidence | Days Left | Replacement | Rule |"));
     assert.ok(out.includes("❌ deprecated"));
     assert.ok(out.includes("`Native fetch or a maintained HTTP client`"));
     assert.ok(out.includes("`npm.package.request.deprecated`"));

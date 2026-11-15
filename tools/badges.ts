@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { DEFAULT_MAX_REVIEW_AGE_DAYS, type RegistryV2 } from "../src/registry.js";
+import { confidenceOf } from "../src/confidence.js";
 import { stale, staleBadgeEndpoint } from "../src/stale.js";
 
 export interface EndpointBadge {
@@ -14,6 +15,47 @@ export interface EndpointBadge {
 
 export const STATUS_COUNTS_START = "<!-- ebb-source-status-counts:start -->";
 export const STATUS_COUNTS_END = "<!-- ebb-source-status-counts:end -->";
+
+export const CONFIDENCE_COUNTS_START = "<!-- ebb-confidence-counts:start -->";
+export const CONFIDENCE_COUNTS_END = "<!-- ebb-confidence-counts:end -->";
+
+export interface ConfidenceCounts {
+  confirmed: number;
+  likely: number;
+  tentative: number;
+  [level: string]: number;
+}
+
+export function renderConfidenceCountsTable(counts: Record<string, number | undefined>): string {
+  const rows = [
+    "| Level | Count | Description |",
+    "|---|---|---|",
+    `| \`confirmed\` | ${counts.confirmed ?? 0} | Published directly by upstream with a stated date and reviewed by a maintainer |`,
+    `| \`likely\` | ${counts.likely ?? 0} | Sourced from official schedules/importers or inferred from release cadences |`,
+    `| \`tentative\` | ${counts.tentative ?? 0} | Inferred, incomplete source, or non-binding; verified note required |`,
+  ];
+  return rows.join("\n");
+}
+
+export async function updateConfidenceDoc(
+  docPath: string,
+  counts: Record<string, number | undefined>,
+): Promise<boolean> {
+  try {
+    const content = await readFile(docPath, "utf-8");
+    const startIndex = content.indexOf(CONFIDENCE_COUNTS_START);
+    const endIndex = content.indexOf(CONFIDENCE_COUNTS_END);
+    if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
+      return false;
+    }
+    const table = renderConfidenceCountsTable(counts);
+    const updated = `${content.slice(0, startIndex + CONFIDENCE_COUNTS_START.length)}\n${table}\n${content.slice(endIndex)}`;
+    await writeFile(docPath, updated, "utf-8");
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function renderStatusCountsTable(counts: Record<string, number>): string {
   const rows = [
@@ -55,16 +97,23 @@ export async function generateDataBadges(
   asOf: string = new Date().toISOString().slice(0, 10),
   freshnessDocPath: string = "docs/freshness.md",
   reportPath?: string,
+  confidenceDocPath: string = "docs/confidence.md",
 ): Promise<{
   totalRules: number;
   staleRules: number;
   fileCount: number;
   verifiedSources: number;
   statusCounts: Record<string, number>;
+  confidenceCounts: ConfidenceCounts;
 }> {
   const files = (await readdir(registryDir)).filter((f) => f.endsWith(".json") && f !== "sources.lock.json");
   const registries: RegistryV2[] = [];
   let totalRules = 0;
+  const confidenceCounts: ConfidenceCounts = {
+    confirmed: 0,
+    likely: 0,
+    tentative: 0,
+  };
 
   for (const file of files) {
     try {
@@ -73,6 +122,10 @@ export async function generateDataBadges(
       if (Array.isArray(parsed.rules)) {
         totalRules += parsed.rules.length;
         registries.push(parsed);
+        for (const rule of parsed.rules) {
+          const level = confidenceOf(rule);
+          confidenceCounts[level] = (confidenceCounts[level] ?? 0) + 1;
+        }
       }
     } catch {
       // Ignore non-registry JSON
@@ -167,12 +220,16 @@ export async function generateDataBadges(
   await writeFile(join(outputDir, "sources-verified.json"), `${JSON.stringify(verifiedBadge, null, 2)}\n`);
 
   await updateFreshnessDoc(freshnessDocPath, statusCounts);
+  await updateConfidenceDoc(confidenceDocPath, confidenceCounts);
 
   console.log(`Generated rules badge: ${totalRules} rules from ${files.length} files.`);
   console.log(
     `Generated stale-rules badge: ${staleResult.counts.stale} stale (default window ${DEFAULT_MAX_REVIEW_AGE_DAYS}d or per-registry).`,
   );
   console.log(`Generated sources-verified badge: ${verifiedSources} verified sources.`);
+  console.log(
+    `Confidence counts: confirmed=${confidenceCounts.confirmed}, likely=${confidenceCounts.likely}, tentative=${confidenceCounts.tentative}.`,
+  );
 
   return {
     totalRules,
@@ -180,6 +237,7 @@ export async function generateDataBadges(
     fileCount: files.length,
     verifiedSources,
     statusCounts,
+    confidenceCounts,
   };
 }
 

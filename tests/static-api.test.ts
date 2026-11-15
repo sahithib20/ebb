@@ -66,6 +66,7 @@ test("static API generation produces valid files matching JSON schema and size b
     assert.equal(requestDoc.generatedAt, "2026-11-12T00:00:00.000Z");
     assert.ok(requestDoc.hint?.includes("velella-sh/offing"));
     assert.ok(requestDoc.rules.length > 0);
+    assert.equal(requestDoc.rules[0].confidence, "confirmed");
     assert.equal(requestDoc.calendar, undefined);
     await assert.rejects(readFile(join(tempDir, "calendar/npm/request.ics"), "utf8"));
 
@@ -114,6 +115,10 @@ test("static API generation produces valid files matching JSON schema and size b
     assert.equal(validate(allDoc), true, `all.json validation failed: ${JSON.stringify(validate.errors)}`);
     assert.equal(allDoc.rulesCount, result.ruleCount);
     assert.equal(allDoc.gzipBytes, result.allGzipBytes);
+    assert.ok(
+      allDoc.rules.every((r: { confidence: string }) => ["confirmed", "likely", "tentative"].includes(r.confidence)),
+      "Every rule in all.json must have a valid confidence level",
+    );
 
     // Validate index.json
     const indexJsonRaw = await readFile(join(tempDir, "index.json"), "utf8");
