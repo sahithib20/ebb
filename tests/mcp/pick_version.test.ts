@@ -58,6 +58,15 @@ describe("MCP pick_version tool", () => {
     assert.equal(structured.lines[0]?.id, "*");
   });
 
+  it("rejects an invalid reference date instead of using the current day", async () => {
+    for (const as_of of [20261115, null, "2026-02-30"]) {
+      const result = await call({ purl: "node", as_of });
+      assert.equal(result.isError, true);
+      assert.match(result.content[0]?.text ?? "", /date/);
+      assert.equal(result.structuredContent, undefined);
+    }
+  });
+
   it("returns an empty answer for an unknown component", async () => {
     const result = await call({ purl: "pkg:npm/not-a-real-ebb-package", as_of: "2026-11-15" });
     assert.equal(result.isError, false);
