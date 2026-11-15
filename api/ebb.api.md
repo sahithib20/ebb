@@ -165,6 +165,11 @@ export interface EvidenceSource {
     url: string;
 }
 
+// Warning: (ae-forgotten-export) The symbol "lifecycleEvents" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+export type LifecycleEvent = (typeof lifecycleEvents)[number];
+
 // @public
 export function preload(ecosystems?: readonly string[]): Promise<void>;
 
@@ -185,6 +190,67 @@ export interface Provenance {
 // @public (undocumented)
 export type ProvenanceMethod = (typeof provenanceMethods)[number];
 
+// @public
+export function recent(options?: RecentOptions): RecentResult;
+
+// @public (undocumented)
+export interface RecentItem {
+    // (undocumented)
+    readonly datePrecision?: "day" | "month" | undefined;
+    // (undocumented)
+    readonly daysAgo: number;
+    // (undocumented)
+    readonly deadline: string;
+    // (undocumented)
+    readonly ecosystem: string;
+    // (undocumented)
+    readonly estimated: boolean;
+    // (undocumented)
+    readonly event: LifecycleEvent;
+    // (undocumented)
+    readonly purl: string;
+    // (undocumented)
+    readonly replacement: string | null;
+    // (undocumented)
+    readonly reviewedAt: string | null;
+    // (undocumented)
+    readonly ruleId: string;
+    // (undocumented)
+    readonly severity: Severity;
+    // (undocumented)
+    readonly sources: EvidenceSource[];
+    // (undocumented)
+    readonly title: string;
+}
+
+// @public (undocumented)
+export interface RecentOptions {
+    // (undocumented)
+    readonly asOf?: string | undefined;
+    // (undocumented)
+    readonly ecosystem?: string | readonly string[] | undefined;
+    // (undocumented)
+    readonly purls?: readonly string[] | undefined;
+    // (undocumented)
+    readonly rules?: readonly RegistryV2Rule[] | undefined;
+    // (undocumented)
+    readonly within?: string | number | undefined;
+}
+
+// @public (undocumented)
+export interface RecentResult {
+    // (undocumented)
+    readonly asOf: string;
+    // (undocumented)
+    readonly count: number;
+    // (undocumented)
+    readonly items: RecentItem[];
+    // (undocumented)
+    readonly since: string;
+    // (undocumented)
+    readonly within: string;
+}
+
 // @public (undocumented)
 export interface RegistryV2Rule {
     [extension: `x-${string}`]: Record<string, unknown>;
@@ -192,8 +258,6 @@ export interface RegistryV2Rule {
     deadline?: string;
     // (undocumented)
     ecosystem: string;
-    // Warning: (ae-forgotten-export) The symbol "LifecycleEvent" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     event: LifecycleEvent;
     // (undocumented)

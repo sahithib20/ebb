@@ -62,7 +62,7 @@ export {
 
 export type { EvidenceSource, Severity } from "./domain.js";
 export type { EbbErrorCode } from "./errors.js";
-export type { RegistryV2Rule, Provenance, ProvenanceMethod } from "./registry.js";
+export type { LifecycleEvent, RegistryV2Rule, Provenance, ProvenanceMethod } from "./registry.js";
 export type { DataSourceOptions } from "./data-source.js";
 export type { DataBundle } from "./data-bundle.js";
 export { replacementFor } from "./replacement.js";
