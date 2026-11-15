@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       coverage-only:
-        description: Run only the runtime coverage report
+        description: Run only the coverage reports
         type: boolean
         default: false
 
@@ -372,4 +372,88 @@ jobs:
           path: |
             runtime-coverage.json
             runtime-coverage-issue-*.md
+          if-no-files-found: warn
+
+  actions-coverage:
+    name: actions coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+        with:
+          cache: npm
+      - run: npm run build --silent
+      - name: Report Actions coverage gaps (never edits registry/)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'EOF'
+          import { writeFileSync } from "node:fs";
+          import {
+            checkActionCoverage,
+            coverageIssueMarker,
+            coverageIssueTitle,
+            formatCoverageIssueBody,
+            formatCoverageText,
+          } from "./dist/tools/coverage/actions.js";
+
+          const report = await checkActionCoverage();
+          const text = formatCoverageText(report);
+          process.stdout.write(text);
+          if (process.env.GITHUB_STEP_SUMMARY) {
+            writeFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`, { flag: "a" });
+          }
+          writeFileSync("actions-coverage.json", `${JSON.stringify(report, null, 2)}\n`);
+
+          const gaps = report.actions.filter((action) => !action.complete);
+          for (const action of gaps) {
+            writeFileSync(`actions-coverage-issue-${action.slug}.md`, formatCoverageIssueBody(action));
+            writeFileSync(`actions-coverage-title-${action.slug}.txt`, coverageIssueTitle(action.action));
+            writeFileSync(`actions-coverage-marker-${action.slug}.txt`, coverageIssueMarker(action.action));
+          }
+          EOF
+
+          slugs="$(jq -r '.actions[] | select(.complete == false) | .slug' actions-coverage.json)"
+          if [ -z "$slugs" ]; then
+            echo "No Actions coverage gaps; leaving issues unchanged."
+            exit 0
+          fi
+
+          # The REST list includes pull requests and emits one array per page.
+          issues="$(gh api --paginate --slurp "repos/$GH_REPO/issues?state=open&per_page=100")"
+          while IFS= read -r slug; do
+            marker="$(cat "actions-coverage-marker-${slug}.txt")"
+            existing="$(
+              jq -r --arg marker "$marker" '
+                first(.[][] | select(has("pull_request") | not)
+                  | select((.body // "" | split("\n") | map(rtrimstr("\r")) | index($marker)) != null)
+                  | .number) // empty
+              ' <<< "$issues"
+            )"
+            if [ -n "$existing" ]; then
+              echo "Coverage gap issue #$existing already open for $slug"
+            else
+              echo "Opening coverage gap issue for $slug"
+              gh issue create \
+                --title "$(cat "actions-coverage-title-${slug}.txt")" \
+                --body-file "actions-coverage-issue-${slug}.md" \
+                --label "type:task"
+            fi
+          done <<< "$slugs"
+      - name: Upload the coverage report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: actions-coverage
+          path: |
+            actions-coverage.json
+            actions-coverage-issue-*.md
           if-no-files-found: warn

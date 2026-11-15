@@ -353,19 +353,19 @@ export const rules: readonly RegistryV2Rule[] = [
     id: "github-actions.setup-go.node20",
     ecosystem: "github-actions",
     purl: "pkg:github/actions/setup-go",
-    vers: "vers:semver/<6.0.0",
+    vers: "vers:semver/<6.2.0",
     event: "end-of-support",
     title: "Unsupported actions/setup-go runtime",
     summary:
       "This release predates the action's Node.js 24 runtime. GitHub no longer provides Node.js 20 on Actions runners. Version 6.0.0 and 6.1.0 still declare node20; version 6.2.0 and later declare node24.",
     severity: "high",
-    replacement: "actions/setup-go@v6 or later",
+    replacement: "actions/setup-go@v6.2.0 or later",
     deadline: "2026-09-23",
     sources: [
       {
         title: "Node 20 is no longer available in GitHub Actions",
         url: "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-        accessedAt: "2026-10-16",
+        accessedAt: "2026-11-15",
         archiveUrl:
           "https://web.archive.org/web/20261016000000/https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
         archivedAt: "2026-10-16",
@@ -373,17 +373,17 @@ export const rules: readonly RegistryV2Rule[] = [
       {
         title: "actions/setup-go v6.2.0 release notes (action.yml moves to node24)",
         url: "https://github.com/actions/setup-go/releases/tag/v6.2.0",
-        accessedAt: "2026-10-16",
+        accessedAt: "2026-11-15",
         archiveUrl:
-          "https://web.archive.org/web/20261016000000/https://github.com/actions/setup-go/releases/tag/v6.2.0",
-        archivedAt: "2026-10-16",
+          "https://web.archive.org/web/20261115000000/https://github.com/actions/setup-go/releases/tag/v6.2.0",
+        archivedAt: "2026-11-15",
       },
     ],
     provenance: {
-      observedAt: "2026-10-16",
-      reviewedAt: "2026-10-16",
-      reviewer: "claude-agent",
-      reviewers: ["claude-agent"],
+      observedAt: "2026-11-15",
+      reviewedAt: "2026-11-15",
+      reviewer: "unreviewed",
+      reviewers: ["unreviewed"],
       method: "manual",
     },
     migration: {
@@ -392,7 +392,8 @@ export const rules: readonly RegistryV2Rule[] = [
         {
           id: "upgrade-action-ref",
           title: "Upgrade setup-go",
-          instructions: "Change the uses reference to actions/setup-go@v6 or a later supported major.",
+          instructions:
+            "Change the uses reference to actions/setup-go@v6.2.0 or a later supported release. Versions 6.0.0 and 6.1.0 still run on node20.",
           targets: "declaration",
         },
         {
@@ -940,6 +941,432 @@ export const rules: readonly RegistryV2Rule[] = [
       verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
     },
     "x-github-actions": { action: "actions/first-interaction", supportedFromMajor: 3 },
+  },
+  {
+    id: "github-actions.ai-inference.node20",
+    ecosystem: "github-actions",
+    purl: "pkg:github/actions/ai-inference",
+    vers: "vers:semver/<2.0.0",
+    event: "end-of-support",
+    title: "Unsupported actions/ai-inference runtime",
+    summary:
+      "v1, and the 0.x tags, set runs.using to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v2 sets runs.using to node24.",
+    severity: "high",
+    replacement: "actions/ai-inference@v2 or later",
+    deadline: "2026-09-23",
+    sources: [
+      {
+        title: "Node 20 is no longer available in GitHub Actions",
+        url: "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/ai-inference v1 action.yml",
+        url: "https://github.com/actions/ai-inference/blob/v1/action.yml",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/ai-inference v2 action.yml",
+        url: "https://github.com/actions/ai-inference/blob/v2/action.yml",
+        accessedAt: "2026-11-15",
+      },
+    ],
+    provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
+    migration: {
+      constraints: [
+        "Keep prompt, model, and token. v2's action.yml adds temperature, top-p, and max-completion-tokens, which v1 does not declare. v3's action.yml drops endpoint, max-tokens, temperature, and top-p.",
+      ],
+      steps: [
+        {
+          id: "upgrade-action-ref",
+          title: "Upgrade ai-inference",
+          instructions:
+            "Change the uses reference to actions/ai-inference@v2 or a later major whose action.yml sets runs.using to node24.",
+          targets: "declaration",
+        },
+        {
+          id: "review-inference-inputs",
+          title: "Review inference inputs",
+          instructions:
+            "Compare prompt, model, token, and sampling inputs with the target major's action.yml before moving past v2.",
+          targets: "declaration",
+        },
+      ],
+      verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
+    },
+    "x-github-actions": { action: "actions/ai-inference", supportedFromMajor: 2 },
+  },
+  {
+    id: "github-actions.attest.node20",
+    ecosystem: "github-actions",
+    purl: "pkg:github/actions/attest",
+    vers: "vers:semver/<3.0.0",
+    event: "end-of-support",
+    title: "Unsupported actions/attest runtime",
+    summary:
+      "v1 and v2 set runs.using to node20, as do the v0.1 tags. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v3 sets runs.using to node24.",
+    severity: "high",
+    replacement: "actions/attest@v3 or later",
+    deadline: "2026-09-23",
+    sources: [
+      {
+        title: "Node 20 is no longer available in GitHub Actions",
+        url: "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/attest v2 action.yml",
+        url: "https://github.com/actions/attest/blob/v2/action.yml",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/attest v3 action.yml",
+        url: "https://github.com/actions/attest/blob/v3/action.yml",
+        accessedAt: "2026-11-15",
+      },
+    ],
+    provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
+    migration: {
+      constraints: [
+        "Keep subject-path or subject-digest, predicate-type, and predicate. v2's action.yml adds subject-checksums, attestation-id, and attestation-url. v3 keeps those inputs and sets runs.using to node24.",
+      ],
+      steps: [
+        {
+          id: "upgrade-action-ref",
+          title: "Upgrade attest",
+          instructions: "Change the uses reference to actions/attest@v3 or a later major.",
+          targets: "declaration",
+        },
+        {
+          id: "review-attestation-inputs",
+          title: "Review attestation inputs",
+          instructions:
+            "Confirm subject, predicate, and bundle outputs against the v3 action.yml. v1 does not declare subject-checksums, attestation-id, or attestation-url.",
+          targets: "declaration",
+        },
+      ],
+      verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
+    },
+    "x-github-actions": { action: "actions/attest", supportedFromMajor: 3 },
+  },
+  {
+    id: "github-actions.delete-package-versions.node12",
+    ecosystem: "github-actions",
+    purl: "pkg:github/actions/delete-package-versions",
+    vers: "vers:semver/<3.0.0",
+    event: "end-of-support",
+    title: "Unsupported actions/delete-package-versions runtime",
+    summary: "v1 and v2 set runs.using to node12. GitHub removed Node.js 12 from Actions runners on 2023-08-14.",
+    severity: "high",
+    replacement: "No supported major of actions/delete-package-versions is published",
+    deadline: "2023-08-14",
+    sources: [
+      {
+        title: "Removal of Node12 from the Actions runner",
+        url: "https://github.blog/changelog/2023-07-16-github-actions-removal-of-node12-from-the-actions-runner/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/delete-package-versions v2 action.yml",
+        url: "https://github.com/actions/delete-package-versions/blob/v2/action.yml",
+        accessedAt: "2026-11-15",
+      },
+    ],
+    provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
+    migration: {
+      constraints: ["No published major sets runs.using to node24. v5 and the default branch both set it to node20."],
+      steps: [
+        {
+          id: "stop-using-retired-majors",
+          title: "Stop pinning a retired major",
+          instructions:
+            "Do not move to v5. Keep package-name, package-type, token, and the version-selection inputs until a release sets runs.using to node24.",
+          targets: "declaration",
+        },
+      ],
+      verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
+    },
+    "x-github-actions": { action: "actions/delete-package-versions" },
+  },
+  {
+    id: "github-actions.delete-package-versions.node16",
+    ecosystem: "github-actions",
+    purl: "pkg:github/actions/delete-package-versions",
+    vers: "vers:semver/>=3.0.0|<5.0.0",
+    event: "end-of-support",
+    title: "Unsupported actions/delete-package-versions runtime",
+    summary: "v3 and v4 set runs.using to node16. GitHub removed Node.js 16 from Actions runners on 2024-11-12.",
+    severity: "high",
+    replacement: "No supported major of actions/delete-package-versions is published",
+    deadline: "2024-11-12",
+    sources: [
+      {
+        title: "End of life for Actions Node16",
+        url: "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/delete-package-versions v4 action.yml",
+        url: "https://github.com/actions/delete-package-versions/blob/v4/action.yml",
+        accessedAt: "2026-11-15",
+      },
+    ],
+    provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
+    migration: {
+      constraints: ["No published major sets runs.using to node24. v5 and the default branch both set it to node20."],
+      steps: [
+        {
+          id: "stop-using-retired-majors",
+          title: "Stop pinning a retired major",
+          instructions:
+            "Do not move to v5. Keep package-name, package-type, token, and the version-selection inputs until a release sets runs.using to node24.",
+          targets: "declaration",
+        },
+      ],
+      verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
+    },
+    "x-github-actions": { action: "actions/delete-package-versions" },
+  },
+  {
+    id: "github-actions.delete-package-versions.node20",
+    ecosystem: "github-actions",
+    purl: "pkg:github/actions/delete-package-versions",
+    vers: "vers:semver/>=5.0.0|<6.0.0",
+    event: "end-of-support",
+    title: "Unsupported actions/delete-package-versions runtime",
+    summary:
+      "v5 sets runs.using to node20, and the default branch still does. GitHub removed Node.js 20 from Actions runners on 2026-09-23. No later major is published.",
+    severity: "high",
+    replacement: "No supported major of actions/delete-package-versions is published",
+    deadline: "2026-09-23",
+    sources: [
+      {
+        title: "Node 20 is no longer available in GitHub Actions",
+        url: "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/delete-package-versions v5 action.yml",
+        url: "https://github.com/actions/delete-package-versions/blob/v5/action.yml",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/delete-package-versions main action.yml",
+        url: "https://github.com/actions/delete-package-versions/blob/main/action.yml",
+        accessedAt: "2026-11-15",
+      },
+    ],
+    provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
+    migration: {
+      constraints: ["No published major sets runs.using to node24. v5 and the default branch both set it to node20."],
+      steps: [
+        {
+          id: "stop-using-retired-majors",
+          title: "Stop pinning a retired major",
+          instructions:
+            "Do not move to v5. Keep package-name, package-type, token, and the version-selection inputs until a release sets runs.using to node24.",
+          targets: "declaration",
+        },
+      ],
+      verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
+    },
+    "x-github-actions": { action: "actions/delete-package-versions" },
+  },
+  {
+    id: "github-actions.dependency-review-action.node16",
+    ecosystem: "github-actions",
+    purl: "pkg:github/actions/dependency-review-action",
+    vers: "vers:semver/<4.0.0",
+    event: "end-of-support",
+    title: "Unsupported actions/dependency-review-action runtime",
+    summary:
+      "v1, v2, and v3 set runs.using to node16. GitHub removed Node.js 16 from Actions runners on 2024-11-12. v5 sets runs.using to node24.",
+    severity: "high",
+    replacement: "actions/dependency-review-action@v5 or later",
+    deadline: "2024-11-12",
+    sources: [
+      {
+        title: "End of life for Actions Node16",
+        url: "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/dependency-review-action v3 action.yml",
+        url: "https://github.com/actions/dependency-review-action/blob/v3/action.yml",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/dependency-review-action v5 action.yml",
+        url: "https://github.com/actions/dependency-review-action/blob/v5/action.yml",
+        accessedAt: "2026-11-15",
+      },
+    ],
+    provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
+    migration: {
+      constraints: [
+        "Keep fail-on-severity, the license and package lists, and repo-token. The v4 and v5 action.yml files declare the same input names; v5 sets runs.using to node24.",
+      ],
+      steps: [
+        {
+          id: "upgrade-action-ref",
+          title: "Upgrade dependency-review-action",
+          instructions:
+            "Change the uses reference to actions/dependency-review-action@v5 or a later major. v4 still sets runs.using to node20.",
+          targets: "declaration",
+        },
+        {
+          id: "review-dependency-policy",
+          title: "Review dependency policy inputs",
+          instructions:
+            "Keep fail-on-severity, license allow and deny lists, and deny-packages aligned with the v5 action.yml.",
+          targets: "declaration",
+        },
+      ],
+      verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
+    },
+    "x-github-actions": { action: "actions/dependency-review-action", supportedFromMajor: 5 },
+  },
+  {
+    id: "github-actions.dependency-review-action.node20",
+    ecosystem: "github-actions",
+    purl: "pkg:github/actions/dependency-review-action",
+    vers: "vers:semver/>=4.0.0|<5.0.0",
+    event: "end-of-support",
+    title: "Unsupported actions/dependency-review-action runtime",
+    summary:
+      "v4 sets runs.using to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v5 sets runs.using to node24.",
+    severity: "high",
+    replacement: "actions/dependency-review-action@v5 or later",
+    deadline: "2026-09-23",
+    sources: [
+      {
+        title: "Node 20 is no longer available in GitHub Actions",
+        url: "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/dependency-review-action v4 action.yml",
+        url: "https://github.com/actions/dependency-review-action/blob/v4/action.yml",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/dependency-review-action v5 action.yml",
+        url: "https://github.com/actions/dependency-review-action/blob/v5/action.yml",
+        accessedAt: "2026-11-15",
+      },
+    ],
+    provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
+    migration: {
+      constraints: [
+        "Keep fail-on-severity, the license and package lists, and repo-token. The v4 and v5 action.yml files declare the same input names; v5 sets runs.using to node24.",
+      ],
+      steps: [
+        {
+          id: "upgrade-action-ref",
+          title: "Upgrade dependency-review-action",
+          instructions:
+            "Change the uses reference to actions/dependency-review-action@v5 or a later major. v4 still sets runs.using to node20.",
+          targets: "declaration",
+        },
+        {
+          id: "review-dependency-policy",
+          title: "Review dependency policy inputs",
+          instructions:
+            "Keep fail-on-severity, license allow and deny lists, and deny-packages aligned with the v5 action.yml.",
+          targets: "declaration",
+        },
+      ],
+      verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
+    },
+    "x-github-actions": { action: "actions/dependency-review-action", supportedFromMajor: 5 },
+  },
+  {
+    id: "github-actions.go-dependency-submission.node16",
+    ecosystem: "github-actions",
+    purl: "pkg:github/actions/go-dependency-submission",
+    vers: "vers:semver/<2.0.0",
+    event: "end-of-support",
+    title: "Unsupported actions/go-dependency-submission runtime",
+    summary: "v1 sets runs.using to node16. GitHub removed Node.js 16 from Actions runners on 2024-11-12.",
+    severity: "high",
+    replacement: "A published actions/go-dependency-submission release whose action.yml sets runs.using to node24",
+    deadline: "2024-11-12",
+    sources: [
+      {
+        title: "End of life for Actions Node16",
+        url: "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/go-dependency-submission v1 action.yml",
+        url: "https://github.com/actions/go-dependency-submission/blob/v1/action.yml",
+        accessedAt: "2026-11-15",
+      },
+    ],
+    provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
+    migration: {
+      constraints: [
+        "v1 sets runs.using to node16 and v2 sets it to node20. The default branch sets runs.using to node24 and adds snapshot-sha, snapshot-ref, detector-name, detector-version, and detector-url. That branch is not tagged as a major.",
+      ],
+      steps: [
+        {
+          id: "wait-for-node24-release",
+          title: "Move to a Node.js 24 release",
+          instructions:
+            "Do not stay on v2. Keep token, go-mod-path, and go-build-target, and review the snapshot and detector inputs on the default branch when a major that sets runs.using to node24 is published.",
+          targets: "declaration",
+        },
+      ],
+      verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
+    },
+    "x-github-actions": { action: "actions/go-dependency-submission" },
+  },
+  {
+    id: "github-actions.go-dependency-submission.node20",
+    ecosystem: "github-actions",
+    purl: "pkg:github/actions/go-dependency-submission",
+    vers: "vers:semver/>=2.0.0|<3.0.0",
+    event: "end-of-support",
+    title: "Unsupported actions/go-dependency-submission runtime",
+    summary:
+      "v2 sets runs.using to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. The default branch sets runs.using to node24 and is not tagged as a major.",
+    severity: "high",
+    replacement: "A published actions/go-dependency-submission release whose action.yml sets runs.using to node24",
+    deadline: "2026-09-23",
+    sources: [
+      {
+        title: "Node 20 is no longer available in GitHub Actions",
+        url: "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/go-dependency-submission v2 action.yml",
+        url: "https://github.com/actions/go-dependency-submission/blob/v2/action.yml",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/go-dependency-submission main action.yml",
+        url: "https://github.com/actions/go-dependency-submission/blob/main/action.yml",
+        accessedAt: "2026-11-15",
+      },
+    ],
+    provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
+    migration: {
+      constraints: [
+        "v1 sets runs.using to node16 and v2 sets it to node20. The default branch sets runs.using to node24 and adds snapshot-sha, snapshot-ref, detector-name, detector-version, and detector-url. That branch is not tagged as a major.",
+      ],
+      steps: [
+        {
+          id: "wait-for-node24-release",
+          title: "Move to a Node.js 24 release",
+          instructions:
+            "Do not stay on v2. Keep token, go-mod-path, and go-build-target, and review the snapshot and detector inputs on the default branch when a major that sets runs.using to node24 is published.",
+          targets: "declaration",
+        },
+      ],
+      verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
+    },
+    "x-github-actions": { action: "actions/go-dependency-submission" },
   },
   {
     id: "github-actions.setup-buildx-action.node20",
