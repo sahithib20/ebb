@@ -63,6 +63,19 @@ describe("completeness of release lines", () => {
     );
   });
 
+  it("limits gap notes when release numbers are far apart", () => {
+    const result = supportedVersions("pkg:npm/example", {
+      asOf: "2026-11-15",
+      rules: [
+        rule("example.1", "vers:semver/>=1.0.0|<2.0.0", "2024-01-01"),
+        rule("example.far", "vers:semver/>=1000000000.0.0|<1000000001.0.0", "2030-01-01"),
+      ],
+    });
+    assert.equal(result.complete, false);
+    assert.equal(result.notes.filter((note) => note.startsWith("No rule covers")).length, 20);
+    assert.ok(result.notes.includes("Additional gaps in release-line coverage were omitted."));
+  });
+
   it("returns an explicit empty answer for an unknown component", () => {
     const byPurl = supportedVersions("pkg:npm/not-a-real-ebb-package", { asOf: "2026-11-15" });
     assert.equal(byPurl.purl, "pkg:npm/not-a-real-ebb-package");
