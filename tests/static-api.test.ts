@@ -71,6 +71,18 @@ test("static API generation produces valid files matching JSON schema and size b
 
     const nodeDoc = JSON.parse(await readFile(join(tempDir, "generic/nodejs.json"), "utf8"));
     assert.equal(nodeDoc.calendar, "https://velella.sh/ebb/api/v1/calendar/generic/nodejs.ics");
+    assert.equal(validate(nodeDoc), true, `generic/nodejs.json validation failed: ${JSON.stringify(validate.errors)}`);
+    assert.equal(nodeDoc.versions.asOf, "2026-11-12");
+    assert.equal(nodeDoc.versions.complete, false);
+    assert.equal(nodeDoc.versions.recommendation, null);
+    assert.match(nodeDoc.versions.reason, /22\.x.*within 180 days/);
+    assert.ok(nodeDoc.rules.some((rule: { id: string }) => rule.id === "nodejs.runtime.eol-26"));
+    assert.ok(!nodeDoc.versions.lines.some((line: { id: string }) => line.id === "26.x"));
+    assert.ok(nodeDoc.versions.lines.some((line: { id: string }) => line.id === "22.x"));
+    assert.ok(JSON.stringify(nodeDoc.versions).length < 4000);
+    assert.equal(requestDoc.versions.lines[0].id, "*");
+    assert.equal(requestDoc.versions.lines[0].status, "ended");
+    assert.equal(requestDoc.versions.recommendation, null);
     const nodeFeed = await readFile(join(tempDir, "calendar/generic/nodejs.ics"), "utf8");
     assert.match(nodeFeed, /UID:nodejs\.runtime\.eol-22@velella\.sh/);
     const allFeed = await readFile(join(tempDir, "calendar/all.ics"), "utf8");

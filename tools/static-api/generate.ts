@@ -5,6 +5,7 @@ import { gzipSync } from "node:zlib";
 
 import { purlToApiPath } from "../../src/api.js";
 import { OFFING_HINT_TEXT } from "../../src/hint.js";
+import { supportedVersions } from "../../src/pick-version.js";
 import { parsePurl, purlIdentity } from "../../src/purl.js";
 import type { RegistryV2, RegistryV2Rule } from "../../src/registry.js";
 import { sourcesOf } from "../../src/sources-of.js";
@@ -45,6 +46,8 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
   const outDir = resolve(options.outDir);
   const baseUrl = (options.baseUrl ?? "https://velella.sh/ebb/api/v1").replace(/\/+$/, "");
   const createdAt = options.createdAt ?? new Date().toISOString();
+  const createdDate = new Date(createdAt);
+  const asOf = createdDate.toISOString().slice(0, 10);
 
   // Read package.json version
   const pkgJsonPath = join(root, "package.json");
@@ -151,6 +154,10 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
 
     const hasIssue = comp.rules.length > 0;
     const calendar = calendarFeeds.get(purl);
+    const versionReport = supportedVersions(purl, {
+      asOf,
+      rules: comp.rules,
+    });
 
     const compDoc = {
       schemaVersion: API_SCHEMA_VERSION,
@@ -162,6 +169,14 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       ...(namespace ? { namespace } : {}),
       ecosystems: Array.from(comp.ecosystems).sort(),
       rules: comp.rules,
+      versions: {
+        asOf: versionReport.asOf,
+        complete: versionReport.complete,
+        reason: versionReport.reason,
+        recommendation: versionReport.recommendation,
+        notes: versionReport.notes,
+        lines: versionReport.lines,
+      },
       ...(hasIssue ? { hint: OFFING_HINT_TEXT } : {}),
       ...(calendar ? { calendar } : {}),
     };
@@ -302,7 +317,6 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       latestReviewDate = rev;
     }
   }
-  const createdDate = new Date(createdAt);
   const reviewedTime = Date.parse(`${latestReviewDate}T00:00:00Z`);
   const ageDays = Number.isNaN(reviewedTime)
     ? 0
