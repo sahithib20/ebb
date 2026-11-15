@@ -148,6 +148,16 @@ test("an exact 26.0.0 rule does not cover the Node.js 26 release line", () => {
   assert.equal(result.gaps[0]?.kind, "incomplete-range");
 });
 
+test("line coverage rejects holes and handles unbounded and exclusive endpoints", () => {
+  const line = "vers:semver/>=26.0.0|<27.0.0";
+  assert.equal(ruleCoversLineRange("vers:semver/>=26.0.0|!=26.0.2|<27.0.0", line), false);
+  assert.equal(ruleCoversLineRange("vers:semver/!=27.0.0|>=26.0.0", line), true);
+  assert.equal(ruleCoversLineRange("vers:semver/>26.0.0|<27.0.0", line), false);
+  assert.equal(ruleCoversLineRange("vers:semver/>=26.0.0|<26.0.2|>=26.0.3|<27.0.0", line), false);
+  assert.equal(ruleCoversLineRange("vers:semver/>=1.10.0|<1.99.0", "vers:semver/<1.99.0"), false);
+  assert.equal(ruleCoversLineRange("vers:semver/*", "vers:semver/<1.99.0"), true);
+});
+
 test("a wrongly dated scheduled rule is not rescued by a correctly dated non-scheduled rule", () => {
   const lineVers = "vers:semver/>=22.0.0|<23.0.0";
   const expected: ExpectedRuntime = {

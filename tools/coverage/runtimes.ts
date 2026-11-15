@@ -22,7 +22,6 @@ import {
   versionScheme,
   type VersComparator,
   type VersConstraint,
-  type VersRange,
 } from "../../src/vers.js";
 
 // Compiled to dist/tools/coverage/*.js — three levels up is the repository root.
@@ -61,9 +60,7 @@ export interface ExpectedLine {
    * Full release-line VERS range that one end rule must cover
    * (e.g. `vers:semver/>=18.0.0|<19.0.0`). Preferred over probe lists.
    */
-  lineVers?: string;
-  /** @deprecated Prefer `lineVers`. Kept for transitional fixtures only. */
-  rangeVersions?: string[];
+  lineVers: string;
   /** First public release of the line (YYYY-MM-DD), when known. */
   firstReleased?: string;
   end?: ExpectedEnd;
@@ -119,85 +116,52 @@ function isSymbolRule(rule: RegistryV2Rule): boolean {
 const isLower = (comparator: VersComparator) => comparator === ">" || comparator === ">=";
 const isUpper = (comparator: VersComparator) => comparator === "<" || comparator === "<=";
 
-function rangeBounds(range: VersRange): {
-  equality?: string;
-  lower?: VersConstraint;
-  upper?: VersConstraint;
-} {
-  if (range.all) return {};
-  const equality = range.constraints.find((c) => c.comparator === "=");
-  if (equality && range.constraints.every((c) => c.comparator === "=" || c.comparator === "!=")) {
-    return { equality: equality.version };
-  }
-  const lower = range.constraints.find((c) => isLower(c.comparator));
-  const upper = range.constraints.find((c) => isUpper(c.comparator));
-  const out: { equality?: string; lower?: VersConstraint; upper?: VersConstraint } = {};
-  if (lower) out.lower = lower;
-  if (upper) out.upper = upper;
-  return out;
-}
-
 /**
- * True when `ruleVers` covers every version in `lineVers` (release-line range containment).
- * Exact-version rules do not cover multi-version lines.
+ * Coverage requires one interval that contains the entire expected release line.
+ * More complex rule expressions fail closed rather than treating separated
+ * intervals or isolated versions as a continuous range.
  */
 export function ruleCoversLineRange(ruleVers: string, lineVers: string): boolean {
   const line = parseVersLenient(lineVers);
   const rule = parseVersLenient(ruleVers);
   if (line.scheme !== rule.scheme) return false;
-  if (line.all) return rule.all;
+  if (rule.all) return true;
+  if (line.all) return false;
 
-  const lineBounds = rangeBounds(line);
-  const ruleBounds = rangeBounds(rule);
+  const expectedLower = line.constraints.filter((constraint) => isLower(constraint.comparator));
+  const expectedUpper = line.constraints.filter((constraint) => isUpper(constraint.comparator));
+  if (
+    expectedLower.length > 1 ||
+    expectedUpper.length > 1 ||
+    expectedLower.length + expectedUpper.length !== line.constraints.length
+  )
+    return false;
 
-  if (lineBounds.equality !== undefined) {
-    return versContains(ruleVers, lineBounds.equality);
-  }
-
-  // An equality-only rule cannot cover an open release-line range.
-  if (ruleBounds.equality !== undefined) return false;
+  const ruleLower = rule.constraints.filter((constraint) => isLower(constraint.comparator));
+  const ruleUpper = rule.constraints.filter((constraint) => isUpper(constraint.comparator));
+  if (ruleLower.length > 1 || ruleUpper.length > 1) return false;
+  if (rule.constraints.some((constraint) => constraint.comparator === "=")) return false;
+  if (rule.constraints.some((constraint) => constraint.comparator === "!=" && versContains(line, constraint.version)))
+    return false;
 
   const scheme = versionScheme(line.scheme);
-
-  if (lineBounds.lower) {
-    // Inclusive lower endpoint must match the rule.
-    if (lineBounds.lower.comparator === ">=" && !versContains(ruleVers, lineBounds.lower.version)) {
-      return false;
-    }
-    if (ruleBounds.lower) {
-      const cmp = scheme.compare(ruleBounds.lower.version, lineBounds.lower.version);
-      if (cmp > 0) return false;
-      if (cmp === 0 && ruleBounds.lower.comparator === ">" && lineBounds.lower.comparator === ">=") {
-        return false;
-      }
-    }
-  }
-
-  if (lineBounds.upper) {
-    if (!ruleBounds.upper) {
-      // Rule unbounded above — wider than the line; OK if lower checks passed.
-    } else {
-      const cmp = scheme.compare(ruleBounds.upper.version, lineBounds.upper.version);
-      if (cmp < 0) return false;
-      if (cmp === 0 && ruleBounds.upper.comparator === "<" && lineBounds.upper.comparator === "<=") {
-        return false;
-      }
-      if (cmp === 0 && ruleBounds.upper.comparator === "<=" && lineBounds.upper.comparator === "<") {
-        // Rule includes the exclusive upper endpoint version; still covers the open line.
-      }
-    }
-  }
-
-  return true;
+  return (
+    endpointCovered(ruleLower[0], expectedLower[0], scheme.compare, ">") &&
+    endpointCovered(ruleUpper[0], expectedUpper[0], scheme.compare, "<")
+  );
 }
 
-/** @deprecated Probe helper retained for older fixtures; prefer {@link ruleCoversLineRange}. */
-export function ruleCoversRange(rule: RegistryV2Rule, versions: readonly string[]): boolean {
-  return versions.every((version) => versContains(rule.vers, version));
-}
-
-export function lineVersFor(line: ExpectedLine): string | undefined {
-  return line.lineVers;
+function endpointCovered(
+  rule: VersConstraint | undefined,
+  expected: VersConstraint | undefined,
+  compare: (left: string, right: string) => number,
+  exclusive: ">" | "<",
+): boolean {
+  if (!rule) return true;
+  if (!expected) return false;
+  const order = compare(rule.version, expected.version);
+  if (order === 0) return rule.comparator !== exclusive || expected.comparator === exclusive;
+  return exclusive === ">" ? order < 0 : order > 0;
 }
 
 /**
@@ -246,7 +210,7 @@ export function assessRuntime(expected: ExpectedRuntime, rules: readonly Registr
       continue;
     }
 
-    const lineVers = lineVersFor(line);
+    const { lineVers } = line;
     if (!lineVers) {
       gaps.push({
         runtime: expected.runtime,
