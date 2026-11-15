@@ -15,6 +15,7 @@ export interface EvidenceSource {
   accessedAt?: string;
   archiveUrl?: string;
   archivedAt?: string;
+  pointer?: string;
 }
 
 export const sourceLanguageValues = [

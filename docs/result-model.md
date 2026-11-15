@@ -44,6 +44,7 @@ Defined in `src/domain.ts` and used by both `ResultMatch.sources` and `LookupFin
 | `accessedAt` | `string` (optional) | Day the page was reviewed (`YYYY-MM-DD`). |
 | `archiveUrl` | `string` (optional) | Archived snapshot URL (`https://`). |
 | `archivedAt` | `string` (optional) | Day the snapshot was recorded (`YYYY-MM-DD`). |
+| `pointer` | `string` (optional) | JSON pointer (RFC 6901) to the deadline in a structured JSON source. |
 
 ## Complete examples
 
@@ -313,6 +314,17 @@ Example:
 
 ```json
 "2026-10-24"
+```
+
+### `pointer`
+
+- **Type:** RFC 6901 JSON pointer `string` (optional)
+- **Meaning:** JSON pointer to the specific property in a structured JSON source holding the deadline date.
+
+Example:
+
+```json
+"/v20/end"
 ```
 
 ## Status name mapping

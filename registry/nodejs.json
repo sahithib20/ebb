@@ -16,10 +16,11 @@
       "sources": [
         {
           "title": "Node.js Release Working Group schedule",
-          "url": "https://github.com/nodejs/Release/blob/main/schedule.json",
+          "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
           "accessedAt": "2026-10-17",
           "archiveUrl": "https://web.archive.org/web/20261017000000/https://github.com/nodejs/Release/blob/main/schedule.json",
-          "archivedAt": "2026-10-17"
+          "archivedAt": "2026-10-17",
+          "pointer": "/v20/end"
         }
       ],
       "provenance": {
@@ -83,10 +84,11 @@
       "sources": [
         {
           "title": "Node.js Release Working Group schedule",
-          "url": "https://github.com/nodejs/Release/blob/main/schedule.json",
+          "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
           "accessedAt": "2026-10-17",
           "archiveUrl": "https://web.archive.org/web/20261017000000/https://github.com/nodejs/Release/blob/main/schedule.json",
-          "archivedAt": "2026-10-17"
+          "archivedAt": "2026-10-17",
+          "pointer": "/v18/end"
         }
       ],
       "provenance": {
@@ -222,10 +224,11 @@
       "sources": [
         {
           "title": "Node.js Release Working Group schedule",
-          "url": "https://github.com/nodejs/Release/blob/main/schedule.json",
+          "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
           "accessedAt": "2026-10-17",
           "archiveUrl": "https://web.archive.org/web/20261017000000/https://github.com/nodejs/Release/blob/main/schedule.json",
-          "archivedAt": "2026-10-17"
+          "archivedAt": "2026-10-17",
+          "pointer": "/v19/end"
         }
       ],
       "provenance": {
@@ -290,10 +293,11 @@
       "sources": [
         {
           "title": "Node.js Release Working Group schedule",
-          "url": "https://github.com/nodejs/Release/blob/main/schedule.json",
+          "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
           "accessedAt": "2026-10-17",
           "archiveUrl": "https://web.archive.org/web/20261017000000/https://github.com/nodejs/Release/blob/main/schedule.json",
-          "archivedAt": "2026-10-17"
+          "archivedAt": "2026-10-17",
+          "pointer": "/v21/end"
         }
       ],
       "provenance": {
@@ -358,10 +362,11 @@
       "sources": [
         {
           "title": "Node.js Release Working Group schedule",
-          "url": "https://github.com/nodejs/Release/blob/main/schedule.json",
+          "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
           "accessedAt": "2026-10-17",
           "archiveUrl": "https://web.archive.org/web/20261017000000/https://github.com/nodejs/Release/blob/main/schedule.json",
-          "archivedAt": "2026-10-17"
+          "archivedAt": "2026-10-17",
+          "pointer": "/v23/end"
         }
       ],
       "provenance": {
@@ -426,10 +431,11 @@
       "sources": [
         {
           "title": "Node.js Release Working Group schedule",
-          "url": "https://github.com/nodejs/Release/blob/main/schedule.json",
+          "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
           "accessedAt": "2026-10-17",
           "archiveUrl": "https://web.archive.org/web/20261017000000/https://github.com/nodejs/Release/blob/main/schedule.json",
-          "archivedAt": "2026-10-17"
+          "archivedAt": "2026-10-17",
+          "pointer": "/v25/end"
         }
       ],
       "provenance": {
@@ -5358,10 +5364,11 @@
       "sources": [
         {
           "title": "Node.js Release Working Group schedule",
-          "url": "https://github.com/nodejs/Release/blob/main/schedule.json",
+          "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
           "accessedAt": "2026-10-24",
           "archiveUrl": "https://web.archive.org/web/20261024000000/https://github.com/nodejs/Release/blob/main/schedule.json",
-          "archivedAt": "2026-10-24"
+          "archivedAt": "2026-10-24",
+          "pointer": "/v22/end"
         }
       ],
       "provenance": {

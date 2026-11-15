@@ -1,11 +1,13 @@
 // Checks that the evidence behind every lifecycle rule is still reachable and has not moved.
 //
 //   node dist/tools/check-sources.js [--out report.json] [--summary summary.md] [--update-lock]
-//                                    [--fail-on stale,changed,unreachable]
+//                                    [--fail-on stale,changed,unreachable,date-missing,date-changed]
+//                                    [--open-issues] [--propose-pr]
 //
 // Reports, separately: rules not reviewed within their freshness window (stale), sources that cannot
 // be fetched (unreachable), sources that moved or were retitled since they were recorded (changed),
-// sources behind a bot challenge (blocked), and sources not recorded yet (unrecorded).
+// sources behind a bot challenge (blocked), sources not recorded yet (unrecorded), dates missing from
+// source content (date-missing), and changed dates in structured sources (date-changed).
 // It never edits rules. Only `--update-lock`, run by a maintainer, writes the lock file.
 // Scans never use this tool or the network.
 
@@ -20,6 +22,7 @@ const execFileAsync = promisify(execFile);
 
 import { REGISTRY_V2_SCHEMA_VERSION, staleRules, validateRegistryV2 } from "../src/registry.js";
 import type { RegistryV2, RegistryV2Rule, StaleRule } from "../src/registry.js";
+import { containsDate } from "./source-date.js";
 
 export const SOURCE_CHECK_SCHEMA = "ebb.source-check.v1" as const;
 export const SOURCE_LOCK_SCHEMA = "ebb.source-lock.v1" as const;
@@ -38,7 +41,15 @@ export interface LockEntry {
   finalUrl: string;
   title: string | null;
   checkedAt: string;
-  status?: "ok" | "unreachable" | "changed" | "blocked" | "unrecorded";
+  status?:
+    | "ok"
+    | "unreachable"
+    | "changed"
+    | "blocked"
+    | "unrecorded"
+    | "date-missing"
+    | "date-changed"
+    | "archived-only";
   archiveUrl?: string;
 }
 
@@ -69,9 +80,12 @@ export interface SourceReport {
   }[];
   blocked: { url: string; status: number; ruleIds: string[] }[];
   unrecorded: { url: string; ruleIds: string[] }[];
+  "date-missing"?: { url: string; ruleIds: string[]; deadline: string }[];
+  "date-changed"?: { url: string; ruleIds: string[]; expected: string; actual: string | null; pointer?: string }[];
+  "archived-only"?: { url: string; archiveUrl: string; reason: string; ruleIds: string[] }[];
 }
 
-export type FailCategory = "stale" | "changed" | "unreachable";
+export type FailCategory = "stale" | "changed" | "unreachable" | "date-missing" | "date-changed" | "archived-only";
 
 export interface CheckInput {
   registries: { name: string; registry: RegistryV2 }[];
@@ -101,6 +115,90 @@ export function isBotChallenge(observation: SourceObservation): boolean {
   if (observation.status === null) return false;
   if (CHALLENGE_PAGE.test(observation.title ?? "")) return true;
   return [403, 429, 503].includes(observation.status) && BOT_CHALLENGE.test(observation.title ?? "");
+}
+
+/** Limits concurrent outgoing requests to at most 2 per host. */
+export class HostRateLimiter {
+  private active = new Map<string, number>();
+  private queue = new Map<string, Array<() => void>>();
+  readonly maxPerHost: number;
+
+  constructor(maxPerHost = 2) {
+    this.maxPerHost = maxPerHost;
+  }
+
+  async acquire(url: string): Promise<() => void> {
+    let host: string;
+    try {
+      host = new URL(url).hostname.toLowerCase();
+    } catch {
+      host = "unknown";
+    }
+
+    const current = this.active.get(host) ?? 0;
+    if (current < this.maxPerHost) {
+      this.active.set(host, current + 1);
+      return () => this.release(host);
+    }
+
+    return new Promise<() => void>((resolve) => {
+      let q = this.queue.get(host);
+      if (!q) {
+        q = [];
+        this.queue.set(host, q);
+      }
+      q.push(() => {
+        this.active.set(host, (this.active.get(host) ?? 0) + 1);
+        resolve(() => this.release(host));
+      });
+    });
+  }
+
+  private release(host: string): void {
+    const q = this.queue.get(host);
+    if (q && q.length > 0) {
+      const next = q.shift()!;
+      next();
+    } else {
+      const current = (this.active.get(host) ?? 1) - 1;
+      if (current <= 0) {
+        this.active.delete(host);
+      } else {
+        this.active.set(host, current);
+      }
+    }
+  }
+}
+
+/** Evaluates an RFC 6901 JSON pointer against an object. */
+export function evaluateJsonPointer(doc: unknown, pointer: string): unknown {
+  if (!pointer.startsWith("/")) {
+    throw new Error(`Invalid JSON pointer "${pointer}": must start with "/"`);
+  }
+  const parts = pointer
+    .slice(1)
+    .split("/")
+    .map((p) => p.replace(/~1/g, "/").replace(/~0/g, "~"));
+  let current: unknown = doc;
+  for (const part of parts) {
+    if (current === null || typeof current !== "object") return undefined;
+    if (Array.isArray(current)) {
+      const idx = Number(part);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= current.length) return undefined;
+      current = current[idx];
+    } else {
+      if (!Object.prototype.hasOwnProperty.call(current, part)) return undefined;
+      current = (current as Record<string, unknown>)[part];
+    }
+  }
+  return current;
+}
+
+function dateMatches(expectedDeadline: string, actualValue: string): boolean {
+  if (expectedDeadline === actualValue) return true;
+  // Year-month precision from source (e.g. "2027-10" matches "2027-10-31")
+  if (/^\d{4}-\d{2}$/.test(actualValue) && expectedDeadline.startsWith(`${actualValue}-`)) return true;
+  return false;
 }
 
 async function inBatches<T, R>(items: readonly T[], size: number, work: (item: T) => Promise<R>): Promise<R[]> {
@@ -156,9 +254,21 @@ export async function checkSources(
   }
 
   const urls = [...rulesByUrl.keys()].sort();
-  const observed = await inBatches(urls, input.concurrency ?? 4, (url) => input.observe(url));
+  const limiter = new HostRateLimiter(2);
+  const observed = await inBatches(urls, input.concurrency ?? 4, async (url) => {
+    const release = await limiter.acquire(url);
+    try {
+      return await input.observe(url);
+    } finally {
+      release();
+    }
+  });
   const observations = new Map(urls.map((url, index) => [url, observed[index]!]));
   const ids = (url: string) => [...rulesByUrl.get(url)!].sort();
+
+  const dateMissing: NonNullable<SourceReport["date-missing"]> = [];
+  const dateChanged: NonNullable<SourceReport["date-changed"]> = [];
+  const archivedOnly: NonNullable<SourceReport["archived-only"]> = [];
 
   const report: SourceReport = {
     schemaVersion: SOURCE_CHECK_SCHEMA,
@@ -173,24 +283,97 @@ export async function checkSources(
     changed: [],
     blocked: [],
     unrecorded: [],
+    "date-missing": dateMissing,
+    "date-changed": dateChanged,
+    "archived-only": archivedOnly,
   };
 
   for (const url of urls) {
     const observation = observations.get(url)!;
+    const associatedRules = rulesListByUrl.get(url) ?? [];
+
     if (isBotChallenge(observation)) {
       report.blocked.push({ url, status: observation.status!, ruleIds: ids(url) });
       continue;
     }
+
     if (observation.status === null || observation.status < 200 || observation.status >= 300 || !observation.finalUrl) {
-      const reason = observation.error ?? `HTTP ${observation.status}`;
-      report.unreachable.push({ url, reason, ruleIds: ids(url) });
+      // Check for an archived copy when the primary source is dead (Sub-issue 5)
+      const archiveUrl =
+        associatedRules
+          .find((r) => r.sources.some((s) => s.url === url && s.archiveUrl))
+          ?.sources.find((s) => s.url === url && s.archiveUrl)?.archiveUrl ?? input.lock.sources[url]?.archiveUrl;
+
+      let archiveSuccess = false;
+      if (archiveUrl) {
+        const release = await limiter.acquire(archiveUrl);
+        let archiveObs: SourceObservation | undefined;
+        try {
+          archiveObs = await input.observe(archiveUrl);
+        } finally {
+          release();
+        }
+
+        if (
+          archiveObs &&
+          archiveObs.status !== null &&
+          archiveObs.status >= 200 &&
+          archiveObs.status < 300 &&
+          archiveObs.finalUrl
+        ) {
+          archiveSuccess = true;
+          const reason = observation.error ?? `HTTP ${observation.status}`;
+          archivedOnly.push({ url, archiveUrl, reason, ruleIds: ids(url) });
+
+          // Run date checks on the archived copy
+          const archiveText = archiveObs.contentSnippet ?? archiveObs.title ?? "";
+          for (const rule of associatedRules) {
+            const src = rule.sources.find((s) => s.url === url);
+            if (src?.pointer) {
+              let parsedJson: unknown = undefined;
+              try {
+                parsedJson = JSON.parse(archiveText);
+              } catch {
+                // not JSON
+              }
+              const val = parsedJson !== undefined ? evaluateJsonPointer(parsedJson, src.pointer) : undefined;
+              if (val === undefined) {
+                dateChanged.push({
+                  url,
+                  ruleIds: [rule.id],
+                  expected: rule.deadline ?? "",
+                  actual: null,
+                  pointer: src.pointer,
+                });
+              } else if (rule.deadline !== undefined && !dateMatches(rule.deadline, String(val).trim())) {
+                dateChanged.push({
+                  url,
+                  ruleIds: [rule.id],
+                  expected: rule.deadline,
+                  actual: String(val).trim(),
+                  pointer: src.pointer,
+                });
+              }
+            } else if (rule.deadline !== undefined && !containsDate(archiveText, rule.deadline)) {
+              dateMissing.push({ url, ruleIds: [rule.id], deadline: rule.deadline });
+            }
+          }
+        }
+      }
+
+      if (!archiveSuccess) {
+        const reason = observation.error ?? `HTTP ${observation.status}`;
+        report.unreachable.push({ url, reason, ruleIds: ids(url) });
+      }
       continue;
     }
+
     const recorded = input.lock.sources[url];
     if (!recorded) {
       report.unrecorded.push({ url, ruleIds: ids(url) });
       continue;
     }
+
     const reasons: ChangeReason[] = [];
     if (normalizeUrl(recorded.finalUrl) !== normalizeUrl(observation.finalUrl)) reasons.push("final-url");
     if (normalizeText(recorded.title) !== normalizeText(observation.title)) reasons.push("title");
@@ -203,7 +386,6 @@ export async function checkSources(
       reasons.push("redirect");
     }
     if (observation.contentSnippet) {
-      const associatedRules = rulesListByUrl.get(url) ?? [];
       const versionTokens = associatedRules.flatMap(extractRuleVersionTokens);
       if (versionTokens.length > 0) {
         const fullText = `${observation.title ?? ""} ${observation.contentSnippet}`.toLowerCase();
@@ -222,7 +404,51 @@ export async function checkSources(
         current: { finalUrl: observation.finalUrl, title: observation.title },
         ruleIds: ids(url),
       });
-    } else {
+    }
+
+    // Date check (Sub-issues 2 and 3)
+    let dateFailed = false;
+    const content = observation.contentSnippet ?? observation.title ?? "";
+    for (const rule of associatedRules) {
+      const src = rule.sources.find((s) => s.url === url);
+      if (src?.pointer) {
+        let parsedJson: unknown = undefined;
+        try {
+          parsedJson = JSON.parse(content);
+        } catch {
+          // not JSON
+        }
+        const val = parsedJson !== undefined ? evaluateJsonPointer(parsedJson, src.pointer) : undefined;
+        if (val === undefined) {
+          dateFailed = true;
+          dateChanged.push({
+            url,
+            ruleIds: [rule.id],
+            expected: rule.deadline ?? "",
+            actual: null,
+            pointer: src.pointer,
+          });
+        } else if (rule.deadline !== undefined && !dateMatches(rule.deadline, String(val).trim())) {
+          dateFailed = true;
+          dateChanged.push({
+            url,
+            ruleIds: [rule.id],
+            expected: rule.deadline,
+            actual: String(val).trim(),
+            pointer: src.pointer,
+          });
+        }
+      } else if (rule.deadline !== undefined && !containsDate(content, rule.deadline)) {
+        dateFailed = true;
+        dateMissing.push({
+          url,
+          ruleIds: [rule.id],
+          deadline: rule.deadline,
+        });
+      }
+    }
+
+    if (reasons.length === 0 && !dateFailed) {
       report.ok++;
     }
   }
@@ -247,13 +473,20 @@ export function updatedLock(
       observation.finalUrl
     ) {
       const isChanged = report?.changed.some((c) => c.url === url);
+      const isDateMissing = report?.["date-missing"]?.some((c) => c.url === url);
+      const isDateChanged = report?.["date-changed"]?.some((c) => c.url === url);
+      let status: LockEntry["status"] = existing?.status ?? "ok";
+      if (report !== undefined) {
+        if (isChanged) status = "changed";
+        else if (isDateChanged) status = "date-changed";
+        else if (isDateMissing) status = "date-missing";
+        else status = "ok";
+      }
       sources[url] = {
         finalUrl: observation.finalUrl,
         title: observation.title,
         checkedAt: now.toISOString().slice(0, 10),
-        ...(existing?.status !== undefined || report !== undefined
-          ? { status: isChanged ? "changed" : (existing?.status ?? "ok") }
-          : {}),
+        ...(existing?.status !== undefined || report !== undefined ? { status } : {}),
         ...(existing?.archiveUrl ? { archiveUrl: existing.archiveUrl } : {}),
       };
     } else if (existing) {
@@ -264,7 +497,10 @@ export function updatedLock(
 }
 
 export function failingCategories(report: SourceReport, failOn: readonly FailCategory[]): FailCategory[] {
-  return failOn.filter((category) => report[category].length > 0);
+  return failOn.filter((category) => {
+    const list = report[category] as unknown[] | undefined;
+    return Array.isArray(list) && list.length > 0;
+  });
 }
 
 export function renderSummary(report: SourceReport): string {
@@ -280,6 +516,9 @@ export function renderSummary(report: SourceReport): string {
     `| Scheduled rules whose date has passed (due for promotion) | ${report.duePromotion.length} |`,
     `| Changed sources (moved or retitled) | ${report.changed.length} |`,
     `| Unreachable sources | ${report.unreachable.length} |`,
+    `| Archived only (dead source with verified archive) | ${report["archived-only"]?.length ?? 0} |`,
+    `| Date missing from source | ${report["date-missing"]?.length ?? 0} |`,
+    `| Date changed in structured source | ${report["date-changed"]?.length ?? 0} |`,
     `| Blocked by a bot challenge (not verifiable) | ${report.blocked.length} |`,
     `| Not recorded yet | ${report.unrecorded.length} |`,
     "",
@@ -315,6 +554,27 @@ export function renderSummary(report: SourceReport): string {
     ),
   );
   section(
+    "Archived only",
+    (report["archived-only"] ?? []).map(
+      (entry) =>
+        `- ${entry.url} (archive: ${entry.archiveUrl}); rules: ${entry.ruleIds.map((id) => `\`${id}\``).join(", ")}`,
+    ),
+  );
+  section(
+    "Date missing from source",
+    (report["date-missing"] ?? []).map(
+      (entry) =>
+        `- ${entry.url} (deadline ${entry.deadline}); rules: ${entry.ruleIds.map((id) => `\`${id}\``).join(", ")}`,
+    ),
+  );
+  section(
+    "Date changed in structured source",
+    (report["date-changed"] ?? []).map(
+      (entry) =>
+        `- ${entry.url} (expected ${entry.expected}, found ${entry.actual ?? "unresolved"}${entry.pointer ? ` at ${entry.pointer}` : ""}); rules: ${entry.ruleIds.map((id) => `\`${id}\``).join(", ")}`,
+    ),
+  );
+  section(
     "Blocked by a bot challenge",
     report.blocked.map(
       (entry) => `- ${entry.url} (HTTP ${entry.status}); rules: ${entry.ruleIds.map((id) => `\`${id}\``).join(", ")}`,
@@ -347,7 +607,7 @@ export async function fetchObservation(
         redirect: "follow",
         headers: {
           "user-agent": "ebb-source-check (+https://github.com/velella-sh/ebb)",
-          accept: "text/html,application/xhtml+xml,*/*;q=0.8",
+          accept: "text/html,application/xhtml+xml,application/json,*/*;q=0.8",
           // Ask for English so a localized redirect or title does not look like a moved source.
           "accept-language": "en-US,en;q=0.9",
         },
@@ -472,6 +732,8 @@ export interface IssueRecord {
 export interface IssueRunner {
   listExisting(repo?: string): Promise<IssueRecord[]>;
   createIssue(issue: { title: string; body: string; labels: string[] }, repo?: string): Promise<number>;
+  updateIssue?(issueNumber: number, update: { body: string }, repo?: string): Promise<void>;
+  closeIssue?(issueNumber: number, comment: string, repo?: string): Promise<void>;
 }
 
 export const defaultGitHubRunner: IssueRunner = {
@@ -489,49 +751,176 @@ export const defaultGitHubRunner: IssueRunner = {
     const match = stdout.match(/\/issues\/(\d+)/);
     return match ? Number(match[1]) : 0;
   },
+  async updateIssue(issueNumber: number, update: { body: string }, repo?: string): Promise<void> {
+    const args = ["issue", "edit", String(issueNumber), "--body", update.body];
+    if (repo) args.push("--repo", repo);
+    await execFileAsync("gh", args);
+  },
+  async closeIssue(issueNumber: number, comment: string, repo?: string): Promise<void> {
+    const args = ["issue", "close", String(issueNumber), "--comment", comment];
+    if (repo) args.push("--repo", repo);
+    await execFileAsync("gh", args);
+  },
 };
 
 export async function openDeadSourceIssues(
   report: SourceReport,
   runner: IssueRunner = defaultGitHubRunner,
-  options: { maxOpen?: number; repo?: string; dryRun?: boolean } = {},
-): Promise<{ opened: DeadSourceIssue[]; skipped: string[] }> {
+  options: { maxOpen?: number | undefined; repo?: string | undefined; dryRun?: boolean | undefined } = {},
+): Promise<{ opened: DeadSourceIssue[]; updated: DeadSourceIssue[]; closed: number[]; skipped: string[] }> {
   const maxOpen = options.maxOpen ?? 10;
   const existing = await runner.listExisting(options.repo);
-  const trackedHashes = new Set<string>();
+  const trackedIssues = new Map<string, IssueRecord>();
   let openCount = 0;
   for (const issue of existing) {
     const hash = extractDeadSourceHash(issue.body);
     if (hash) {
       if (!issue.state || issue.state.toUpperCase() === "OPEN") {
-        trackedHashes.add(hash);
+        trackedIssues.set(hash, issue);
         openCount++;
       }
     }
   }
 
   const opened: DeadSourceIssue[] = [];
+  const updated: DeadSourceIssue[] = [];
+  const closed: number[] = [];
   const skipped: string[] = [];
 
+  const currentUnreachableHashes = new Set(
+    report.unreachable.map((entry) => createHash("sha256").update(entry.url).digest("hex").slice(0, 16)),
+  );
+
+  // Close issues when the problem is gone (Sub-issue 6)
+  for (const [hash, issue] of trackedIssues.entries()) {
+    if (!currentUnreachableHashes.has(hash)) {
+      if (runner.closeIssue && issue.number) {
+        if (!options.dryRun) {
+          await runner.closeIssue(
+            issue.number,
+            "Evidence source is now reachable; closing automatic issue.",
+            options.repo,
+          );
+        }
+        closed.push(issue.number);
+        openCount--;
+      }
+    }
+  }
+
+  // Open or update issues for current unreachable sources
   for (const entry of report.unreachable) {
     const hash = createHash("sha256").update(entry.url).digest("hex").slice(0, 16);
-    if (trackedHashes.has(hash)) {
-      skipped.push(entry.url);
+    const existingIssue = trackedIssues.get(hash);
+    const rendered = renderDeadSourceIssue(entry);
+
+    if (existingIssue) {
+      if (runner.updateIssue && existingIssue.number) {
+        if (!options.dryRun) {
+          await runner.updateIssue(existingIssue.number, { body: rendered.body }, options.repo);
+        }
+        updated.push(rendered);
+      } else {
+        skipped.push(entry.url);
+      }
       continue;
     }
+
     if (openCount >= maxOpen) {
       break;
     }
-    const rendered = renderDeadSourceIssue(entry);
+
     if (!options.dryRun) {
       await runner.createIssue(rendered, options.repo);
     }
     opened.push(rendered);
-    trackedHashes.add(hash);
+    trackedIssues.set(hash, { title: rendered.title, body: rendered.body });
     openCount++;
   }
 
-  return { opened, skipped };
+  return { opened, updated, closed, skipped };
+}
+
+/** Proposes lock file updates for verified, unchanged sources (Sub-issue 7). */
+export async function proposeDateBumps(
+  report: SourceReport,
+  lock: SourceLock,
+  observations: Map<string, SourceObservation>,
+  now: Date,
+  lockPath: string,
+  options: { dryRun?: boolean | undefined; repo?: string | undefined } = {},
+): Promise<{ bumpedCount: number; message: string }> {
+  const problemUrls = new Set<string>([
+    ...report.unreachable.map((e) => e.url),
+    ...report.changed.map((e) => e.url),
+    ...report.blocked.map((e) => e.url),
+    ...report.unrecorded.map((e) => e.url),
+    ...(report["date-missing"] ?? []).map((e) => e.url),
+    ...(report["date-changed"] ?? []).map((e) => e.url),
+    ...(report["archived-only"] ?? []).map((e) => e.url),
+  ]);
+
+  const candidates: Array<{ url: string; oldDate: string; newDate: string }> = [];
+  const todayStr = now.toISOString().slice(0, 10);
+
+  for (const [url, entry] of Object.entries(lock.sources)) {
+    if (!problemUrls.has(url)) {
+      const obs = observations.get(url);
+      if (obs && obs.status !== null && obs.status >= 200 && obs.status < 300 && obs.finalUrl) {
+        if (entry.checkedAt !== todayStr) {
+          candidates.push({ url, oldDate: entry.checkedAt, newDate: todayStr });
+        }
+      }
+    }
+  }
+
+  if (candidates.length === 0) {
+    return { bumpedCount: 0, message: "Nothing to bump." };
+  }
+
+  const newLock = updatedLock(lock, observations, now, report);
+  if (!options.dryRun) {
+    await writeFile(lockPath, `${JSON.stringify(newLock, null, 2)}\n`);
+  }
+
+  const prBody = [
+    "## Source date bumps",
+    "",
+    `Verified ${candidates.length} sources on ${todayStr}. All sources are reachable, unchanged, and dates verified.`,
+    "",
+    "| Source URL | Checked |",
+    "|---|---|",
+    ...candidates.map((c) => `| \`${c.url}\` | ${c.newDate} (was ${c.oldDate}) |`),
+    "",
+    "> Note: `provenance.reviewedAt` was not changed; a machine check is not a human review.",
+  ].join("\n");
+
+  if (!options.dryRun) {
+    try {
+      const branch = `sources/bump-${todayStr}`;
+      await execFileAsync("git", ["checkout", "-b", branch]);
+      await execFileAsync("git", ["add", lockPath]);
+      await execFileAsync("git", ["commit", "-m", `data: bump verified source dates for ${todayStr}`]);
+      await execFileAsync("git", ["push", "-u", "origin", branch]);
+      const prArgs = [
+        "pr",
+        "create",
+        "--title",
+        `data: source date bumps for ${todayStr}`,
+        "--body",
+        prBody,
+        "--head",
+        branch,
+      ];
+      if (options.repo) prArgs.push("--repo", options.repo);
+      const { stdout } = await execFileAsync("gh", prArgs);
+      return { bumpedCount: candidates.length, message: `Opened PR: ${stdout.trim()}` };
+    } catch (err) {
+      return { bumpedCount: candidates.length, message: `Created branch with bumps: ${(err as Error).message}` };
+    }
+  }
+
+  return { bumpedCount: candidates.length, message: `Dry run: ${candidates.length} sources to bump.` };
 }
 
 export async function loadRegistries(directory: string): Promise<{ name: string; registry: RegistryV2 }[]> {
@@ -564,7 +953,13 @@ export async function main(argv: string[]): Promise<number> {
   for (let index = 0; index < argv.length; index++) {
     const argument = argv[index]!;
     if (!argument.startsWith("--")) throw new Error(`Unexpected argument "${argument}".`);
-    if (argument === "--update-lock" || argument === "--open-issues" || argument === "--dry-run") flags.add(argument);
+    if (
+      argument === "--update-lock" ||
+      argument === "--open-issues" ||
+      argument === "--dry-run" ||
+      argument === "--propose-pr"
+    )
+      flags.add(argument);
     else
       options.set(
         argument,
@@ -578,7 +973,7 @@ export async function main(argv: string[]): Promise<number> {
   const lockPath = resolve(options.get("--lock") ?? join(directory, "sources.lock.json"));
   const failOn = (options.get("--fail-on") ?? "").split(",").filter(Boolean) as FailCategory[];
   for (const category of failOn)
-    if (!["stale", "changed", "unreachable"].includes(category))
+    if (!["stale", "changed", "unreachable", "date-missing", "date-changed", "archived-only"].includes(category))
       throw new Error(`Unknown --fail-on category "${category}".`);
   const now = options.has("--now") ? new Date(options.get("--now")!) : new Date();
 
@@ -588,7 +983,7 @@ export async function main(argv: string[]): Promise<number> {
     registries: await loadRegistries(directory),
     lock,
     now,
-    observe: (url) => fetchObservation(url, timeout),
+    observe: (url) => fetchObservation(url, timeout, 2, undefined, true),
     concurrency: Number(options.get("--concurrency") ?? 4),
   });
 
@@ -604,12 +999,21 @@ export async function main(argv: string[]): Promise<number> {
     const maxOpen = Number(options.get("--max-open-issues") ?? 10);
     const repo = options.get("--repo");
     const dryRun = flags.has("--dry-run");
-    const { opened, skipped } = await openDeadSourceIssues(report, defaultGitHubRunner, {
+    const { opened, updated, closed, skipped } = await openDeadSourceIssues(report, defaultGitHubRunner, {
       maxOpen,
       ...(repo !== undefined ? { repo } : {}),
       dryRun,
     });
-    process.stdout.write(`Opened ${opened.length} dead source issues (${skipped.length} already tracked)\n`);
+    process.stdout.write(
+      `Opened ${opened.length}, updated ${updated.length}, closed ${closed.length} dead source issues (${skipped.length} skipped)\n`,
+    );
+  }
+  if (flags.has("--propose-pr")) {
+    const res = await proposeDateBumps(report, lock, observations, now, lockPath, {
+      dryRun: flags.has("--dry-run"),
+      repo: options.get("--repo"),
+    });
+    process.stdout.write(`${res.message}\n`);
   }
 
   const failing = failingCategories(report, failOn);

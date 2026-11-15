@@ -65,7 +65,11 @@
         "url": { "type": "string", "pattern": "^https://" },
         "accessedAt": { "$ref": "#/$defs/date" },
         "archiveUrl": { "type": "string", "pattern": "^https://" },
-        "archivedAt": { "$ref": "#/$defs/date" }
+        "archivedAt": { "$ref": "#/$defs/date" },
+        "pointer": {
+          "type": "string",
+          "pattern": "^/"
+        }
       }
     }
   }

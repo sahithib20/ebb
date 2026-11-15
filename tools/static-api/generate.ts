@@ -20,6 +20,8 @@ export interface GenerateStaticApiOptions {
   baseUrl?: string | undefined;
   /** Deterministic creation timestamp. Defaults to current ISO timestamp. */
   createdAt?: string | undefined;
+  /** Path to the latest source check report. If omitted or not found, source status fields are left out. */
+  reportPath?: string | undefined;
 }
 
 export interface GenerateStaticApiResult {
@@ -50,6 +52,65 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
   const pkgJson = JSON.parse(await readFile(pkgJsonPath, "utf8")) as { version: string };
   const version = pkgJson.version;
 
+  // Read optional source-check report (Sub-issue 9)
+  const reportPath = options.reportPath ?? join(root, "source-report.json");
+  let reportCheckedAt: string | undefined;
+  const ruleStatusMap = new Map<string, string>();
+  try {
+    const rawReport = await readFile(reportPath, "utf8");
+    const reportData = JSON.parse(rawReport) as {
+      checkedAt?: string;
+      stale?: Array<{ ruleId: string }>;
+      unreachable?: Array<{ ruleIds: string[] }>;
+      changed?: Array<{ ruleIds: string[] }>;
+      blocked?: Array<{ ruleIds: string[] }>;
+      unrecorded?: Array<{ ruleIds: string[] }>;
+      "date-missing"?: Array<{ ruleIds: string[] }>;
+      "date-changed"?: Array<{ ruleIds: string[] }>;
+      "archived-only"?: Array<{ ruleIds: string[] }>;
+    };
+    if (reportData.checkedAt) {
+      reportCheckedAt = reportData.checkedAt.slice(0, 10);
+      for (const entry of reportData.unreachable ?? []) {
+        for (const id of entry.ruleIds) ruleStatusMap.set(id, "unreachable");
+      }
+      for (const entry of reportData["archived-only"] ?? []) {
+        for (const id of entry.ruleIds) if (!ruleStatusMap.has(id)) ruleStatusMap.set(id, "archived-only");
+      }
+      for (const entry of reportData["date-changed"] ?? []) {
+        for (const id of entry.ruleIds) if (!ruleStatusMap.has(id)) ruleStatusMap.set(id, "date-changed");
+      }
+      for (const entry of reportData["date-missing"] ?? []) {
+        for (const id of entry.ruleIds) if (!ruleStatusMap.has(id)) ruleStatusMap.set(id, "date-missing");
+      }
+      for (const entry of reportData.changed ?? []) {
+        for (const id of entry.ruleIds) if (!ruleStatusMap.has(id)) ruleStatusMap.set(id, "changed");
+      }
+      for (const entry of reportData.blocked ?? []) {
+        for (const id of entry.ruleIds) if (!ruleStatusMap.has(id)) ruleStatusMap.set(id, "blocked");
+      }
+      for (const entry of reportData.unrecorded ?? []) {
+        for (const id of entry.ruleIds) if (!ruleStatusMap.has(id)) ruleStatusMap.set(id, "unrecorded");
+      }
+      for (const entry of reportData.stale ?? []) {
+        if (!ruleStatusMap.has(entry.ruleId)) ruleStatusMap.set(entry.ruleId, "stale");
+      }
+    }
+  } catch {
+    // Missing report is allowed - do not fail the site build
+    reportCheckedAt = undefined;
+  }
+
+  const formatRule = (rule: RegistryV2Rule): RegistryV2Rule => {
+    if (!reportCheckedAt) return rule;
+    const sourceStatus = ruleStatusMap.get(rule.id) ?? "ok";
+    return {
+      ...rule,
+      sourceCheckedAt: reportCheckedAt,
+      sourceStatus,
+    };
+  };
+
   // Read all registry files
   const registryDir = join(root, "registry");
   const registryEntries = await readdir(registryDir);
@@ -79,8 +140,9 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     const ecoRules = rulesByEcosystem.get(eco)!;
 
     for (const rule of reg.rules) {
-      allRules.push(rule);
-      ecoRules.push(rule);
+      const formatted = formatRule(rule);
+      allRules.push(formatted);
+      ecoRules.push(formatted);
 
       const identity = purlIdentity(rule.purl);
       let comp = rulesByComponent.get(identity);
@@ -93,7 +155,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
         rulesByComponent.set(identity, comp);
       }
       comp.ecosystems.add(eco);
-      comp.rules.push(rule);
+      comp.rules.push(formatted);
     }
   }
 

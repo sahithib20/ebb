@@ -116,3 +116,86 @@ test("main rejects a lock file with an unsupported schema", async () => {
     await assert.rejects(main(["--registry-dir", dir, "--lock", lock]), /Unsupported source lock: other/);
   });
 });
+
+test("automatic issue management: covers repeat, update and automatic close", async () => {
+  const { openDeadSourceIssues } = await import("../tools/check-sources.js");
+  const deadUrl = "https://example.com/broken";
+  const entry = { url: deadUrl, reason: "HTTP 404", ruleIds: ["npm.package.foo.deprecated"] };
+
+  const existingIssues: Array<{ number: number; title: string; body: string; state: string }> = [];
+  const created: Array<{ title: string; body: string; labels: string[] }> = [];
+  const updated: Array<{ number: number; body: string }> = [];
+  const closed: Array<{ number: number; comment: string }> = [];
+
+  let nextIssueNumber = 100;
+  const mockRunner = {
+    async listExisting() {
+      return [...existingIssues];
+    },
+    async createIssue(issue: { title: string; body: string; labels: string[] }) {
+      const num = ++nextIssueNumber;
+      created.push(issue);
+      existingIssues.push({ number: num, title: issue.title, body: issue.body, state: "OPEN" });
+      return num;
+    },
+    async updateIssue(number: number, update: { body: string }) {
+      updated.push({ number, body: update.body });
+      const found = existingIssues.find((i) => i.number === number);
+      if (found) found.body = update.body;
+    },
+    async closeIssue(number: number, comment: string) {
+      closed.push({ number, comment });
+      const found = existingIssues.find((i) => i.number === number);
+      if (found) found.state = "CLOSED";
+    },
+  };
+
+  const deadReport = {
+    schemaVersion: "ebb.source-check.v1" as const,
+    checkedAt: "2026-10-15T00:00:00Z",
+    registries: 1,
+    rules: 1,
+    sources: 1,
+    ok: 0,
+    stale: [],
+    duePromotion: [],
+    unreachable: [entry],
+    changed: [],
+    blocked: [],
+    unrecorded: [],
+  };
+
+  // 1. Initial run: creates issue
+  const res1 = await openDeadSourceIssues(deadReport, mockRunner, { maxOpen: 5 });
+  assert.equal(res1.opened.length, 1);
+  assert.equal(created.length, 1);
+  assert.equal(existingIssues.length, 1);
+
+  // 2. Repeat run: issue already open with same key -> updates or skips, does not duplicate
+  const res2 = await openDeadSourceIssues(deadReport, mockRunner, { maxOpen: 5 });
+  assert.equal(res2.opened.length, 0);
+  assert.equal(res2.updated.length, 1); // updated with latest body
+
+  // 3. Update run: reason changes to HTTP 500
+  const updatedReport = {
+    ...deadReport,
+    unreachable: [{ url: deadUrl, reason: "HTTP 500", ruleIds: ["npm.package.foo.deprecated"] }],
+  };
+  const res3 = await openDeadSourceIssues(updatedReport, mockRunner, { maxOpen: 5 });
+  assert.equal(res3.opened.length, 0);
+  assert.equal(res3.updated.length, 1);
+  assert.match(updated.slice(-1)[0]?.body ?? "", /HTTP 500/);
+
+  // 4. Automatic close: problem is gone (unreachable is now empty)
+  const healthyReport = {
+    ...deadReport,
+    unreachable: [],
+    ok: 1,
+  };
+  const res4 = await openDeadSourceIssues(healthyReport, mockRunner, { maxOpen: 5 });
+  assert.equal(res4.closed.length, 1);
+  assert.equal(closed.length, 1);
+  assert.equal(closed[0]?.number, 101);
+  assert.match(closed[0]?.comment ?? "", /reachable/);
+  assert.equal(existingIssues[0]?.state, "CLOSED");
+});

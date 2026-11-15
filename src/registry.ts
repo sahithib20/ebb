@@ -69,6 +69,10 @@ export interface RegistryV2Rule {
   usage?: UsageMatcher[];
   /** Previous rule ID if this rule was renamed. */
   renamedFrom?: string;
+  /** Automated source check timestamp (YYYY-MM-DD). */
+  sourceCheckedAt?: string;
+  /** Automated source check status. */
+  sourceStatus?: string;
   /** Ecosystem matching hints such as `x-npm` or `x-github-actions`. */
   [extension: `x-${string}`]: Record<string, unknown>;
 }
@@ -260,6 +264,11 @@ function sourceIssues(source: unknown, sourceIndex: number, problem: Problem): v
   if (isRecord(source) && source.archivedAt !== undefined) {
     if (!isIsoDate(source.archivedAt)) {
       problem(`sources[${sourceIndex}].archivedAt must be a valid date (YYYY-MM-DD)`);
+    }
+  }
+  if (isRecord(source) && source.pointer !== undefined) {
+    if (!isNonEmptyString(source.pointer) || !source.pointer.startsWith("/")) {
+      problem(`sources[${sourceIndex}].pointer must be a JSON pointer starting with "/"`);
     }
   }
 }
