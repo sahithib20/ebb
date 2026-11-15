@@ -17,7 +17,7 @@ import {
 
 const RULE_ID = "npm.package.request.deprecated";
 
-function registryText(summary = "The package is deprecated."): string {
+function registryText(summary = "The package is deprecated.", deadline?: string, sequence?: number): string {
   return `${JSON.stringify(
     {
       schemaVersion: "ebb.registry.v2",
@@ -32,6 +32,8 @@ function registryText(summary = "The package is deprecated."): string {
           title: "request is deprecated",
           summary,
           severity: "high",
+          deadline,
+          ...(sequence === undefined ? {} : { "x-ical": { sequence } }),
           replacement: "Native fetch",
           sources: [{ title: "Deprecation notice", url: "https://example.com/request", accessedAt: "2026-01-01" }],
           provenance: { observedAt: "2026-01-01", reviewedAt: "2026-01-02", reviewer: "test", method: "manual" },
@@ -95,6 +97,28 @@ async function commit(root: string, message: string): Promise<void> {
   git(root, "add", "-A");
   git(root, "commit", "-q", "-m", message);
 }
+
+test("changing a published deadline requires a higher calendar sequence", async () => {
+  const { root } = await repository();
+  try {
+    const file = join(root, "registry", "npm.json");
+    await writeFile(file, registryText(undefined, "2026-06-01"));
+    await commit(root, "publish deadline");
+    const base = git(root, "rev-parse", "HEAD").trim();
+
+    await writeFile(file, registryText(undefined, "2026-05-01"));
+    await commit(root, "move deadline earlier");
+    const rejected = await runChangedRules({ root, base });
+    assert.equal(rejected.passed, false);
+    assert.match(rejected.lint.issues[0]?.message ?? "", /calendar sequence must increase/);
+
+    await writeFile(file, registryText(undefined, "2026-05-01", 1));
+    await commit(root, "increment sequence");
+    assert.equal((await runChangedRules({ root, base })).passed, true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test("changed paths select registry files and case files and ignore everything else", () => {
   const result = classifyChangedPaths([

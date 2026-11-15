@@ -106,7 +106,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     rules: allRules,
     ecosystems: [...rulesByEcosystem.keys()],
     baseUrl,
-    stamp: createdAt,
+    createdAt,
   });
 
   // 1. Generate Component JSON files

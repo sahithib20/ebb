@@ -7,12 +7,11 @@
 import { DEFAULT_STATIC_API_BASE_URL, purlToApiPath } from "../api.js";
 import { BUNDLED_ECOSYSTEMS } from "../data/ecosystems.js";
 import { loadEcosystemSync } from "../data/load.js";
-import type { RegistryV2Rule } from "../registry.js";
+import { isCalendarSequence, isIsoDate, type RegistryV2Rule } from "../registry.js";
 import { addDays, upcoming, type UpcomingItem } from "../upcoming.js";
 
 const UID_DOMAIN = "velella.sh";
 const OCTET_LIMIT = 75;
-const DAY_MS = 86_400_000;
 
 export interface ToICalOptions {
   /** Ecosystem name or names. Uses the same filter as `upcoming`. */
@@ -50,7 +49,7 @@ function collectRules(options: ToICalOptions): readonly RegistryV2Rule[] {
   return rules;
 }
 
-function latestReview(rules: readonly RegistryV2Rule[]): string {
+export function latestReview(rules: readonly RegistryV2Rule[]): string {
   let latest = "1970-01-01";
   for (const rule of rules) {
     const reviewed = rule.provenance?.reviewedAt;
@@ -84,7 +83,7 @@ export function foldICalLine(line: string): string {
   const bytes = new TextEncoder().encode(line);
   if (bytes.length <= OCTET_LIMIT) return line;
   const parts: string[] = [];
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
   let start = 0;
   let budget = OCTET_LIMIT;
   while (start < bytes.length) {
@@ -101,20 +100,28 @@ export function foldICalLine(line: string): string {
   return parts.join("\r\n ");
 }
 
-function formatStamp(value: string): string {
-  const day = value.slice(0, 10).replaceAll("-", "");
-  const time = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(value);
-  const clock = time ? `${time[2]}${time[3]}${time[4]}` : "000000";
-  return `${day}T${clock}Z`;
+function normalizeStamp(value: string): string {
+  const day = value.slice(0, 10);
+  if (value.length === 10 && isIsoDate(day)) return `${day}T00:00:00.000Z`;
+  if (
+    !isIsoDate(day) ||
+    !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) ||
+    !Number.isFinite(Date.parse(value))
+  ) {
+    throw new RangeError("Expected a calendar day or an ISO timestamp with a timezone for stamp.");
+  }
+  const normalized = new Date(value).toISOString();
+  if (!isIsoDate(normalized.slice(0, 10))) throw new RangeError("Stamp is outside the supported calendar date range.");
+  return normalized;
 }
 
 function formatDay(day: string): string {
   return day.replaceAll("-", "");
 }
 
-/** shortcut: SEQUENCE is the deadline's day count, so an earlier date lowers it; store a revision if a calendar must rise on every edit. */
-function sequenceFor(deadline: string): number {
-  return Math.round((Date.parse(`${deadline}T00:00:00Z`) - Date.parse("1970-01-01T00:00:00Z")) / DAY_MS);
+function calendarSequence(rule?: RegistryV2Rule): number {
+  const sequence = rule?.["x-ical"]?.sequence;
+  return isCalendarSequence(sequence) ? sequence : 0;
 }
 
 function eventDescription(rule: RegistryV2Rule | undefined, item: UpcomingItem): string {
@@ -127,7 +134,13 @@ function eventDescription(rule: RegistryV2Rule | undefined, item: UpcomingItem):
 }
 
 function componentPage(baseUrl: string, purl: string): string {
-  return `${baseUrl.replace(/\/+$/, "")}/${purlToApiPath(purl)}`;
+  const base = new URL(baseUrl);
+  const basePath = base.pathname;
+  let end = basePath.length;
+  while (end > 0 && basePath[end - 1] === "/") end--;
+  const path = purlToApiPath(purl).split("/").map(encodeURIComponent).join("/");
+  base.pathname = `${basePath.slice(0, end)}/${path}`;
+  return base.href;
 }
 
 function contentLine(name: string, value: string): string {
@@ -140,8 +153,8 @@ function contentLine(name: string, value: string): string {
  */
 export function toICal(options: ToICalOptions = {}): string {
   const rules = collectRules(options);
-  const dataDay = options.stamp?.slice(0, 10) ?? latestReview(rules);
-  const asOf = options.asOf ?? dataDay;
+  const dataStamp = normalizeStamp(options.stamp ?? latestReview(rules));
+  const asOf = options.asOf ?? dataStamp.slice(0, 10);
   const result = upcoming({
     rules,
     asOf,
@@ -150,17 +163,17 @@ export function toICal(options: ToICalOptions = {}): string {
     purls: asList(options.purl),
   });
   const byId = new Map(rules.map((rule) => [rule.id, rule]));
-  const items = [...result.items].sort(
-    (a, b) => a.deadline.localeCompare(b.deadline) || a.ruleId.localeCompare(b.ruleId),
-  );
-  const stamp = formatStamp(options.stamp ?? dataDay);
+  const items = result.items.sort((a, b) => {
+    if (a.deadline !== b.deadline) return a.deadline < b.deadline ? -1 : 1;
+    return a.ruleId === b.ruleId ? 0 : a.ruleId < b.ruleId ? -1 : 1;
+  });
+  const stamp = `${dataStamp.slice(0, 19).replaceAll("-", "").replaceAll(":", "")}Z`;
   const baseUrl = options.baseUrl ?? DEFAULT_STATIC_API_BASE_URL;
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//Velella//Ebb//EN",
     "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
     contentLine("NAME", calendarName(options, result.within)),
     contentLine("X-WR-CALNAME", calendarName(options, result.within)),
   ];
@@ -168,8 +181,8 @@ export function toICal(options: ToICalOptions = {}): string {
     const rule = byId.get(item.ruleId);
     lines.push(
       "BEGIN:VEVENT",
-      foldICalLine(`UID:${item.ruleId}@${UID_DOMAIN}`),
-      `SEQUENCE:${sequenceFor(item.deadline)}`,
+      contentLine("UID", `${item.ruleId}@${UID_DOMAIN}`),
+      `SEQUENCE:${calendarSequence(rule)}`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${formatDay(item.deadline)}`,
       `DTEND;VALUE=DATE:${formatDay(addDays(item.deadline, 1))}`,
@@ -179,6 +192,10 @@ export function toICal(options: ToICalOptions = {}): string {
       contentLine("CATEGORIES", item.event),
       "END:VEVENT",
     );
+  }
+  // RFC 5545 requires a component. A VFREEBUSY with no busy periods represents a feed with no deadlines.
+  if (items.length === 0) {
+    lines.push("BEGIN:VFREEBUSY", `DTSTAMP:${stamp}`, "UID:empty@velella.sh", "END:VFREEBUSY");
   }
   lines.push("END:VCALENDAR");
   return `${lines.join("\r\n")}\r\n`;

@@ -32,12 +32,20 @@
       "required": ["id", "ecosystem", "purl", "vers", "event", "title", "summary", "severity", "sources", "provenance"],
       "additionalProperties": false,
       "patternProperties": {
-        "^x-[a-z0-9]+(?:-[a-z0-9]+)*$": {
+        "^x-(?!ical$)[a-z0-9]+(?:-[a-z0-9]+)*$": {
           "description": "Ecosystem-specific matching hints, for example x-github-actions. Must agree with purl and vers.",
           "type": "object"
         }
       },
       "properties": {
+        "x-ical": {
+          "type": "object",
+          "description": "Calendar event revision. Increase it when an existing deadline changes.",
+          "required": ["sequence"],
+          "properties": {
+            "sequence": { "type": "integer", "minimum": 0, "maximum": 2147483647 }
+          }
+        },
         "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
         "ecosystem": { "$ref": "#/$defs/slug" },
         "purl": {

@@ -43,29 +43,39 @@ export function parseICalendar(text: string): void {
   let calendarProps: Set<string> | undefined;
   let eventProps: Set<string> | undefined;
   let sawCalendar = false;
+  let componentCount = 0;
 
   for (const line of logical) {
     if (line.startsWith("BEGIN:")) {
       const name = line.slice("BEGIN:".length);
       stack.push(name);
       if (name === "VCALENDAR") {
+        if (sawCalendar || stack.length !== 1) throw new Error("expected one calendar");
         sawCalendar = true;
         calendarProps = new Set();
       }
-      if (name === "VEVENT") eventProps = new Set();
+      if (name === "VEVENT" || name === "VFREEBUSY") {
+        if (stack.length !== 2 || stack[0] !== "VCALENDAR") throw new Error("component outside calendar");
+        componentCount++;
+        eventProps = new Set();
+      } else if (name !== "VCALENDAR") {
+        throw new Error(`unexpected component ${name}`);
+      }
       continue;
     }
     if (line.startsWith("END:")) {
       const name = line.slice("END:".length);
       const open = stack.pop();
       if (open !== name) throw new Error(`END:${name} does not close ${open ?? "nothing"}`);
-      if (name === "VEVENT") {
-        for (const required of EVENT_PROPS) {
+      if (name === "VEVENT" || name === "VFREEBUSY") {
+        const requiredProps = name === "VEVENT" ? EVENT_PROPS : ["UID", "DTSTAMP"];
+        for (const required of requiredProps) {
           if (!eventProps?.has(required)) throw new Error(`missing ${required}`);
         }
         eventProps = undefined;
       }
       if (name === "VCALENDAR") {
+        if (componentCount === 0) throw new Error("calendar has no component");
         for (const required of CALENDAR_PROPS) {
           if (!calendarProps?.has(required)) throw new Error(`missing ${required}`);
         }
@@ -78,6 +88,7 @@ export function parseICalendar(text: string): void {
     if (!key) throw new Error("empty property name");
     if (eventProps) eventProps.add(key);
     else if (stack.at(-1) === "VCALENDAR") calendarProps?.add(key);
+    else throw new Error("property outside calendar");
   }
 
   if (!sawCalendar) throw new Error("missing VCALENDAR");
@@ -101,6 +112,13 @@ describe("iCalendar validation", () => {
     await assert.rejects(async () => parseICalendar(longLine), /75 octets/);
     const missing = await readFixture("tests/fixtures/ical/missing-uid.ics");
     await assert.rejects(async () => parseICalendar(missing), /missing UID/);
+  });
+
+  it("accepts an empty result with no deadline events", () => {
+    const text = toICal({ rules: [] });
+    assert.doesNotMatch(text, /BEGIN:VEVENT/);
+    assert.match(text, /BEGIN:VFREEBUSY/);
+    parseICalendar(text);
   });
 
   it("accepts a folded calendar from toICal", () => {

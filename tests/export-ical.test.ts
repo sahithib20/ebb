@@ -23,6 +23,7 @@ function rule(partial: Partial<RegistryV2Rule> & { id: string; deadline: string 
       method: "manual",
     },
     ...(partial.replacement ? { replacement: partial.replacement } : {}),
+    ...(partial["x-ical"] ? { "x-ical": partial["x-ical"] } : {}),
   };
 }
 
@@ -77,19 +78,27 @@ describe("toICal", () => {
 
   it("keeps the UID when the date changes and raises SEQUENCE", () => {
     const shared = { id: "npm.example.eol", purl: "pkg:npm/example" };
-    const early = toICal({
-      rules: [rule({ ...shared, deadline: "2026-06-01" })],
-      asOf: "2026-01-01",
-      within: "10y",
-    });
-    const later = toICal({
-      rules: [rule({ ...shared, deadline: "2027-06-01" })],
-      asOf: "2026-01-01",
-      within: "10y",
-    });
-    assert.equal(field(early, "UID"), "npm.example.eol@velella.sh");
-    assert.equal(field(later, "UID"), field(early, "UID"));
-    assert.ok(Number(field(later, "SEQUENCE")) > Number(field(early, "SEQUENCE")));
+    const render = (deadline: string, sequence: number) =>
+      toICal({
+        rules: [rule({ ...shared, deadline, "x-ical": { sequence } })],
+        asOf: "2026-01-01",
+        within: "10y",
+      });
+    const initial = render("2026-06-01", 0);
+    const postponed = render("2027-06-01", 1);
+    const movedEarlier = render("2026-04-01", 2);
+    for (const [ics, sequence] of [initial, postponed, movedEarlier].map(
+      (ics, index) => [ics, String(index)] as const,
+    )) {
+      assert.equal(field(ics, "UID"), "npm.example.eol@velella.sh");
+      assert.equal(field(ics, "SEQUENCE"), sequence);
+    }
+  });
+
+  it("normalizes an explicit timestamp to UTC and rejects malformed stamps", () => {
+    const rules = [rule({ id: "npm.a", deadline: "2026-06-01" })];
+    assert.equal(field(toICal({ rules, stamp: "2026-06-02T00:30:00+01:00" }), "DTSTAMP"), "20260601T233000Z");
+    assert.throws(() => toICal({ rules, stamp: "2026-02-30T12:00:00Z" }), RangeError);
   });
 
   it("writes all-day events, stamps them from the data, and sorts by date then id", () => {
@@ -129,6 +138,7 @@ describe("toICal", () => {
       ],
       asOf: "2026-01-01",
       within: "1y",
+      baseUrl: "https://velella.sh/ebb/api/v1///",
     });
     assert.equal(field(ics, "SUMMARY"), "Example\\, ended\\; see notes");
     const description = field(ics, "DESCRIPTION");

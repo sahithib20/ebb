@@ -7,10 +7,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import { purlToApiPath } from "../../src/api.js";
-import { toICal } from "../../src/export/ical.js";
+import { latestReview, toICal } from "../../src/export/ical.js";
 import { purlIdentity } from "../../src/purl.js";
-import type { RegistryV2Rule } from "../../src/registry.js";
-import { addDays, addMonths, upcoming } from "../../src/upcoming.js";
+import { isIsoDate, type RegistryV2Rule } from "../../src/registry.js";
+import { addDays, addMonths } from "../../src/upcoming.js";
 
 /** Events older than this stay out of the aggregate feeds. */
 export const CALENDAR_LOOKBACK_DAYS = 30;
@@ -22,8 +22,8 @@ export interface WriteCalendarsOptions {
   rules: readonly RegistryV2Rule[];
   ecosystems: readonly string[];
   baseUrl: string;
-  /** Data timestamp. Its calendar day is the feed's reference date and every DTSTAMP. */
-  stamp: string;
+  /** Build timestamp. Its calendar day is the reference for the rolling feed windows. */
+  createdAt: string;
 }
 
 export function calendarFeedPath(purl: string): string {
@@ -34,11 +34,14 @@ function referenceDay(stamp: string): string {
   return stamp.slice(0, 10);
 }
 
+function daysBetween(start: string, end: string): number {
+  return (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000;
+}
+
 function aggregateWindow(reference: string): { asOf: string; within: number } {
   const asOf = addDays(reference, -CALENDAR_LOOKBACK_DAYS);
   const until = addMonths(reference, CALENDAR_AHEAD_MONTHS);
-  const within = Math.round((Date.parse(`${until}T00:00:00Z`) - Date.parse(`${asOf}T00:00:00Z`)) / 86_400_000);
-  return { asOf, within };
+  return { asOf, within: daysBetween(asOf, until) };
 }
 
 async function writeFeed(outDir: string, relativePath: string, body: string): Promise<void> {
@@ -52,13 +55,12 @@ async function writeFeed(outDir: string, relativePath: string, body: string): Pr
  * for each component that has a deadline on or after the data date.
  */
 export async function writeCalendars(options: WriteCalendarsOptions): Promise<Map<string, string>> {
-  const reference = referenceDay(options.stamp);
+  const reference = referenceDay(options.createdAt);
   const window = aggregateWindow(reference);
-  const baseUrl = options.baseUrl.replace(/\/+$/, "");
   const shared = {
     rules: options.rules,
-    stamp: options.stamp,
-    baseUrl,
+    stamp: latestReview(options.rules),
+    baseUrl: options.baseUrl,
   };
 
   await writeFeed(options.outDir, "calendar/all.ics", toICal({ ...shared, ...window, name: "Ebb" }));
@@ -81,11 +83,12 @@ export async function writeCalendars(options: WriteCalendarsOptions): Promise<Ma
   }
 
   const feeds = new Map<string, string>();
-  const identities = [...byComponent.keys()].sort();
-  for (const identity of identities) {
-    const rules = byComponent.get(identity) ?? [];
-    const future = upcoming({ rules, asOf: reference, within: "100y" });
-    if (future.count === 0) continue;
+  for (const [identity, rules] of byComponent) {
+    let latest: string | undefined;
+    for (const { deadline } of rules) {
+      if (isIsoDate(deadline) && deadline >= reference && (!latest || deadline > latest)) latest = deadline;
+    }
+    if (!latest) continue;
     const relativePath = calendarFeedPath(identity);
     await writeFeed(
       options.outDir,
@@ -93,14 +96,13 @@ export async function writeCalendars(options: WriteCalendarsOptions): Promise<Ma
       toICal({
         rules,
         asOf: reference,
-        within: "100y",
-        stamp: options.stamp,
-        baseUrl,
-        purl: identity,
+        within: daysBetween(reference, latest),
+        stamp: shared.stamp,
+        baseUrl: shared.baseUrl,
         name: `Ebb ${identity}`,
       }),
     );
-    feeds.set(identity, `${baseUrl}/${relativePath}`);
+    feeds.set(identity, `${options.baseUrl}/${relativePath}`);
   }
   return feeds;
 }
