@@ -47,8 +47,8 @@
     },
     {
       "purl": "pkg:generic/deno",
-      "version": "2.9.0",
-      "rules": ["deno.runtime.lts-2-9.scheduled-end-of-support"]
+      "version": "2.9.2",
+      "rules": []
     },
     {
       "purl": "pkg:generic/deno",
