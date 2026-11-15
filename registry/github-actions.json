@@ -3,6 +3,242 @@
   "ecosystem": "github-actions",
   "rules": [
     {
+      "id": "github-actions.add-to-project.node16",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/add-to-project",
+      "vers": "vers:semver/>=0.0.1|<0.6.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/add-to-project Node.js 16 runtime",
+      "summary": "Versions 0.0.1 through 0.5.0 declare Node.js 16. GitHub removed that runtime from Actions runners on 2024-11-12.",
+      "severity": "high",
+      "replacement": "actions/add-to-project@v2 or later",
+      "deadline": "2024-11-12",
+      "sources": [
+        {
+          "title": "End of life for Actions Node16",
+          "url": "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/add-to-project v0.0.1 action manifest",
+          "url": "https://github.com/actions/add-to-project/blob/v0.0.1/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/add-to-project v0.5.0 action manifest",
+          "url": "https://github.com/actions/add-to-project/blob/v0.5.0/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/add-to-project v0.6.0 action manifest",
+          "url": "https://github.com/actions/add-to-project/blob/v0.6.0/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/add-to-project v2.0.0 action manifest",
+          "url": "https://github.com/actions/add-to-project/blob/v2.0.0/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      }
+    },
+    {
+      "id": "github-actions.add-to-project.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/add-to-project",
+      "vers": "vers:semver/>=0.6.0|<2.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/add-to-project Node.js 20 runtime",
+      "summary": "The published 0.6.x and 1.x releases declare Node.js 20. GitHub removed that runtime from Actions runners on 2026-09-23.",
+      "severity": "high",
+      "replacement": "actions/add-to-project@v2 or later",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/add-to-project v0.6.0 action manifest",
+          "url": "https://github.com/actions/add-to-project/blob/v0.6.0/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/add-to-project v1.0.0 action manifest",
+          "url": "https://github.com/actions/add-to-project/blob/v1.0.0/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/add-to-project v1.0.2 action manifest",
+          "url": "https://github.com/actions/add-to-project/blob/v1.0.2/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/add-to-project v2.0.0 action manifest",
+          "url": "https://github.com/actions/add-to-project/blob/v2.0.0/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      }
+    },
+    {
+      "id": "github-actions.publish-action.node12",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/publish-action",
+      "vers": "vers:semver/0.1.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/publish-action Node.js 12 runtime",
+      "summary": "Version 0.1.0 declare Node.js 12. GitHub removed that runtime from Actions runners on 2023-08-14.",
+      "severity": "high",
+      "deadline": "2023-08-14",
+      "sources": [
+        {
+          "title": "Removal of Node12 from the Actions runner",
+          "url": "https://github.blog/changelog/2023-07-16-github-actions-removal-of-node12-from-the-actions-runner/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-action v0.1.0 action manifest",
+          "url": "https://github.com/actions/publish-action/blob/v0.1.0/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-action v0.2.0 action manifest",
+          "url": "https://github.com/actions/publish-action/blob/v0.2.0/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      }
+    },
+    {
+      "id": "github-actions.publish-action.node16",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/publish-action",
+      "vers": "vers:semver/>=0.2.0|<0.3.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/publish-action Node.js 16 runtime",
+      "summary": "Versions 0.2.0 through 0.2.2 declare Node.js 16. GitHub removed that runtime from Actions runners on 2024-11-12.",
+      "severity": "high",
+      "deadline": "2024-11-12",
+      "sources": [
+        {
+          "title": "End of life for Actions Node16",
+          "url": "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-action v0.2.0 action manifest",
+          "url": "https://github.com/actions/publish-action/blob/v0.2.0/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-action v0.2.2 action manifest",
+          "url": "https://github.com/actions/publish-action/blob/v0.2.2/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-action v0.3.0 action manifest",
+          "url": "https://github.com/actions/publish-action/blob/v0.3.0/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      }
+    },
+    {
+      "id": "github-actions.publish-action.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/publish-action",
+      "vers": "vers:semver/0.3.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/publish-action Node.js 20 runtime",
+      "summary": "Version 0.3.0 declare Node.js 20. GitHub removed that runtime from Actions runners on 2026-09-23.",
+      "severity": "high",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-action v0.3.0 action manifest",
+          "url": "https://github.com/actions/publish-action/blob/v0.3.0/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-action v0.4.0 action manifest",
+          "url": "https://github.com/actions/publish-action/blob/v0.4.0/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      }
+    },
+    {
+      "id": "github-actions.publish-immutable-action.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/publish-immutable-action",
+      "vers": "vers:semver/<=0.0.4",
+      "event": "end-of-support",
+      "title": "Unsupported actions/publish-immutable-action Node.js 20 runtime",
+      "summary": "The v0 tag and its published releases through 0.0.4 declare Node.js 20. GitHub removed that runtime from Actions runners on 2026-09-23.",
+      "severity": "high",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-immutable-action v0 action manifest",
+          "url": "https://github.com/actions/publish-immutable-action/blob/v0/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-immutable-action v0.0.1 action manifest",
+          "url": "https://github.com/actions/publish-immutable-action/blob/v0.0.1/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/publish-immutable-action v0.0.4 action manifest",
+          "url": "https://github.com/actions/publish-immutable-action/blob/v0.0.4/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      }
+    },
+    {
       "id": "github-actions.checkout.node20",
       "ecosystem": "github-actions",
       "purl": "pkg:github/actions/checkout",
