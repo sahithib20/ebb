@@ -183,7 +183,7 @@ export const rules: readonly RegistryV2Rule[] = [
     id: "github-actions.publish-immutable-action.node20",
     ecosystem: "github-actions",
     purl: "pkg:github/actions/publish-immutable-action",
-    vers: "vers:semver/<0.0.5",
+    vers: "vers:semver/<=0.0.4",
     event: "end-of-support",
     title: "Unsupported actions/publish-immutable-action Node.js 20 runtime",
     summary:
