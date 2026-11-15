@@ -71,12 +71,17 @@ assert.deepEqual(Object.keys(root).sort(), [
   "rulesFor",
   "sourcesOf",
   "stale",
+  "toICal",
   "upcoming",
 ]);
 assert.equal(root.check("node", "18.20.4").status, "end-of-life");
 assert.ok(root.rulesFor("pkg:npm/request").length > 0);
 assert.equal(root.replacementFor("pkg:npm/node-sass", "9.0.0"), "pkg:npm/sass");
 assert.equal(root.checkAll([{ purl: "pkg:npm/left-pad", version: "1.3.0" }]).summary.byStatus.deprecated, 1);
+
+const browser = await import("@velella/ebb/browser");
+const browserCalendar = browser.toICal({ ecosystem: "nodejs", asOf: "2026-11-12", within: "1y" });
+assert.ok(browserCalendar.includes("UID:nodejs.runtime.eol-22@velella.sh"));
 
 const pkg = await import("@velella/ebb/package.json", { with: { type: "json" } });
 assert.equal(pkg.default.name, "@velella/ebb");

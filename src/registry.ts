@@ -52,6 +52,11 @@ export interface Provenance {
   importerVersion?: string;
 }
 
+/** iCalendar SEQUENCE is a nonnegative signed 32-bit integer. */
+export function isCalendarSequence(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 2_147_483_647;
+}
+
 export interface RegistryV2Rule {
   id: string;
   ecosystem: string;
@@ -169,6 +174,10 @@ function fieldKeyIssues(rule: UnknownRecord, problem: Problem): void {
   for (const key of Object.keys(rule)) {
     if (!RULE_FIELDS.has(key) && !EXTENSION.test(key)) problem(`unknown field "${key}"`);
     if (EXTENSION.test(key) && !isRecord(rule[key])) problem(`${key} must be an object`);
+    const metadata = rule[key];
+    if (key === "x-ical" && isRecord(metadata) && !isCalendarSequence(metadata.sequence)) {
+      problem("x-ical.sequence must be a nonnegative signed 32-bit integer");
+    }
   }
 }
 

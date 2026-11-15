@@ -72,6 +72,8 @@ export {
   upcoming,
 } from "./upcoming.js";
 
+export { type ToICalOptions, toICal } from "./export/ical.js";
+
 export {
   type StaleFinding,
   type StaleOptions,

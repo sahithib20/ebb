@@ -51,6 +51,9 @@ Copy a nearby rule in `registry/<ecosystem>.json` (or [the complete rule below](
 
 [A rule](#a-rule) describes every field. Keep `summary` factual and put advice in `replacement`; a `scheduled-end-of-life` rule needs the announced date as its `deadline` and `severity: "low"`.
 
+When you change or remove an existing deadline, increment its `x-ical.sequence` (the default is zero). Calendar
+clients use this revision with the rule ID to update the existing event, even when a deadline moves earlier.
+
 ### 3. Add cases
 
 A case says what the rule must judge: this purl, at this version, is matched by exactly these rules. Add at least one version the rule covers and one it does not to `cases/<ecosystem>.json`, so the range is checked from both sides:

@@ -25,6 +25,8 @@ main:
         url: /coverage/
       - title: Static JSON API
         url: /static-api/
+      - title: Calendar
+        url: /calendar/
   - title: Runtimes
     children:
       - title: Browser

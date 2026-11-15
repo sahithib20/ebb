@@ -9,9 +9,9 @@ import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { REGISTRY_V2_SCHEMA_VERSION } from "../src/registry.js";
+import { isCalendarSequence, REGISTRY_V2_SCHEMA_VERSION } from "../src/registry.js";
 import { lintRuleFiles, renderRuleLintText } from "../src/rule-lint.js";
-import type { RuleLintResult } from "../src/rule-lint.js";
+import type { RuleLintIssue, RuleLintResult } from "../src/rule-lint.js";
 import { checkCases, renderCaseFailure } from "./rule-cases.js";
 import type { RuleCaseResult } from "./rule-cases.js";
 
@@ -134,6 +134,43 @@ export function changedRuleIds(beforeText: string | undefined, afterText: string
   return changed.sort((left, right) => left.localeCompare(right));
 }
 
+function sequence(rule: UnknownRecord): number {
+  const metadata = rule["x-ical"];
+  return isRecord(metadata) && isCalendarSequence(metadata.sequence) ? metadata.sequence : 0;
+}
+
+function calendarRevisionIssues(
+  before: string | undefined,
+  after: RegistryText & { rules: unknown[] },
+  file: string,
+): RuleLintIssue[] {
+  const previous = before === undefined ? undefined : parseRegistry(before);
+  if (!isRuleRegistry(previous)) return [];
+
+  const byId = new Map(previous.rules.filter(isRecord).map((rule) => [rule.id, rule]));
+  const issues: RuleLintIssue[] = [];
+  for (const rule of after.rules) {
+    if (!isRecord(rule) || typeof rule.id !== "string") continue;
+    const old = byId.get(rule.id);
+    if (!old) continue;
+    const current = sequence(rule);
+    const prior = sequence(old);
+    if (
+      current < prior ||
+      (rule.deadline !== old.deadline && (old.deadline !== undefined || prior > 0) && current === prior)
+    ) {
+      issues.push({
+        file,
+        line: 1,
+        ruleId: rule.id,
+        message: "calendar sequence must increase when an existing deadline changes",
+        hint: `Set x-ical.sequence to an integer greater than ${prior}.`,
+      });
+    }
+  }
+  return issues;
+}
+
 /** Paths changed between the merge base of `base` and `HEAD`, relative to the repository root and with `/`. */
 export function changedPaths(base: string, root = process.cwd()): string[] {
   const output = execFileSync("git", ["diff", "--name-only", "-z", `${base}...HEAD`, "--"], {
@@ -179,6 +216,7 @@ export async function runChangedRules(options: ChangedRulesOptions): Promise<Cha
       : classifyChangedPaths(changedPaths(base, root));
 
   const files: string[] = [];
+  const revisions: RuleLintIssue[] = [];
   const changed = new Set<string>();
   for (const path of candidates) {
     if (!existsSync(join(root, path))) continue; // A deleted registry file has no rules left to check.
@@ -186,11 +224,16 @@ export async function runChangedRules(options: ChangedRulesOptions): Promise<Cha
     const parsed = parseRegistry(head);
     if (parsed !== undefined && !isRuleRegistry(parsed)) continue; // Locks and other generated files.
     files.push(path);
-    if (base !== undefined) for (const id of changedRuleIds(baseText(base, path, root), head)) changed.add(id);
+    if (base !== undefined && isRuleRegistry(parsed)) {
+      const before = baseText(base, path, root);
+      for (const id of changedRuleIds(before, head)) changed.add(id);
+      revisions.push(...calendarRevisionIssues(before, parsed, path));
+    }
   }
 
   const rules = [...changed].sort((left, right) => left.localeCompare(right));
   const lint = await lintRuleFiles(files.map((path) => join(root, path)));
+  lint.issues.push(...revisions);
   const cases = await checkCases(root, base === undefined || casesChanged ? undefined : changed);
   const passed = lint.issues.length === 0 && cases.failures.length === 0;
   const result: ChangedRulesResult = { base: base ?? ALL, files, rules, lint, cases, passed };

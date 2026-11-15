@@ -86,3 +86,5 @@ export {
   type RulesForOptions,
   rulesFor,
 } from "./rules-for-core.js";
+
+export { type ToICalOptions, toICal } from "./export/ical.js";

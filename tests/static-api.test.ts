@@ -66,6 +66,18 @@ test("static API generation produces valid files matching JSON schema and size b
     assert.equal(requestDoc.generatedAt, "2026-11-12T00:00:00.000Z");
     assert.ok(requestDoc.hint?.includes("velella-sh/offing"));
     assert.ok(requestDoc.rules.length > 0);
+    assert.equal(requestDoc.calendar, undefined);
+    await assert.rejects(readFile(join(tempDir, "calendar/npm/request.ics"), "utf8"));
+
+    const nodeDoc = JSON.parse(await readFile(join(tempDir, "generic/nodejs.json"), "utf8"));
+    assert.equal(nodeDoc.calendar, "https://velella.sh/ebb/api/v1/calendar/generic/nodejs.ics");
+    const nodeFeed = await readFile(join(tempDir, "calendar/generic/nodejs.ics"), "utf8");
+    assert.match(nodeFeed, /UID:nodejs\.runtime\.eol-22@velella\.sh/);
+    const allFeed = await readFile(join(tempDir, "calendar/all.ics"), "utf8");
+    assert.match(allFeed, /UID:nodejs\.runtime\.eol-22@velella\.sh/);
+    assert.doesNotMatch(allFeed, /npm\.package\.request\.deprecated/);
+    assert.match(await readFile(join(tempDir, "calendar/nodejs.ics"), "utf8"), /BEGIN:VCALENDAR/);
+    assert.match(await readFile(join(tempDir, "calendar/npm.ics"), "utf8"), /BEGIN:VCALENDAR/);
 
     // Validate ecosystem file
     const npmJsonRaw = await readFile(join(tempDir, "npm.json"), "utf8");
