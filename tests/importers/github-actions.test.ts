@@ -81,27 +81,43 @@ test("reproduces the hand-written rules for checkout, setup-node, and cache", as
     assert.deepEqual([change.dates, change.fields], [[], []], `${id}: only its sources differ`);
   }
   const cache = diff.changed.find((entry) => entry.id === "github-actions.cache.node20")!;
-  assert.deepEqual(
-    cache.fields.map((field) => field.field),
-    ["summary"],
-    "the hand-written cache rule also mentions a retired cache service",
+  assert.ok(
+    cache.fields.some((field) => field.field === "vers"),
+    "the registry keeps the node20 band separate from the v1–v2 cache service",
   );
-  assert.equal(cache.dates.length, 0);
+  assert.equal(
+    existing.rules.find((rule) => rule.id === "github-actions.cache.node20")!.vers,
+    "vers:semver/>=3.0.0|<5.0.0",
+  );
+  assert.equal(
+    existing.rules.find((rule) => rule.id === "github-actions.cache.service-v1-v2")!.vers,
+    "vers:semver/<3.0.0",
+  );
+  assert.doesNotMatch(
+    existing.rules.find((rule) => rule.id === "github-actions.cache.node20")!.summary,
+    /cache service/,
+  );
 });
 
 test("shows where the registry and the actions' own metadata disagree", async () => {
   const existing = JSON.parse(await readFile(resolve("registry/github-actions.json"), "utf8")) as RegistryV2;
   const diff = diffDrafts(await execute(githubActionsRuntimeImporter, { replay: recording }), existing);
-  // download-artifact has the same component and versions under another id; upload-artifact moved to Node 24 a major earlier than the registry says.
-  assert.deepEqual(diff.duplicates, [
-    { draft: "github-actions.download-artifact.node20", existing: "github-actions.download-artifact.retired" },
-  ]);
-  const upload = diff.added.find((rule) => rule.id === "github-actions.upload-artifact.node20")!;
-  assert.equal(upload.vers, "vers:semver/<6.0.0");
+  // The importer still drafts one catch-all from the major tag. The registry splits the service removal from the node20 band.
+  assert.deepEqual(diff.duplicates, []);
   assert.equal(
     existing.rules.find((rule) => rule.id === "github-actions.upload-artifact.retired")!.vers,
-    "vers:semver/<7.0.0",
+    "vers:semver/<4.0.0",
   );
+  assert.equal(
+    existing.rules.find((rule) => rule.id === "github-actions.upload-artifact.node20")!.vers,
+    "vers:semver/>=4.0.0|<6.0.0",
+  );
+  assert.equal(
+    existing.rules.find((rule) => rule.id === "github-actions.download-artifact.node20")!.vers,
+    "vers:semver/>=4.0.0|<7.0.0",
+  );
+  const upload = diff.changed.find((entry) => entry.id === "github-actions.upload-artifact.node20")!;
+  assert.ok(upload.fields.some((field) => field.field === "vers"));
 });
 
 test("a runtime counts as retired on the day GitHub removed it, and the rule follows the calendar", async () => {

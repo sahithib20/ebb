@@ -307,6 +307,21 @@
         }
       ]
     },
+    "actions/container-action": {
+      "majors": [],
+      "retiredMajors": [],
+      "notes": "Starter template. No released major is classified."
+    },
+    "actions/container-prebuilt-action": {
+      "majors": [],
+      "retiredMajors": [],
+      "notes": "Starter template. No released major is classified."
+    },
+    "actions/container-toolkit-action": {
+      "majors": [],
+      "retiredMajors": [],
+      "notes": "Starter template. No released major is classified."
+    },
     "actions/create-github-app-token": {
       "majors": [
         {
@@ -715,6 +730,21 @@
       "retiredMajors": [],
       "notes": "No vN tags on 2026-11-15. The default-branch root action.yml is composite and exits with an error telling callers to use gradle/actions/setup-gradle or gradle/actions/dependency-submission."
     },
+    "actions/hello-world-docker-action": {
+      "majors": [],
+      "retiredMajors": [],
+      "notes": "Starter template. No released major is classified."
+    },
+    "actions/hello-world-javascript-action": {
+      "majors": [],
+      "retiredMajors": [],
+      "notes": "Starter template. No released major is classified."
+    },
+    "actions/javascript-action": {
+      "majors": [],
+      "retiredMajors": [],
+      "notes": "Starter template. No released major is classified."
+    },
     "actions/jekyll-build-pages": {
       "majors": [
         {
@@ -883,6 +913,23 @@
         },
         {
           "major": 7,
+          "using": "node24",
+          "file": "action.yml"
+        }
+      ],
+      "releases": [
+        {
+          "version": "6.0.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "6.1.0",
+          "using": "node20",
+          "file": "action.yml"
+        },
+        {
+          "version": "6.2.0",
           "using": "node24",
           "file": "action.yml"
         }
@@ -1189,6 +1236,11 @@
         }
       ]
     },
+    "actions/typescript-action": {
+      "majors": [],
+      "retiredMajors": [],
+      "notes": "Starter template. No released major is classified."
+    },
     "actions/upload-artifact": {
       "majors": [
         {
@@ -1295,25 +1347,57 @@
       ],
       "retiredMajors": []
     },
-    "github/codeql-action": {
+    "github/codeql-action/init": {
       "majors": [
-        {
-          "major": 2,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 3,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 4,
-          "using": "composite",
-          "file": "action.yml"
-        }
+        { "major": 1, "using": "node12", "file": "init/action.yml" },
+        { "major": 2, "using": "node16", "file": "init/action.yml" },
+        { "major": 3, "using": "node20", "file": "init/action.yml" },
+        { "major": 4, "using": "node24", "file": "init/action.yml" }
       ],
-      "retiredMajors": []
+      "retiredMajors": [
+        { "major": 1, "using": "node12", "file": "init/action.yml" },
+        { "major": 2, "using": "node16", "file": "init/action.yml" },
+        { "major": 3, "using": "node20", "file": "init/action.yml" }
+      ]
+    },
+    "github/codeql-action/autobuild": {
+      "majors": [
+        { "major": 1, "using": "node12", "file": "autobuild/action.yml" },
+        { "major": 2, "using": "node16", "file": "autobuild/action.yml" },
+        { "major": 3, "using": "node20", "file": "autobuild/action.yml" },
+        { "major": 4, "using": "node24", "file": "autobuild/action.yml" }
+      ],
+      "retiredMajors": [
+        { "major": 1, "using": "node12", "file": "autobuild/action.yml" },
+        { "major": 2, "using": "node16", "file": "autobuild/action.yml" },
+        { "major": 3, "using": "node20", "file": "autobuild/action.yml" }
+      ]
+    },
+    "github/codeql-action/analyze": {
+      "majors": [
+        { "major": 1, "using": "node12", "file": "analyze/action.yml" },
+        { "major": 2, "using": "node16", "file": "analyze/action.yml" },
+        { "major": 3, "using": "node20", "file": "analyze/action.yml" },
+        { "major": 4, "using": "node24", "file": "analyze/action.yml" }
+      ],
+      "retiredMajors": [
+        { "major": 1, "using": "node12", "file": "analyze/action.yml" },
+        { "major": 2, "using": "node16", "file": "analyze/action.yml" },
+        { "major": 3, "using": "node20", "file": "analyze/action.yml" }
+      ]
+    },
+    "github/codeql-action/upload-sarif": {
+      "majors": [
+        { "major": 1, "using": "node12", "file": "upload-sarif/action.yml" },
+        { "major": 2, "using": "node16", "file": "upload-sarif/action.yml" },
+        { "major": 3, "using": "node20", "file": "upload-sarif/action.yml" },
+        { "major": 4, "using": "node24", "file": "upload-sarif/action.yml" }
+      ],
+      "retiredMajors": [
+        { "major": 1, "using": "node12", "file": "upload-sarif/action.yml" },
+        { "major": 2, "using": "node16", "file": "upload-sarif/action.yml" },
+        { "major": 3, "using": "node20", "file": "upload-sarif/action.yml" }
+      ]
     }
   },
   "templates": [

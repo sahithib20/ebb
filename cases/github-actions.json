@@ -43,6 +43,16 @@
     {
       "purl": "pkg:github/actions/cache",
       "version": "1.0.0",
+      "rules": ["github-actions.cache.service-v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/cache",
+      "version": "2.0.0",
+      "rules": ["github-actions.cache.service-v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/cache",
+      "version": "4.0.0",
       "rules": ["github-actions.cache.node20"]
     },
     {
@@ -127,8 +137,18 @@
     },
     {
       "purl": "pkg:github/actions/download-artifact",
-      "version": "1.0.0",
+      "version": "3.0.0",
       "rules": ["github-actions.download-artifact.retired"]
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
+      "version": "4.0.0",
+      "rules": ["github-actions.download-artifact.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
+      "version": "6.0.0",
+      "rules": ["github-actions.download-artifact.node20"]
     },
     {
       "purl": "pkg:github/actions/download-artifact",
@@ -257,12 +277,22 @@
     },
     {
       "purl": "pkg:github/actions/upload-artifact",
-      "version": "1.0.0",
+      "version": "3.0.0",
       "rules": ["github-actions.upload-artifact.retired"]
     },
     {
       "purl": "pkg:github/actions/upload-artifact",
-      "version": "7.0.0",
+      "version": "4.0.0",
+      "rules": ["github-actions.upload-artifact.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
+      "version": "5.0.0",
+      "rules": ["github-actions.upload-artifact.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
+      "version": "6.0.0",
       "rules": []
     },
     {
@@ -332,6 +362,26 @@
     },
     {
       "purl": "pkg:github/docker/setup-qemu-action",
+      "version": "4.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/github/codeql-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.codeql-action.node12"]
+    },
+    {
+      "purl": "pkg:github/github/codeql-action",
+      "version": "2.0.0",
+      "rules": ["github-actions.codeql-action.node16"]
+    },
+    {
+      "purl": "pkg:github/github/codeql-action",
+      "version": "3.0.0",
+      "rules": ["github-actions.codeql-action.node20"]
+    },
+    {
+      "purl": "pkg:github/github/codeql-action",
       "version": "4.0.0",
       "rules": []
     },

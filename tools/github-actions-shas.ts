@@ -6,6 +6,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { actionRepo, parseActionsScope } from "./coverage/actions.js";
 import { chooseTag } from "./sha-tags.js";
 
 const SCHEMA_VERSION = "ebb.github-actions-shas.v1";
@@ -19,6 +20,10 @@ interface GitHubTag {
 
 interface GitHubActionsRegistry {
   rules: Array<{ "x-github-actions"?: { action?: string } }>;
+}
+
+interface ShaMapFile {
+  actions?: Record<string, Record<string, string>>;
 }
 
 interface Arguments {
@@ -53,23 +58,38 @@ async function tags(action: string): Promise<GitHubTag[]> {
   }
 }
 
-async function coveredActions(): Promise<string[]> {
+async function readShaMap(): Promise<Record<string, Record<string, string>>> {
+  try {
+    const parsed = JSON.parse(await readFile(resolve("registry/github-actions-shas.json"), "utf8")) as ShaMapFile;
+    return parsed.actions ?? {};
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
+    throw error;
+  }
+}
+
+/** Reviewed scope, registry hints, and keys already in the map. A subpath maps to `owner/repo`. */
+async function coveredActions(existing: Record<string, Record<string, string>>): Promise<string[]> {
+  const scope = parseActionsScope(
+    JSON.parse(await readFile(resolve("tools/coverage/expected/github-actions.json"), "utf8")),
+  );
   const registry = JSON.parse(await readFile(resolve("registry/github-actions.json"), "utf8")) as GitHubActionsRegistry;
-  return [
-    ...new Set(
-      registry.rules
-        .map((rule) => rule["x-github-actions"]?.action?.toLowerCase())
-        .filter((action): action is string => action !== undefined),
-    ),
-  ];
+  const names = new Set<string>(Object.keys(existing).map((action) => actionRepo(action)));
+  for (const action of scope.actions) names.add(actionRepo(action.action));
+  for (const rule of registry.rules) {
+    const action = rule["x-github-actions"]?.action;
+    if (action) names.add(actionRepo(action));
+  }
+  return [...names].sort();
 }
 
 async function buildShaRegistry(): Promise<{
   schemaVersion: typeof SCHEMA_VERSION;
   actions: Record<string, Record<string, string>>;
 }> {
-  const actions: Record<string, Record<string, string>> = {};
-  for (const action of await coveredActions()) {
+  const existing = await readShaMap();
+  const actions: Record<string, Record<string, string>> = { ...existing };
+  for (const action of await coveredActions(existing)) {
     const versions = new Map<string, string>();
     for (const tag of await tags(action)) {
       const sha = tag.commit.sha.toLowerCase();
@@ -79,7 +99,12 @@ async function buildShaRegistry(): Promise<{
     }
     actions[action] = Object.fromEntries([...versions].sort(([left], [right]) => left.localeCompare(right)));
   }
-  return { schemaVersion: SCHEMA_VERSION, actions };
+  const sorted = Object.fromEntries(
+    Object.keys(actions)
+      .sort()
+      .map((name) => [name, actions[name]!]),
+  );
+  return { schemaVersion: SCHEMA_VERSION, actions: sorted };
 }
 
 async function main(): Promise<void> {

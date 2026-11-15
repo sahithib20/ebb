@@ -22,7 +22,7 @@ node --experimental-strip-types examples/github-actions/check-workflow.ts .githu
 
 ## How It Works
 
-The script finds `uses: <owner>/<repo>@<ref>` statements, converts them to standard GitHub package URLs (`pkg:github/<owner>/<repo>@<ref>`), and calls `check()`:
+The script finds `uses: <owner>/<repo>@<ref>` and `uses: <owner>/<repo>/<path>@<ref>` statements, including 40-character SHA pins. A SHA is resolved through `registry/github-actions-shas.json` before `check()`. A subpath becomes a PURL fragment (`pkg:github/<owner>/<repo>#<path>`):
 
 ```ts
 import { check, replacementFor } from "@velella/ebb";

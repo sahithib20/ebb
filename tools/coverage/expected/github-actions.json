@@ -61,7 +61,8 @@
     },
     {
       "action": "actions/configure-pages",
-      "repoUrl": "https://github.com/actions/configure-pages"
+      "repoUrl": "https://github.com/actions/configure-pages",
+      "notes": "The January 30, 2025 Pages artifact requirement (upload-pages-artifact@v3 and deploy-pages@v4) applies to GitHub.com and does not affect GitHub Enterprise Server. The registry rule remains the Node.js runtime end."
     },
     {
       "action": "actions/container-action",
@@ -97,7 +98,8 @@
     },
     {
       "action": "actions/deploy-pages",
-      "repoUrl": "https://github.com/actions/deploy-pages"
+      "repoUrl": "https://github.com/actions/deploy-pages",
+      "notes": "Majors before v5 run on a retired Node.js runtime. On GitHub.com, custom Pages workflows must use deploy-pages@v4 from 2025-01-30 together with upload-pages-artifact@v3. That requirement does not affect GitHub Enterprise Server."
     },
     {
       "action": "actions/download-artifact",
@@ -213,13 +215,28 @@
       "action": "actions/upload-pages-artifact",
       "repoUrl": "https://github.com/actions/upload-pages-artifact",
       "kind": "composite",
-      "coverageLimit": "Composite action. Published root action.yml files set runs.using to composite, so no Node.js runtime rule is required."
+      "coverageLimit": "Composite action. Published root action.yml files set runs.using to composite, so no Node.js runtime rule is required.",
+      "notes": "On GitHub.com, custom Pages workflows must use upload-pages-artifact@v3 from 2025-01-30, with deploy-pages@v4. That requirement does not affect GitHub Enterprise Server."
     },
     {
-      "action": "github/codeql-action",
+      "action": "github/codeql-action/init",
       "repoUrl": "https://github.com/github/codeql-action",
-      "kind": "composite",
-      "coverageLimit": "Root action.yml is composite on the published majors. Nested actions such as init and analyze are outside this list."
+      "notes": "v1 sets runs.using to node12, v2 to node16, v3 to node20, and v4 to node24. autobuild, analyze, and upload-sarif match those majors. Rules use pkg:github/github/codeql-action because the PURL identity drops the subpath."
+    },
+    {
+      "action": "github/codeql-action/autobuild",
+      "repoUrl": "https://github.com/github/codeql-action",
+      "notes": "Same Node.js majors as github/codeql-action/init."
+    },
+    {
+      "action": "github/codeql-action/analyze",
+      "repoUrl": "https://github.com/github/codeql-action",
+      "notes": "Same Node.js majors as github/codeql-action/init."
+    },
+    {
+      "action": "github/codeql-action/upload-sarif",
+      "repoUrl": "https://github.com/github/codeql-action",
+      "notes": "Same Node.js majors as github/codeql-action/init."
     }
   ]
 }

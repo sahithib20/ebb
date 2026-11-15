@@ -10,13 +10,17 @@ import {
   EXIT_GAPS,
   formatCoverageText,
   majorCovered,
+  parseActionsScope,
+  versionCovered,
   type ExpectedAction,
   type InventoryMajor,
+  type InventoryRelease,
 } from "../tools/coverage/actions.js";
+import { releasesToRecord } from "../tools/coverage/refresh-actions-inventory.js";
 import type { RegistryV2Rule } from "../src/registry.js";
 
 const action = (over: Partial<ExpectedAction> & Pick<ExpectedAction, "action">): ExpectedAction => ({
-  repoUrl: `https://github.com/${over.action}`,
+  repoUrl: `https://github.com/${over.action.split("/").slice(0, 2).join("/")}`,
   ...over,
 });
 
@@ -74,7 +78,7 @@ test("an exact patch does not cover the major's N.0.0 probe", () => {
   assert.deepEqual(result.missingMajors, ["1 (node20)"]);
 });
 
-test("a documented coverage limit is complete even when a retired major has no rule", () => {
+test("a coverage limit does not hide a retired runtime the inventory lists", () => {
   const result = assessAction(
     action({
       action: "actions/typescript-action",
@@ -83,8 +87,112 @@ test("a documented coverage limit is complete even when a retired major has no r
     majors([1, "node12"]),
     [],
   );
-  assert.equal(result.complete, true);
+  assert.equal(result.complete, false);
   assert.equal(result.coverageLimit, "Starter template.");
+  assert.deepEqual(result.missingMajors, ["1 (node12)"]);
+});
+
+test("a coverage limit stays complete when the inventory has no retired JavaScript runtime", () => {
+  const composite = assessAction(
+    action({ action: "actions/upload-pages-artifact", coverageLimit: "Composite action." }),
+    majors([1, "composite"], [3, "composite"]),
+    [],
+  );
+  const current = assessAction(
+    action({ action: "actions/example", coverageLimit: "Nothing retired." }),
+    majors([1, "node24"]),
+    [],
+  );
+  assert.equal(composite.complete, true);
+  assert.equal(current.complete, true);
+  assert.deepEqual(current.missingMajors, []);
+});
+
+test("missing inventory is incomplete, including when a coverage limit is set", () => {
+  const plain = assessAction(action({ action: "actions/example" }), undefined, []);
+  const limited = assessAction(
+    action({ action: "actions/example", coverageLimit: "Starter template." }),
+    undefined,
+    [],
+  );
+  assert.equal(plain.complete, false);
+  assert.equal(limited.complete, false);
+  assert.match(plain.gaps[0]?.detail ?? "", /missing from the reviewed inventory/);
+  assert.match(formatCoverageText({ actions: [limited], complete: false }), /missing from the reviewed inventory/);
+});
+
+test("a supported node24 release is not flagged", () => {
+  const result = assessAction(action({ action: "actions/example" }), majors([6, "node24"]), []);
+  assert.equal(result.complete, true);
+  assert.deepEqual(result.missingMajors, []);
+});
+
+test("a patch boundary is covered by the release list, not only the major tag", () => {
+  const releases: InventoryRelease[] = [
+    { version: "6.0.0", using: "node20", file: "action.yml" },
+    { version: "6.1.0", using: "node20", file: "action.yml" },
+    { version: "6.2.0", using: "node24", file: "action.yml" },
+  ];
+  const rules = [
+    baseRule({
+      id: "github-actions.setup-go.node20",
+      purl: "pkg:github/actions/setup-go",
+      vers: "vers:semver/<6.2.0",
+      event: "end-of-support",
+    }),
+  ];
+  const hidden = assessAction(action({ action: "actions/setup-go" }), majors([6, "node24"]), [], releases);
+  assert.equal(hidden.complete, false);
+  assert.deepEqual(hidden.missingMajors, ["6.0.0 (node20)", "6.1.0 (node20)"]);
+  const covered = assessAction(action({ action: "actions/setup-go" }), majors([6, "node24"]), rules, releases);
+  assert.equal(covered.complete, true);
+  assert.equal(versionCovered(rules, "actions/setup-go", "6.0.0"), true);
+  assert.equal(versionCovered(rules, "actions/setup-go", "6.1.0"), true);
+  assert.equal(versionCovered(rules, "actions/setup-go", "6.2.0"), false);
+});
+
+test("releases are recorded only for a major whose runtime changes", () => {
+  const recorded = releasesToRecord([
+    { version: "5.0.0", using: "node20", file: "action.yml" },
+    { version: "5.1.0", using: "node20", file: "action.yml" },
+    { version: "6.0.0", using: "node20", file: "action.yml" },
+    { version: "6.1.0", using: "node20", file: "action.yml" },
+    { version: "6.2.0", using: "node24", file: "action.yml" },
+  ]);
+  assert.deepEqual(
+    recorded.map((release) => release.version),
+    ["6.0.0", "6.1.0", "6.2.0"],
+  );
+});
+
+test("a CodeQL subpath shares the repository PURL identity", () => {
+  const rules = [
+    baseRule({
+      id: "github-actions.codeql-action.node20",
+      purl: "pkg:github/github/codeql-action",
+      vers: "vers:semver/<4.0.0",
+      event: "end-of-support",
+    }),
+  ];
+  assert.equal(majorCovered(rules, "github/codeql-action/init", 3), true);
+  assert.equal(majorCovered(rules, "github/codeql-action/analyze", 4), false);
+  const scope = parseActionsScope({
+    schemaVersion: "ebb.actions-scope.v1",
+    reviewedAt: "2026-11-15",
+    sources: [{ title: "t", url: "https://example.com/", accessedAt: "2026-11-15" }],
+    actions: [{ action: "github/codeql-action/init", repoUrl: "https://github.com/github/codeql-action" }],
+  });
+  assert.equal(scope.actions[0]?.action, "github/codeql-action/init");
+  assert.throws(
+    () =>
+      parseActionsScope({
+        schemaVersion: "ebb.actions-scope.v1",
+        reviewedAt: "2026-11-15",
+        sources: [{ title: "t", url: "https://example.com/", accessedAt: "2026-11-15" }],
+        actions: [{ action: "github/codeql-action/init", repoUrl: "https://github.com/github/codeql-action/init" }],
+      }),
+    /repoUrl must be https:\/\/github.com\/github\/codeql-action/,
+  );
 });
 
 test("removed counts as an end event and a different purl does not", () => {
@@ -103,11 +211,20 @@ test("removed counts as an end event and a different purl does not", () => {
 
 test("checkActionCoverage reads the reviewed scope and reports it complete", async () => {
   const report = await checkActionCoverage();
-  assert.equal(report.actions.length, 40);
+  assert.equal(report.actions.length, 43);
   assert.ok(
     report.actions.some((entry) => entry.action === "actions/checkout" && entry.complete && !entry.coverageLimit),
   );
-  assert.ok(report.actions.some((entry) => entry.action === "github/codeql-action" && entry.coverageLimit));
+  assert.equal(
+    report.actions.some((entry) => entry.action === "github/codeql-action"),
+    false,
+  );
+  for (const subpath of ["init", "autobuild", "analyze", "upload-sarif"]) {
+    const entry = report.actions.find((item) => item.action === `github/codeql-action/${subpath}`);
+    assert.ok(entry, subpath);
+    assert.equal(entry.complete, true, subpath);
+    assert.equal(entry.coverageLimit, undefined);
+  }
   assert.ok(report.actions.some((entry) => entry.action === "actions/typescript-action" && entry.coverageLimit));
   assert.equal(
     report.actions.some((entry) => entry.action.startsWith("docker/") || entry.action.startsWith("softprops/")),

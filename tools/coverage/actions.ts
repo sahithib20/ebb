@@ -45,7 +45,7 @@ export interface ExpectedAction {
   action: string;
   repoUrl: string;
   kind?: string;
-  /** When set, the action is documented as limited and retired-runtime rules are not required. */
+  /** Why no Node.js rule is required. A limit is complete only when the inventory lists no uncovered retired runtime. */
   coverageLimit?: string;
   notes?: string;
 }
@@ -64,9 +64,19 @@ export interface InventoryMajor {
   file: string;
 }
 
+/** One published release whose `runs.using` differs from other releases in the same major. */
+export interface InventoryRelease {
+  version: string;
+  /** Null when that tag's action.yml sets no runs.using. */
+  using: string | null;
+  file: string;
+}
+
 export interface InventoryAction {
   majors: InventoryMajor[];
   retiredMajors?: InventoryMajor[];
+  /** Present when `runs.using` changes inside a major, so a major-tag probe cannot hide a retired patch. */
+  releases?: InventoryRelease[];
   notes?: string;
 }
 
@@ -100,7 +110,16 @@ export interface ActionsCoverageReport {
   complete: boolean;
 }
 
-const ACTION_NAME = /^[a-z0-9_.-]+\/[a-z0-9_.-]+$/;
+/** `owner/repo` or `owner/repo/subpath`. The repository URL stays two segments. */
+const ACTION_NAME = /^[a-z0-9_.-]+\/[a-z0-9_.-]+(?:\/[a-z0-9_.-]+)?$/;
+const RELEASE_VERSION = /^\d+\.\d+\.\d+$/;
+
+/** `owner/repo` from `owner/repo` or `owner/repo/subpath`. */
+export function actionRepo(action: string): string {
+  const [owner, repo] = action.toLowerCase().split("/");
+  if (!owner || !repo) throw new Error(`Invalid action identifier: ${action}`);
+  return `${owner}/${repo}`;
+}
 
 /** `actions/checkout` becomes `actions-checkout` so issue files stay in one directory. */
 export function actionSlug(action: string): string {
@@ -115,14 +134,14 @@ function isSymbolRule(rule: RegistryV2Rule): boolean {
   return rule.usage?.some((matcher) => matcher.kind === "symbol") ?? false;
 }
 
-function actionPurl(action: string): string {
-  return `pkg:github/${action.toLowerCase()}`;
+/** Coverage identity. A subpath is not part of the PURL identity, so `github/codeql-action/init` shares `pkg:github/github/codeql-action`. */
+export function actionPurl(action: string): string {
+  return `pkg:github/${actionRepo(action)}`;
 }
 
-/** True when an end rule for this action contains version `N.0.0`. A catch-all `<K.0.0` covers major N when N < K. */
-export function majorCovered(rules: readonly RegistryV2Rule[], action: string, major: number): boolean {
+/** True when an end rule for this action contains `version`. */
+export function versionCovered(rules: readonly RegistryV2Rule[], action: string, version: string): boolean {
   const identity = purlIdentity(actionPurl(action));
-  const version = `${major}.0.0`;
   return rules.some(
     (rule) =>
       !isSymbolRule(rule) &&
@@ -132,35 +151,32 @@ export function majorCovered(rules: readonly RegistryV2Rule[], action: string, m
   );
 }
 
+/** True when an end rule for this action contains version `N.0.0`. A catch-all `<K.0.0` covers major N when N < K. */
+export function majorCovered(rules: readonly RegistryV2Rule[], action: string, major: number): boolean {
+  return versionCovered(rules, action, `${major}.0.0`);
+}
+
 export function assessAction(
   expected: ExpectedAction,
   majors: readonly InventoryMajor[] | undefined,
   rules: readonly RegistryV2Rule[],
+  releases?: readonly InventoryRelease[],
 ): ActionCoverage {
   const slug = actionSlug(expected.action);
-  if (expected.coverageLimit !== undefined) {
-    return {
-      action: expected.action,
-      slug,
-      complete: true,
-      coverageLimit: expected.coverageLimit,
-      missingMajors: [],
-      gaps: [],
-    };
-  }
-
+  const limited = expected.coverageLimit !== undefined ? { coverageLimit: expected.coverageLimit } : {};
   if (majors === undefined) {
     return {
       action: expected.action,
       slug,
       complete: false,
+      ...limited,
       missingMajors: [],
       gaps: [
         {
           action: expected.action,
           major: 0,
           using: "",
-          detail: `${expected.action} is in scope and has no coverage limit, but it is missing from the reviewed inventory`,
+          detail: `${expected.action} is in scope but missing from the reviewed inventory`,
         },
       ],
     };
@@ -168,22 +184,41 @@ export function assessAction(
 
   const gaps: ActionGap[] = [];
   const missingMajors: string[] = [];
-  for (const entry of majors) {
-    if (entry.using === null || !RETIRED_USINGS.has(entry.using)) continue;
-    if (majorCovered(rules, expected.action, entry.major)) continue;
-    missingMajors.push(`${entry.major} (${entry.using})`);
+  const probes: Array<{ version: string; using: string | null; label: string; major: number }> = majors.map(
+    (entry) => ({
+      version: `${entry.major}.0.0`,
+      using: entry.using,
+      label: `${entry.major} (${entry.using ?? "unset"})`,
+      major: entry.major,
+    }),
+  );
+  for (const release of releases ?? []) {
+    const major = Number(release.version.split(".")[0]);
+    probes.push({
+      version: release.version,
+      using: release.using,
+      label: `${release.version} (${release.using ?? "unset"})`,
+      major: Number.isInteger(major) ? major : 0,
+    });
+  }
+  for (const probe of probes) {
+    if (probe.using === null || !RETIRED_USINGS.has(probe.using)) continue;
+    if (versionCovered(rules, expected.action, probe.version)) continue;
+    missingMajors.push(probe.label);
     gaps.push({
       action: expected.action,
-      major: entry.major,
-      using: entry.using,
-      detail: `no end rule for ${actionPurl(expected.action)} contains ${entry.major}.0.0 (${entry.using})`,
+      major: probe.major,
+      using: probe.using,
+      detail: `no end rule for ${actionPurl(expected.action)} contains ${probe.version} (${probe.using})`,
     });
   }
 
+  // A limit documents why no Node.js rule is required. It does not hide a retired runtime the inventory already lists.
   return {
     action: expected.action,
     slug,
     complete: gaps.length === 0,
+    ...limited,
     missingMajors,
     gaps,
   };
@@ -218,7 +253,7 @@ export function parseActionsScope(value: unknown, label = SCOPE_NAME): ActionsSc
     if (!ACTION_NAME.test(action.action)) throw new Error(`${label} has an invalid action name: ${action.action}`);
     if (seen.has(action.action)) throw new Error(`${label} lists ${action.action} twice`);
     seen.add(action.action);
-    const repoUrl = `https://github.com/${action.action}`;
+    const repoUrl = `https://github.com/${actionRepo(action.action)}`;
     if (action.repoUrl !== repoUrl) throw new Error(`${action.action} repoUrl must be ${repoUrl}`);
   }
   return scope as unknown as ActionsScope;
@@ -231,6 +266,17 @@ function isInventoryMajor(value: unknown): value is InventoryMajor {
     typeof major.major === "number" &&
     (typeof major.using === "string" || major.using === null) &&
     typeof major.file === "string"
+  );
+}
+
+function isInventoryRelease(value: unknown): value is InventoryRelease {
+  if (typeof value !== "object" || value === null) return false;
+  const release = value as Record<string, unknown>;
+  return (
+    typeof release.version === "string" &&
+    RELEASE_VERSION.test(release.version) &&
+    (typeof release.using === "string" || release.using === null) &&
+    typeof release.file === "string"
   );
 }
 
@@ -252,6 +298,10 @@ export function parseActionsInventory(value: unknown, label = INVENTORY_NAME): A
     }
     const majors = (entry as { majors: unknown[] }).majors;
     if (!majors.every(isInventoryMajor)) throw new Error(`${label} entry ${name} has a malformed major`);
+    const releases = (entry as { releases?: unknown }).releases;
+    if (releases !== undefined && (!Array.isArray(releases) || !releases.every(isInventoryRelease))) {
+      throw new Error(`${label} entry ${name} has a malformed releases array`);
+    }
   }
   return inventory as unknown as ActionsInventory;
 }
@@ -271,14 +321,17 @@ export async function checkActionCoverage(root = ROOT): Promise<ActionsCoverageR
   const scope = parseActionsScope(await readJson(join(expectedDir, SCOPE_NAME)));
   const inventory = parseActionsInventory(await readJson(join(expectedDir, INVENTORY_NAME)));
   const rules = await loadRegistryEndRules(root);
-  const actions = scope.actions.map((action) => assessAction(action, inventory.actions[action.action]?.majors, rules));
+  const actions = scope.actions.map((action) => {
+    const entry = inventory.actions[action.action];
+    return assessAction(action, entry?.majors, rules, entry?.releases);
+  });
   return { actions, complete: actions.every((action) => action.complete) };
 }
 
 export function formatCoverageText(report: ActionsCoverageReport): string {
   const lines: string[] = ["Official Actions coverage", ""];
   for (const action of report.actions) {
-    if (action.coverageLimit) {
+    if (action.complete && action.coverageLimit) {
       lines.push(`${action.action}: complete (documented limit)`);
       lines.push(`  ${action.coverageLimit}`);
       continue;
@@ -303,7 +356,7 @@ export function formatCoverageText(report: ActionsCoverageReport): string {
 export function formatCoverageTable(report: ActionsCoverageReport): string {
   const rows = ["| Action | Status | Missing majors |", "| --- | --- | --- |"];
   for (const action of report.actions) {
-    const status = action.coverageLimit ? "limit" : action.complete ? "complete" : "gaps";
+    const status = !action.complete ? "gaps" : action.coverageLimit ? "limit" : "complete";
     const missing = action.missingMajors.length > 0 ? action.missingMajors.join(", ") : "—";
     rows.push(`| ${action.action} | ${status} | ${missing} |`);
   }
