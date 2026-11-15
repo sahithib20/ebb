@@ -71,7 +71,7 @@
       },
       "status": "supported",
       "requiresScheduled": true,
-      "lineVers": "vers:semver/>=2.9.0|<2.10.0"
+      "lineVers": "vers:semver/>=2.9.3|<2.10.0"
     }
   ]
 }
