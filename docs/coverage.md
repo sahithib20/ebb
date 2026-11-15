@@ -14,7 +14,7 @@ A runtime is **complete** when both are true:
 1. **Every release line first released since 2018** has a registry rule that covers its end (end-of-life, end-of-support, or an equivalent catch-all that matches that line).
 2. **Every still-supported line with an official end date** has a `scheduled-end-of-life` (or scheduled end-of-support) rule for that date.
 
-Dates keep the precision the official source publishes. Month-only announcements stay month-precision in expected files and registry hints. The offline checker requires each end rule to cover the release line’s full `lineVers` range and scheduled milestones to match the official date at that precision. Ebb does not invent a day-of-month from a month-only source, and it does not copy dates from third-party aggregators.
+Dates keep the precision the official source publishes. Month-only announcements stay month-precision in summaries, in `x-*.endOfLifeMonth` on the rule, and as `datePrecision: "month"` on `check()` / `upcoming()` results (with `date` / `deadline` kept as the last day of that month for day arithmetic). The checker compares scheduled milestones to the official date at that precision and requires one scheduled rule to cover the release line’s full `lineVers` range and match that deadline. Ebb does not invent a day-of-month from a month-only source, and it does not copy dates from third-party aggregators.
 
 Runtimes with **no published support schedule** are listed only to document that limit. They are not treated as incomplete for lacking dated rules.
 
@@ -33,6 +33,34 @@ Runtimes with **no published support schedule** are listed only to document that
 | Deno | [Deno stability and releases (LTS)](https://docs.deno.com/runtime/fundamentals/stability_and_releases/) | Yes (dated LTS lines only) |
 | Bun | No official dated support schedule | Limits only — no dated rules required |
 
+## Coverage status
+
+The table below is filled at documentation build time by `tools/coverage/runtimes.ts` from the reviewed expected release lines under `tools/coverage/expected/` and the current registry. It is not edited by hand.
+
+<!-- runtime-coverage:begin -->
+
+| Runtime | Status | Missing lines | Missing scheduled |
+| --- | --- | --- | --- |
+| bun | limit | — | — |
+| deno | complete | — | — |
+| dotnet | complete | — | — |
+| go | complete | — | — |
+| java | complete | — | — |
+| nodejs | complete | — | — |
+| php | complete | — | — |
+| python | complete | — | — |
+| ruby | complete | — | — |
+| rust | complete | — | — |
+
+<!-- runtime-coverage:end -->
+
+## Limits
+
+- **Bun:** No official dated support or LTS schedule is published. Existing historical Bun entries in `registry/deno.json` are not expanded; new dated Bun rules are not added until Bun publishes a schedule.
+- **Deno:** Coverage tracks the official LTS maintenance table on the Deno stability page. Undated stable-channel minors without an LTS row are not given invented end dates.
+- **Ruby 3.4 / 4.0 / 4.1:** The maintenance branches page lists EOL as TBD; those lines stay policy-only until a date is published.
+- **Java LTS (Temurin):** Java 11, 17, 21, and 25 are recorded as supported without a fixed EOL. Temurin’s “At least …” availability floors are not treated as end dates, so no scheduled rule is invented from them.
+
 ## Checker
 
 ```bash
@@ -40,5 +68,4 @@ npm run build --silent
 node dist/tools/coverage/runtimes.js
 ```
 
-The checker reads only local expected JSON and `registry/`. It does not fetch the network. It validates that one end rule covers each expected `lineVers` range and that a scheduled rule covering that range matches the official deadline at published precision. Exit code `0` means complete, `1` means gaps remain (the docs table is still written with `--write-docs`), and `2` means a checker or write error.
-
+The checker reads only local expected JSON and `registry/`. It does not fetch the network. Exit code `0` means complete, `1` means at least one in-scope runtime still has a gap (the docs table is still written with `--write-docs`), and `2` means a checker or write error.

@@ -197,8 +197,10 @@ test("checkRuntimeCoverage reads expected JSON against the real registry", async
   assert.ok(java, "java expected runtime must be present");
   const text = formatCoverageText(report);
   assert.match(text, /Runtime release-line coverage/);
-  // Intermediate stack may still have gaps until later runtimes-complete PRs land.
-  assert.equal(typeof report.complete, "boolean");
+  // Tip of the stack is complete; intermediate PRs soften this assertion.
+  assert.equal(report.complete, true);
+  assert.ok(java.complete, "java including Temurin LTS without fixed EOL must be complete");
+  assert.match(text, /All in-scope runtimes are complete/);
 });
 
 test("checkRuntimeCoverage fails closed when an expected line has no rule", async () => {
