@@ -69,6 +69,34 @@ function utcToday(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function daysInMonth(year: number, month: number): number {
+  if (month === 2) return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 29 : 28;
+  if (month === 4 || month === 6 || month === 9 || month === 11) return 30;
+  return 31;
+}
+
+/** `days` calendar days after `isoDate`. Does not read the system clock. */
+function addUtcDays(isoDate: string, days: number): string {
+  let [year, month, day] = isoDate.split("-").map(Number) as [number, number, number];
+  let left = days;
+  while (left > 0) {
+    const room = daysInMonth(year, month) - day;
+    if (left <= room) {
+      day += left;
+      left = 0;
+    } else {
+      left -= room + 1;
+      day = 1;
+      month += 1;
+      if (month === 13) {
+        month = 1;
+        year += 1;
+      }
+    }
+  }
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 function isReleaseRule(rule: RegistryV2Rule): boolean {
   return rule.usage === undefined || rule.usage.some((matcher) => matcher.kind !== "symbol");
 }
@@ -155,6 +183,43 @@ function sortBuilt(lines: readonly BuiltLine[]): BuiltLine[] {
   });
 }
 
+function recommend(
+  lines: readonly ReleaseLine[],
+  asOf: string,
+  complete: boolean,
+): { recommendation: VersionRecommendation | null; reason: string } {
+  const ending = lines.filter((line) => line.status === "ending" && line.endDate !== null);
+  if (ending.length === 0) {
+    if (lines.length === 0) return { recommendation: null, reason: "Ebb has no release lines for this component." };
+    if (lines.every((line) => line.status === "ended")) {
+      return { recommendation: null, reason: "Every known release line has already ended." };
+    }
+    return { recommendation: null, reason: "No known release line has an end date, so Ebb recommends none." };
+  }
+
+  const latest = [...ending].sort((left, right) => {
+    const byDate = (left.endDate ?? "").localeCompare(right.endDate ?? "");
+    if (byDate !== 0) return byDate;
+    return lines.indexOf(left) - lines.indexOf(right);
+  })[ending.length - 1];
+  if (!latest?.endDate) {
+    return { recommendation: null, reason: "No known release line has an end date, so Ebb recommends none." };
+  }
+
+  const horizon = addUtcDays(asOf, RECOMMEND_AFTER_DAYS);
+  if (latest.endDate <= horizon) {
+    return {
+      recommendation: null,
+      reason: `The latest known end date is ${latest.endDate} (${latest.id}), which is within ${RECOMMEND_AFTER_DAYS} days, so Ebb recommends no line.`,
+    };
+  }
+
+  const reason = complete
+    ? `${latest.id} has the latest known end date (${latest.endDate}).`
+    : `${latest.id} has the latest known end date (${latest.endDate}). The answer is incomplete.`;
+  return { recommendation: { lineId: latest.id, reason }, reason };
+}
+
 function emptyResult(purl: string | null, asOf: string, note: string): SupportedVersionsResult {
   return {
     purl,
@@ -217,18 +282,8 @@ function evaluate(
     }),
   );
   const lines = built.map((entry) => entry.line);
-  return {
-    purl: selected.purl,
-    asOf,
-    lines,
-    recommendation: null,
-    reason:
-      lines.length === 0
-        ? "Ebb has no release lines for this component."
-        : "Ebb lists the release lines its rules name.",
-    complete: false,
-    notes: [],
-  };
+  const { recommendation, reason } = recommend(lines, asOf, false);
+  return { purl: selected.purl, asOf, lines, recommendation, reason, complete: false, notes: [] };
 }
 
 /**
