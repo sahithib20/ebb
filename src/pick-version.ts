@@ -161,6 +161,8 @@ function chooseRule(current: RegistryV2Rule | undefined, candidate: RegistryV2Ru
   return candidate.id < current.id ? candidate : current;
 }
 
+const MAX_GAP_NOTES = 20;
+
 function missingLineIds(lines: readonly ReleaseLine[]): string[] {
   const majors: number[] = [];
   const families = new Map<string, number[]>();
@@ -181,18 +183,18 @@ function missingLineIds(lines: readonly ReleaseLine[]): string[] {
   }
 
   const missing: string[] = [];
-  const majorsSorted = [...new Set(majors)].sort((left, right) => left - right);
-  for (let index = 1; index < majorsSorted.length; index++) {
-    const previous = majorsSorted[index - 1] ?? 0;
-    const next = majorsSorted[index] ?? previous;
-    for (let number = previous + 1; number < next; number++) missing.push(`${number}.x`);
-  }
-  for (const [family, steps] of families) {
+  const sequences: [number[], string, string][] = [[majors, "", ".x"]];
+  for (const [family, steps] of families) sequences.push([steps, `${family}.`, ""]);
+
+  for (const [steps, prefix, suffix] of sequences) {
     const sorted = [...new Set(steps)].sort((left, right) => left - right);
     for (let index = 1; index < sorted.length; index++) {
       const previous = sorted[index - 1] ?? 0;
       const next = sorted[index] ?? previous;
-      for (let number = previous + 1; number < next; number++) missing.push(`${family}.${number}`);
+      for (let number = previous + 1; number < next; number++) {
+        missing.push(`${prefix}${number}${suffix}`);
+        if (missing.length > MAX_GAP_NOTES) return missing;
+      }
     }
   }
   return missing;
@@ -353,7 +355,6 @@ function evaluate(
   const lines = built.map((entry) => entry.line);
   const hasStar = lines.some((line) => line.id === "*");
   const missing = hasStar ? [] : missingLineIds(lines);
-  const coveredMissing = missing.filter((id) => rangeCoversVersion(residual, lineProbe(id)));
   const newest = lines[lines.length - 1];
   const newerCovered = !hasStar && newest !== undefined && rangeCoversVersion(residual, nextProbe(newest.id));
   const spanPastNewest = !hasStar && newest !== undefined && rangeCoversVersion(spans, nextProbe(newest.id));
@@ -363,13 +364,14 @@ function evaluate(
   if (lines.length === 0) {
     notes.push("Ebb has rules for this component, but none of them name a single release line.");
   }
-  for (const id of missing) {
-    if (coveredMissing.includes(id)) {
+  for (const id of missing.slice(0, MAX_GAP_NOTES)) {
+    if (rangeCoversVersion(residual, lineProbe(id))) {
       notes.push(`A rule covers ${id}, but not as its own release line.`);
     } else {
       notes.push(`No rule covers ${id}.`);
     }
   }
+  if (missing.length > MAX_GAP_NOTES) notes.push("Additional gaps in release-line coverage were omitted.");
   if (!hasStar && below.length > 0 && lines.length > 0) {
     const oldest = lines.find((line) => line.id !== "*")?.id ?? lines[0]?.id;
     notes.push(
