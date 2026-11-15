@@ -1,7 +1,74 @@
 /**
  * How Ebb writes versions that are not semver as semver text, so their rules can use the `semver` VERS scheme.
  * A consumer translates what it finds with these functions before it asks whether a rule's range contains it.
+ * Release-line names below also come from this module: ordering uses the VERS scheme, and the label is read
+ * from a bound the scheme has already accepted.
  */
+
+import { parseVers, versionScheme } from "./vers.js";
+
+/** A VERS range that covers exactly one release line, or every version (`*`). */
+export interface ReleaseLineBounds {
+  /** `20.x`, `3.11`, `1.22`, or `*` when the range is every version. */
+  readonly id: string;
+  /** Lower bound the scheme compared, or `*` for every version. */
+  readonly lower: string;
+  readonly scheme: string;
+}
+
+const STABLE_NUMBERS = /^\d+(?:\.\d+)*$/;
+
+function numericParts(version: string): number[] | undefined {
+  if (!STABLE_NUMBERS.test(version)) return undefined;
+  return version.split(".").map((part) => Number(part));
+}
+
+/**
+ * The release line named by a canonical VERS range.
+ * A half-open step such as `>=20.0.0|<21.0.0` is `20.x`. A minor step such as `>=11.0.0|<11.1.0`
+ * is `11.0`, and `>=3.11|<3.12` is `3.11`. The step is the first component that differs.
+ * `*` is one line covering every version. Anything else (an open range, a list of versions, a span of
+ * several lines) is not a single release line.
+ */
+export function releaseLineFromVers(vers: string): ReleaseLineBounds | undefined {
+  const parsed = parseVers(vers);
+  if (parsed.all) return { id: "*", lower: "*", scheme: parsed.scheme };
+  if (parsed.constraints.length !== 2) return undefined;
+
+  const [first, second] = parsed.constraints;
+  if (!first || !second) return undefined;
+  if (first.comparator !== ">=" || second.comparator !== "<") return undefined;
+
+  const scheme = versionScheme(parsed.scheme);
+  if (scheme.compare(first.version, second.version) >= 0) return undefined;
+
+  const lower = numericParts(first.version);
+  const upper = numericParts(second.version);
+  if (!lower || !upper) return undefined;
+
+  const width = Math.max(lower.length, upper.length);
+  const lowerParts = Array.from({ length: width }, (_, part) => lower[part] ?? 0);
+  const upperParts = Array.from({ length: width }, (_, part) => upper[part] ?? 0);
+  let index = -1;
+  for (let part = 0; part < width; part++) {
+    if (lowerParts[part] !== upperParts[part]) {
+      index = part;
+      break;
+    }
+  }
+  // One release line is a step of exactly 1 on a single component, with every later component at 0.
+  if (index < 0 || upperParts[index] !== (lowerParts[index] ?? 0) + 1) return undefined;
+  for (let part = index + 1; part < width; part++) {
+    if (lowerParts[part] !== 0 || upperParts[part] !== 0) return undefined;
+  }
+
+  if (index === 0) return { id: `${lowerParts[0]}.x`, lower: first.version, scheme: parsed.scheme };
+  return {
+    id: lowerParts.slice(0, index + 1).join("."),
+    lower: first.version,
+    scheme: parsed.scheme,
+  };
+}
 
 const KUBERNETES_API_VERSION = /^v([1-9]\d{0,5})(?:(alpha|beta)([1-9]\d{0,5}))?$/;
 

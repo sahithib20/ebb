@@ -2,13 +2,16 @@
  * `supportedVersions`: which release lines Ebb knows, and which one it would take.
  * A line is named only when a rule's VERS range is exactly one release step. Ebb does not
  * invent lines it has no rule for, and it does not call a line supported.
- *
- * This module is the typed signature. It is not exported from the package root yet.
  */
 
+import { CheckError, resolveCandidateRules } from "./check-core.js";
 import { EbbError } from "./errors.js";
-import { isIsoDate } from "./registry.js";
+import { productsFromRules, rankProductsForName } from "./product-name.js";
+import { normalizePurl, parsePurl, purlIdentity } from "./purl.js";
+import { isIsoDate, lifecycleEventPrecedence } from "./registry.js";
 import type { LifecycleEvent, RegistryV2Rule } from "./registry.js";
+import { releaseLineFromVers } from "./rule-versions.js";
+import { versionScheme } from "./vers.js";
 
 /** How far ahead an end date must sit before Ebb will recommend that line. */
 export const RECOMMEND_AFTER_DAYS = 180;
@@ -66,19 +69,179 @@ function utcToday(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/**
- * Typed entry point for the release-line query. Line derivation, recommendation, and the
- * package-root export land with the issues that follow this signature.
- */
-export function supportedVersions(purlOrName: string, options?: SupportedVersionsOptions): SupportedVersionsResult {
-  if (options?.asOf !== undefined) requireIsoDate(options.asOf);
+function isReleaseRule(rule: RegistryV2Rule): boolean {
+  return rule.usage === undefined || rule.usage.some((matcher) => matcher.kind !== "symbol");
+}
+
+function effectiveEvent(rule: RegistryV2Rule, asOf: string): LifecycleEvent {
+  if (rule.event === "scheduled-end-of-life" && rule.deadline !== undefined && rule.deadline <= asOf) {
+    return "end-of-life";
+  }
+  return rule.event;
+}
+
+function seriousness(event: LifecycleEvent): number {
+  const index = lifecycleEventPrecedence.indexOf(event);
+  return index === -1 ? lifecycleEventPrecedence.length : index;
+}
+
+function lineStatus(event: LifecycleEvent, deadline: string | undefined, asOf: string): ReleaseLineStatus {
+  if (deadline !== undefined) return deadline <= asOf ? "ended" : "ending";
+  if (event === "scheduled-end-of-life" || event === "end-of-active-support") return "no-known-end";
+  return "ended";
+}
+
+interface SelectedRules {
+  readonly purl: string | null;
+  readonly rules: readonly RegistryV2Rule[];
+}
+
+function selectCustom(purlOrName: string, rules: readonly RegistryV2Rule[]): SelectedRules {
+  if (purlOrName.toLowerCase().startsWith("pkg:")) {
+    const identity = purlIdentity(parsePurl(normalizePurl(purlOrName)));
+    return { purl: identity, rules: rules.filter((rule) => purlIdentity(rule.purl) === identity) };
+  }
+  const ranked = rankProductsForName(purlOrName, productsFromRules(rules));
+  const widest = ranked[0];
+  if (!widest) return { purl: null, rules: [] };
+  const next = ranked[1];
+  if (next && widest.rules.length <= next.rules.length) {
+    throw new CheckError(
+      `Ambiguous product name "${purlOrName}". Matches: ${ranked.map((product) => `"${product.purl}"`).join(", ")}.`,
+    );
+  }
+  return { purl: purlIdentity(widest.purl), rules: widest.rules };
+}
+
+function selectRules(purlOrName: string, custom: readonly RegistryV2Rule[] | undefined): SelectedRules {
+  if (custom !== undefined) return selectCustom(purlOrName, custom);
+  if (purlOrName.toLowerCase().startsWith("pkg:")) {
+    const identity = purlIdentity(parsePurl(normalizePurl(purlOrName)));
+    return { purl: identity, rules: resolveCandidateRules(purlOrName) };
+  }
+  try {
+    const rules = resolveCandidateRules(purlOrName);
+    return { purl: rules[0] ? purlIdentity(rules[0].purl) : null, rules };
+  } catch (error) {
+    if (error instanceof CheckError && error.message.startsWith("Unknown product ")) {
+      return { purl: null, rules: [] };
+    }
+    throw error;
+  }
+}
+
+interface BuiltLine {
+  readonly line: ReleaseLine;
+  readonly lower: string;
+  readonly scheme: string;
+}
+
+function chooseRule(current: RegistryV2Rule | undefined, candidate: RegistryV2Rule, asOf: string): RegistryV2Rule {
+  if (!current) return candidate;
+  const byEvent = seriousness(effectiveEvent(candidate, asOf)) - seriousness(effectiveEvent(current, asOf));
+  if (byEvent !== 0) return byEvent < 0 ? candidate : current;
+  const candidateDate = candidate.deadline ?? "9999-12-31";
+  const currentDate = current.deadline ?? "9999-12-31";
+  if (candidateDate !== currentDate) return candidateDate < currentDate ? candidate : current;
+  return candidate.id < current.id ? candidate : current;
+}
+
+function sortBuilt(lines: readonly BuiltLine[]): BuiltLine[] {
+  return [...lines].sort((left, right) => {
+    if (left.line.id === "*") return -1;
+    if (right.line.id === "*") return 1;
+    if (left.scheme === right.scheme) return versionScheme(left.scheme).compare(left.lower, right.lower);
+    return left.line.id.localeCompare(right.line.id, "en", { numeric: true });
+  });
+}
+
+function emptyResult(purl: string | null, asOf: string, note: string): SupportedVersionsResult {
   return {
-    purl: purlOrName.toLowerCase().startsWith("pkg:") ? purlOrName : null,
-    asOf: options?.asOf ?? utcToday(),
+    purl,
+    asOf,
     lines: [],
     recommendation: null,
     reason: "Ebb has no release lines for this component.",
     complete: false,
-    notes: ["Ebb has no rules for this component."],
+    notes: [note],
   };
+}
+
+function evaluate(
+  purlOrName: string,
+  asOf: string,
+  custom: readonly RegistryV2Rule[] | undefined,
+): SupportedVersionsResult {
+  const selected = selectRules(purlOrName, custom);
+  const releaseRules = selected.rules.filter(isReleaseRule);
+  const visible = releaseRules.filter((rule) => rule.provenance.observedAt <= asOf);
+  if (visible.length === 0) {
+    const note =
+      selected.rules.length === 0
+        ? "Ebb has no rules for this component."
+        : releaseRules.length === 0
+          ? "Ebb has rules for this component, but none of them name a release line."
+          : "Ebb has no rules for this component as of this date.";
+    return emptyResult(selected.purl, asOf, note);
+  }
+
+  const byLine = new Map<string, { rule: RegistryV2Rule; lower: string; scheme: string }>();
+
+  for (const rule of visible) {
+    const bounds = releaseLineFromVers(rule.vers);
+    if (!bounds) continue;
+    const current = byLine.get(bounds.id);
+    byLine.set(bounds.id, {
+      rule: chooseRule(current?.rule, rule, asOf),
+      lower: bounds.lower,
+      scheme: bounds.scheme,
+    });
+  }
+
+  const built = sortBuilt(
+    [...byLine.entries()].map(([id, chosen]) => {
+      const event = effectiveEvent(chosen.rule, asOf);
+      const endDate = chosen.rule.deadline ?? null;
+      return {
+        lower: chosen.lower,
+        scheme: chosen.scheme,
+        line: {
+          id,
+          vers: chosen.rule.vers,
+          status: lineStatus(event, chosen.rule.deadline, asOf),
+          endDate,
+          ruleId: chosen.rule.id,
+          event,
+        },
+      };
+    }),
+  );
+  const lines = built.map((entry) => entry.line);
+  return {
+    purl: selected.purl,
+    asOf,
+    lines,
+    recommendation: null,
+    reason:
+      lines.length === 0
+        ? "Ebb has no release lines for this component."
+        : "Ebb lists the release lines its rules name.",
+    complete: false,
+    notes: [],
+  };
+}
+
+/**
+ * Lists the release lines Ebb can name for a component, and recommends the one whose known
+ * end date is furthest ahead when that date is more than {@link RECOMMEND_AFTER_DAYS} days
+ * after the reference day. An unknown component is an empty answer, not a supported one.
+ * Passing `asOf` does not read the system clock.
+ */
+export function supportedVersions(purlOrName: string, options?: SupportedVersionsOptions): SupportedVersionsResult {
+  const asOf = options?.asOf;
+  if (asOf !== undefined) {
+    requireIsoDate(asOf);
+    return evaluate(purlOrName, asOf, options?.rules);
+  }
+  return evaluate(purlOrName, utcToday(), options?.rules);
 }
