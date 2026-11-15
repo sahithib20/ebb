@@ -84,6 +84,12 @@ export function parseICalendar(text: string): void {
   if (stack.length > 0) throw new Error(`unclosed ${stack.at(-1)}`);
 }
 
+/** Git checks text files out with LF. The parser requires CRLF, so fixtures are restored first. */
+async function readFixture(path: string): Promise<string> {
+  const text = await readFile(path, "utf8");
+  return text.replace(/\r?\n/g, "\r\n");
+}
+
 async function icsFiles(root: string): Promise<string[]> {
   const entries = await readdir(root, { recursive: true });
   return entries.filter((entry): entry is string => typeof entry === "string" && entry.endsWith(".ics")).sort();
@@ -91,9 +97,9 @@ async function icsFiles(root: string): Promise<string[]> {
 
 describe("iCalendar validation", () => {
   it("rejects a line over 75 octets and a missing UID", async () => {
-    const longLine = await readFile("tests/fixtures/ical/line-too-long.ics", "utf8");
+    const longLine = await readFixture("tests/fixtures/ical/line-too-long.ics");
     await assert.rejects(async () => parseICalendar(longLine), /75 octets/);
-    const missing = await readFile("tests/fixtures/ical/missing-uid.ics", "utf8");
+    const missing = await readFixture("tests/fixtures/ical/missing-uid.ics");
     await assert.rejects(async () => parseICalendar(missing), /missing UID/);
   });
 
