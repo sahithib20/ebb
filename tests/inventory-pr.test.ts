@@ -9,7 +9,8 @@ import { INVENTORY_PATH, stageInventoryBranch } from "../tools/coverage/publish-
 
 async function repoWithTarget(): Promise<string> {
   const repo = await mkdtemp(join(tmpdir(), "ebb-inventory-repo-"));
-  const git = (...args: string[]) => execFileSync("git", args, { cwd: repo, encoding: "utf8" });
+  const git = (...args: string[]) =>
+    execFileSync("git", args, { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   git("init", "-b", "main");
   git("config", "user.email", "test@example.com");
   git("config", "user.name", "test");
@@ -36,7 +37,8 @@ test("a changed inventory branch is cut from the target and contains only that f
     });
     assert.equal(result.status, "ready");
     assert.deepEqual(result.files, [INVENTORY_PATH]);
-    const git = (...args: string[]) => execFileSync("git", args, { cwd: repo, encoding: "utf8" });
+    const git = (...args: string[]) =>
+      execFileSync("git", args, { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
     assert.equal(git("show", "importers/actions-inventory:README.md"), "target\n");
     assert.throws(() => git("show", "importers/actions-inventory:extra.txt"));
     assert.equal(git("merge-base", "main", "importers/actions-inventory").trim(), git("rev-parse", "main").trim());

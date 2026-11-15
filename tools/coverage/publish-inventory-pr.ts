@@ -15,7 +15,7 @@ export const INVENTORY_PATH = "tools/coverage/expected/github-actions-inventory.
 
 export function git(repo: string, args: string[], options?: { allowFailure?: boolean }): string {
   try {
-    return execFileSync("git", args, { cwd: repo, encoding: "utf8" });
+    return execFileSync("git", args, { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   } catch (error) {
     if (options?.allowFailure) return "";
     throw error;
