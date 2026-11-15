@@ -41,23 +41,13 @@ export function sha256Hex(data: string | Buffer): string {
   return createHash("sha256").update(data).digest("hex");
 }
 
-/**
- * The day used to classify release lines. At least as late as every rule's observedAt, so the
- * versions section describes the rules stored in the same file.
- */
-export function versionsAsOf(createdAt: string, rules: readonly RegistryV2Rule[]): string {
-  let day = createdAt.slice(0, 10);
-  for (const rule of rules) {
-    if (rule.provenance.observedAt > day) day = rule.provenance.observedAt;
-  }
-  return day;
-}
-
 export async function generateStaticApi(options: GenerateStaticApiOptions): Promise<GenerateStaticApiResult> {
   const root = resolve(options.root ?? ".");
   const outDir = resolve(options.outDir);
   const baseUrl = (options.baseUrl ?? "https://velella.sh/ebb/api/v1").replace(/\/+$/, "");
   const createdAt = options.createdAt ?? new Date().toISOString();
+  const createdDate = new Date(createdAt);
+  const asOf = createdDate.toISOString().slice(0, 10);
 
   // Read package.json version
   const pkgJsonPath = join(root, "package.json");
@@ -165,7 +155,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     const hasIssue = comp.rules.length > 0;
     const calendar = calendarFeeds.get(purl);
     const versionReport = supportedVersions(purl, {
-      asOf: versionsAsOf(createdAt, comp.rules),
+      asOf,
       rules: comp.rules,
     });
 
@@ -327,7 +317,6 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       latestReviewDate = rev;
     }
   }
-  const createdDate = new Date(createdAt);
   const reviewedTime = Date.parse(`${latestReviewDate}T00:00:00Z`);
   const ageDays = Number.isNaN(reviewedTime)
     ? 0

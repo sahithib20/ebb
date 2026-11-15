@@ -44,7 +44,13 @@ export const pickVersionTool: McpTool = {
       };
     }
 
-    const asOf = typeof args.as_of === "string" ? args.as_of : undefined;
+    const asOf = args.as_of;
+    if (asOf !== undefined && typeof asOf !== "string") {
+      return {
+        content: [{ type: "text", text: "Error: 'as_of' must be a date string (YYYY-MM-DD)." }],
+        isError: true,
+      };
+    }
     try {
       const result = supportedVersions(purlArg, asOf === undefined ? undefined : { asOf });
       return {
