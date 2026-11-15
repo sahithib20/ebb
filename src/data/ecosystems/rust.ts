@@ -17,25 +17,16 @@ export const rules: readonly RegistryV2Rule[] = [
     replacement: "The latest stable Rust release",
     deadline: "2026-10-01",
     sources: [
-      {
-        title: "Rust security policy",
-        url: "https://www.rust-lang.org/policies/security",
-        accessedAt: "2026-10-17",
-        archiveUrl: "https://web.archive.org/web/20261017000000/https://www.rust-lang.org/policies/security",
-        archivedAt: "2026-10-17",
-      },
+      { title: "Rust security policy", url: "https://www.rust-lang.org/policies/security", accessedAt: "2026-11-15" },
       {
         title: "Rust release notes (release dates)",
         url: "https://github.com/rust-lang/rust/blob/master/RELEASES.md",
-        accessedAt: "2026-10-17",
-        archiveUrl:
-          "https://web.archive.org/web/20261017000000/https://github.com/rust-lang/rust/blob/master/RELEASES.md",
-        archivedAt: "2026-10-17",
+        accessedAt: "2026-11-15",
       },
     ],
     provenance: {
-      observedAt: "2026-10-17",
-      reviewedAt: "2026-10-17",
+      observedAt: "2026-11-15",
+      reviewedAt: "2026-11-15",
       reviewer: "arminazimi",
       reviewers: ["arminazimi"],
       method: "manual",
