@@ -68,4 +68,4 @@ The only line is `*`. The recommendation is null, because that line ended on 202
 
 ## Static API
 
-Each component file includes a `versions` object built with the same function: `asOf`, `complete`, `reason`, `recommendation`, `notes`, and `lines`. It is a summary of the rules in that file, not a file per version number.
+Each component file includes a `versions` object built with the same function: `asOf`, `complete`, `reason`, `recommendation`, `notes`, and `lines`. The summary uses rules observed by the UTC day in the file's `generatedAt` timestamp.

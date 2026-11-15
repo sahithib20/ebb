@@ -94,7 +94,7 @@ Output:
 }
 ```
 
-`versions` is the release-line summary from `supportedVersions` for rules observed by the UTC day in `generatedAt`. Older documents may omit the field. See [Which version should I install](decisions/pick-version.md).
+`versions` is the release-line summary from `supportedVersions` for rules observed by the UTC day in `generatedAt`. Older documents may omit the field. See [Which version should I install](pick-version.md).
 
 ### 2. Scoped Packages & GitHub Actions
 Scoped packages support both literal `@` and percent-encoded `%40` in paths:
