@@ -123,8 +123,8 @@ The table below is filled by `tools/coverage/actions.ts`. It is not edited by ha
 | actions/jekyll-build-pages | limit | — |
 | actions/labeler | complete | — |
 | actions/maven-dependency-submission-action | limit | — |
-| actions/publish-action | limit | — |
-| actions/publish-immutable-action | limit | — |
+| actions/publish-action | complete | — |
+| actions/publish-immutable-action | complete | — |
 | actions/setup-dotnet | complete | — |
 | actions/setup-go | complete | — |
 | actions/setup-java | complete | — |

@@ -162,14 +162,12 @@
     {
       "action": "actions/publish-action",
       "repoUrl": "https://github.com/actions/publish-action",
-      "kind": "pre-major",
-      "coverageLimit": "Only 0.x tags are published (v0.1.0 through v0.4.0 as of 2026-11-15). There is no v1 major to classify."
+      "kind": "pre-major"
     },
     {
       "action": "actions/publish-immutable-action",
       "repoUrl": "https://github.com/actions/publish-immutable-action",
-      "kind": "pre-major",
-      "coverageLimit": "Only 0.x tags are published (v0 through v0.0.4 as of 2026-11-15). There is no v1 major to classify."
+      "kind": "pre-major"
     },
     {
       "action": "actions/setup-dotnet",

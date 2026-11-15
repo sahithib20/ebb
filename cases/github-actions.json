@@ -1,6 +1,56 @@
 {
   "cases": [
     {
+      "purl": "pkg:github/actions/add-to-project",
+      "version": "0.5.0",
+      "rules": ["github-actions.add-to-project.node16"]
+    },
+    {
+      "purl": "pkg:github/actions/add-to-project",
+      "version": "2.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/add-to-project",
+      "version": "0.6.0",
+      "rules": ["github-actions.add-to-project.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/add-to-project",
+      "version": "1.0.2",
+      "rules": ["github-actions.add-to-project.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/publish-action",
+      "version": "0.1.0",
+      "rules": ["github-actions.publish-action.node12"]
+    },
+    {
+      "purl": "pkg:github/actions/publish-action",
+      "version": "0.4.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/publish-action",
+      "version": "0.2.2",
+      "rules": ["github-actions.publish-action.node16"]
+    },
+    {
+      "purl": "pkg:github/actions/publish-action",
+      "version": "0.3.0",
+      "rules": ["github-actions.publish-action.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/publish-immutable-action",
+      "version": "0.0.4",
+      "rules": ["github-actions.publish-immutable-action.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/publish-immutable-action",
+      "version": "0.0.5",
+      "rules": []
+    },
+    {
       "purl": "pkg:generic/github-actions/add-path",
       "version": "1.0.0",
       "rules": ["github-actions.workflow-command.add-path"]
