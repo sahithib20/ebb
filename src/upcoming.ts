@@ -296,8 +296,10 @@ export function upcoming(options: UpcomingOptions = {}): UpcomingResult {
     const daysLeft = Math.max(0, Math.floor(diffMs / MS_PER_DAY));
 
     const ruleRecord = rule as unknown as Record<string, unknown>;
+    const rubyMetadata = rule["x-ruby"] as { estimated?: unknown } | undefined;
     const isEstimated = Boolean(
-      rule["x-estimated"] ??
+      rubyMetadata?.estimated ??
+        rule["x-estimated"] ??
         ruleRecord.estimated ??
         (rule.event === "scheduled-end-of-life" && ruleRecord.tentative) ??
         false,

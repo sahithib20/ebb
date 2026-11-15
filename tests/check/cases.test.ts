@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { asOf } from "../../src/as-of.js";
 import { check, type CheckStatus } from "../../src/check.js";
 import { LookupError, lookupProduct } from "../../src/lookup.js";
 import { lifecycleEventPrecedence, type LifecycleEvent } from "../../src/registry.js";
@@ -16,6 +17,7 @@ const checkStatusFromLookup: Record<LifecycleEvent | "supported", CheckStatus> =
   "end-of-life": "end-of-life",
   removed: "removed",
   "scheduled-end-of-life": "scheduled",
+  "end-of-active-support": "scheduled",
 };
 
 function sortedIds(ids: readonly string[]): string[] {
@@ -96,4 +98,19 @@ test("every behaviour case in cases/ gets the same answer from check and lookupP
   }
 
   assert.deepEqual(differences, []);
+});
+
+test("PHP's transition to security-only maintenance does not end all support", async () => {
+  const purl = "pkg:generic/php";
+  const version = "8.4.1";
+  const lookup = await lookupProduct(purl, version);
+  assert.equal(lookup.status, "scheduled-end-of-life");
+  assert.equal(lookup.deadline, "2028-12-31");
+  assert.ok(
+    lookup.findings.some((finding) => finding.event === "end-of-active-support" && finding.deadline === "2026-12-31"),
+  );
+
+  assert.equal(check("pkg:generic/php", "8.2.26").status, "scheduled");
+  assert.equal(asOf("2027-01-01").check(purl, version).status, "scheduled");
+  assert.equal(asOf("2029-01-01").check(purl, version).status, "end-of-life");
 });

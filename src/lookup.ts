@@ -190,7 +190,11 @@ export async function lookupProduct(name: string, version?: string): Promise<Loo
     .map((event) => findings.find((finding) => finding.event === event))
     .find((finding) => finding !== undefined);
   const dated = findings
-    .filter((finding) => finding.deadline !== undefined)
+    .filter(
+      (finding) =>
+        finding.deadline !== undefined &&
+        (finding.event !== "end-of-active-support" || primary?.event === finding.event),
+    )
     .map((finding) => required(finding.deadline, "the finding deadline"));
   return {
     schemaVersion: LOOKUP_SCHEMA_VERSION,
