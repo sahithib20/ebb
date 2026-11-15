@@ -67,7 +67,8 @@ export interface UpcomingItem {
   readonly event: LifecycleEvent;
   readonly title: string;
   readonly severity: Severity;
-  readonly deadline: string;
+  readonly deadline: string; // YYYY-MM-DD; last day of month when datePrecision is "month"
+  readonly datePrecision?: "day" | "month"; // set when the rule carries x-*.endOfLifeMonth
   readonly daysLeft: number;
   readonly estimated: boolean;
   readonly replacement: string | null;

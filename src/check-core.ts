@@ -191,9 +191,19 @@ function requireVersionInput(version: string): string {
   return normalised;
 }
 
+function endOfLifeMonthFromRule(rule: RegistryV2Rule): string | undefined {
+  for (const [key, value] of Object.entries(rule)) {
+    if (!key.startsWith("x-") || typeof value !== "object" || value === null) continue;
+    const month = (value as Record<string, unknown>).endOfLifeMonth;
+    if (typeof month === "string" && /^\d{4}-\d{2}$/.test(month)) return month;
+  }
+  return undefined;
+}
+
 function toCheckMatch(rule: RegistryV2Rule, asOf: string | undefined): CheckMatch {
   const date = rule.deadline ?? null;
-  return {
+  const endOfLifeMonth = endOfLifeMonthFromRule(rule);
+  const match: CheckMatch = {
     ruleId: rule.id,
     event: checkEventByLifecycle[rule.event],
     date,
@@ -203,6 +213,10 @@ function toCheckMatch(rule: RegistryV2Rule, asOf: string | undefined): CheckMatc
     sources: rule.sources,
     reviewedAt: rule.provenance.reviewedAt,
   };
+  if (endOfLifeMonth !== undefined) {
+    match.datePrecision = "month";
+  }
+  return match;
 }
 
 export function statusFromMatches(matches: readonly CheckMatch[]): CheckStatus {

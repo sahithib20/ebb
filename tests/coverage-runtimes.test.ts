@@ -371,3 +371,31 @@ test("exact 26.0.0 and wrong-scheduled fixtures leave coverage incomplete (CLI e
     }
   }
 });
+
+test("check() and upcoming() preserve month precision for Python 3.11–3.15", async () => {
+  const { check, upcoming } = await import("../src/index.js");
+  for (const [version, month] of [
+    ["3.11.10", "2027-10"],
+    ["3.12.7", "2028-10"],
+    ["3.13.0", "2029-10"],
+    ["3.14.0", "2030-10"],
+    ["3.15.0", "2031-10"],
+  ] as const) {
+    const result = check("pkg:generic/python", version);
+    const match = result.matches.find(
+      (m) => m.ruleId === `python.runtime.eol-${version.split(".").slice(0, 2).join(".")}`,
+    );
+    assert.ok(match, `expected scheduled match for ${version}`);
+    assert.equal(match.datePrecision, "month");
+    assert.ok(match.date?.startsWith(month), `date ${match.date} should start with ${month}`);
+  }
+
+  const upcomingResult = upcoming({ within: "2000d", ecosystem: "python", asOf: "2026-11-15" });
+  for (const month of ["2027-10", "2028-10", "2029-10", "2030-10", "2031-10"] as const) {
+    const item = upcomingResult.items.find(
+      (i) => i.deadline.startsWith(month) && i.ruleId.startsWith("python.runtime.eol-3."),
+    );
+    assert.ok(item, `upcoming missing Python month ${month}`);
+    assert.equal(item.datePrecision, "month");
+  }
+});

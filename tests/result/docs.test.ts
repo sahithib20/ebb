@@ -62,7 +62,7 @@ test("every field in result.v1.schema.json has a docs section with a valid JSON 
     {
       parent: "## Field reference: `ResultMatch`",
       fields: Object.keys(schema.$defs.match.properties),
-      experimental: new Set(["daysLeft"]),
+      experimental: new Set(["daysLeft", "datePrecision"]),
       hasTag: true,
     },
     {

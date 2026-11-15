@@ -42,6 +42,10 @@
         "date": {
           "oneOf": [{ "$ref": "#/$defs/date" }, { "type": "null" }]
         },
+        "datePrecision": {
+          "description": "Vendor announcement precision. month when the rule carries x-*.endOfLifeMonth.",
+          "enum": ["day", "month"]
+        },
         "daysLeft": {
           "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
         },

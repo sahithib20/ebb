@@ -29,10 +29,20 @@ const eventByLifecycle: Record<LifecycleEvent, ResultEvent> = {
 interface ActiveRuleMeta {
   reviewedAt: string;
   order: number;
+  datePrecision?: "day" | "month";
 }
 
 let ruleMetaById: Map<string, ActiveRuleMeta> | undefined;
 let indexedFrom: ActiveData | undefined;
+
+function endOfLifeMonthFromRule(rule: { [key: string]: unknown }): string | undefined {
+  for (const [key, value] of Object.entries(rule)) {
+    if (!key.startsWith("x-") || typeof value !== "object" || value === null) continue;
+    const month = (value as Record<string, unknown>).endOfLifeMonth;
+    if (typeof month === "string" && /^\d{4}-\d{2}$/.test(month)) return month;
+  }
+  return undefined;
+}
 
 function activeRuleMeta(): Map<string, ActiveRuleMeta> {
   const data = getActiveDataSync();
@@ -42,7 +52,10 @@ function activeRuleMeta(): Map<string, ActiveRuleMeta> {
   for (const ecosystem of BUNDLED_ECOSYSTEMS) {
     const rules = validateRegistryV2(data.readSync(`registry/${ecosystem}.json`)).rules;
     for (const rule of rules) {
-      map.set(rule.id, { reviewedAt: rule.provenance.reviewedAt, order });
+      const month = endOfLifeMonthFromRule(rule as unknown as { [key: string]: unknown });
+      const meta: ActiveRuleMeta = { reviewedAt: rule.provenance.reviewedAt, order };
+      if (month !== undefined) meta.datePrecision = "month";
+      map.set(rule.id, meta);
       order += 1;
     }
   }
@@ -51,17 +64,19 @@ function activeRuleMeta(): Map<string, ActiveRuleMeta> {
   return map;
 }
 
-function toResultMatch(finding: LookupFinding, reviewedAt: string, asOf: string | undefined): ResultMatch {
+function toResultMatch(finding: LookupFinding, meta: ActiveRuleMeta, asOf: string | undefined): ResultMatch {
   const date = finding.deadline ?? null;
-  return {
+  const match: ResultMatch = {
     ruleId: finding.ruleId,
     event: eventByLifecycle[finding.event],
     date,
     daysLeft: asOf === undefined ? null : daysUntil(date, asOf),
     replacement: finding.replacement ?? null,
     sources: finding.sources,
-    reviewedAt,
+    reviewedAt: meta.reviewedAt,
   };
+  if (meta.datePrecision !== undefined) match.datePrecision = meta.datePrecision;
+  return match;
 }
 
 function statusFromOrderedMatches(matches: readonly ResultMatch[]): ResultStatus {
@@ -102,7 +117,7 @@ export function fromLookupProduct(old: LookupResult, asOf?: string): Result {
   // Restore registry order on equal (event, date) groups because lookupProduct breaks ties alphabetically.
   entries.sort((left, right) => left.meta.order - right.meta.order || left.index - right.index);
 
-  const matches = orderMatches(entries.map(({ finding, meta }) => toResultMatch(finding, meta.reviewedAt, asOf)));
+  const matches = orderMatches(entries.map(({ finding, meta }) => toResultMatch(finding, meta, asOf)));
   const status = statusFromOrderedMatches(matches);
 
   return asOf === undefined

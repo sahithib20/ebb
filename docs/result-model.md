@@ -27,7 +27,8 @@ Stability tags on `Result` and `ResultMatch` match the JSDoc annotations in `src
 | --- | --- | --- | --- |
 | `ruleId` | `string` | `@stable` | Id of the matching registry rule. |
 | `event` | `"deprecated" \| "unsupported" \| "end-of-life" \| "removed" \| "scheduled"` | `@stable` | Lifecycle event on that rule, in `check`'s short form. |
-| `date` | `string \| null` | `@stable` | Deadline from the rule (`YYYY-MM-DD`), or `null` when the rule has no deadline. |
+| `date` | `string \| null` | `@stable` | Deadline from the rule (`YYYY-MM-DD`), or `null` when the rule has no deadline. When `datePrecision` is `"month"`, this is the last day of that month so `daysLeft` stays usable. |
+| `datePrecision` | `"day" \| "month"` (optional) | `@experimental` | Vendor announcement precision. `"month"` when the rule carries `x-*.endOfLifeMonth`; omit for day-precision or undated rules. |
 | `daysLeft` | `number \| null` | `@experimental` | Whole UTC days from `asOf` until `date`; `null` when past, undated, or `asOf` is omitted. |
 | `replacement` | `string \| null` | `@stable` | Suggested replacement from the rule, or `null` when none. |
 | `sources` | `EvidenceSource[]` | `@stable` | Authoritative evidence pages the rule cites. |
@@ -194,12 +195,24 @@ Example:
 
 - **Stability:** `@stable`
 - **Type:** `YYYY-MM-DD` `string | null` (required)
-- **Meaning:** Announced lifecycle deadline from the rule, or `null` when the rule carries no deadline date.
+- **Meaning:** Announced lifecycle deadline from the rule, or `null` when the rule carries no deadline date. When `datePrecision` is `"month"`, this is the last calendar day of that month so `daysLeft` stays usable; display the announced month as `YYYY-MM`.
 
 Example:
 
 ```json
 "2027-04-30"
+```
+
+### `datePrecision`
+
+- **Stability:** `@experimental` (do not treat this behavior as promised before 1.0)
+- **Type:** `"day" | "month"` (optional)
+- **Meaning:** Precision of the vendor-announced end date. `"month"` when the matching rule carries `x-*.endOfLifeMonth` (for example Python 3.11–3.15). Omitted for day-precision or undated rules.
+
+Example:
+
+```json
+"month"
 ```
 
 ### `daysLeft`

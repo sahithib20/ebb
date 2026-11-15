@@ -39,7 +39,16 @@ export interface UpcomingItem {
   readonly event: LifecycleEvent;
   readonly title: string;
   readonly severity: Severity;
+  /**
+   * Announced deadline as `YYYY-MM-DD`. When {@link datePrecision} is `"month"`,
+   * this is the last calendar day of that month so day arithmetic stays compatible.
+   */
   readonly deadline: string;
+  /**
+   * Precision of the vendor-announced end date. `"month"` when the rule carries
+   * `x-*.endOfLifeMonth`; omitted for day-precision deadlines.
+   */
+  readonly datePrecision?: "day" | "month";
   readonly daysLeft: number;
   readonly estimated: boolean;
   readonly replacement: string | null;
@@ -294,6 +303,16 @@ export function upcoming(options: UpcomingOptions = {}): UpcomingResult {
         false,
     );
 
+    let datePrecision: "day" | "month" | undefined;
+    for (const [key, value] of Object.entries(rule)) {
+      if (!key.startsWith("x-") || typeof value !== "object" || value === null) continue;
+      const month = (value as Record<string, unknown>).endOfLifeMonth;
+      if (typeof month === "string" && /^\d{4}-\d{2}$/.test(month)) {
+        datePrecision = "month";
+        break;
+      }
+    }
+
     items.push({
       ruleId: rule.id,
       purl: rule.purl,
@@ -307,6 +326,7 @@ export function upcoming(options: UpcomingOptions = {}): UpcomingResult {
       replacement: rule.replacement ?? null,
       sources: rule.sources ?? [],
       reviewedAt: rule.provenance?.reviewedAt ?? null,
+      ...(datePrecision !== undefined ? { datePrecision } : {}),
     });
   }
 
