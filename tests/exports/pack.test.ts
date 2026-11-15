@@ -50,7 +50,7 @@ test("every exported entry point installs and loads cleanly from a packed tarbal
     const installedDistSrc = join(appDir, "node_modules", "@velella", "ebb", "dist", "src");
     // ./mcp is a public export; ./mcp/* is intentionally blocked (null).
     const subpaths = (await collectJsModules(installedDistSrc)).filter(
-      (name) => name !== "index" && name !== "mcp" && !name.startsWith("mcp/"),
+      (name) => name !== "index" && name !== "mcp" && !name.startsWith("mcp/") && name !== "pick-version",
     );
     assert.ok(subpaths.length >= 40, `expected >= 40 dist/src subpaths in tarball, found ${subpaths.length}`);
 
@@ -71,6 +71,7 @@ assert.deepEqual(Object.keys(root).sort(), [
   "rulesFor",
   "sourcesOf",
   "stale",
+  "supportedVersions",
   "toICal",
   "upcoming",
 ]);
@@ -82,6 +83,12 @@ assert.equal(root.checkAll([{ purl: "pkg:npm/left-pad", version: "1.3.0" }]).sum
 const browser = await import("@velella/ebb/browser");
 const browserCalendar = browser.toICal({ ecosystem: "nodejs", asOf: "2026-11-12", within: "1y" });
 assert.ok(browserCalendar.includes("UID:nodejs.runtime.eol-22@velella.sh"));
+assert.equal(typeof browser.supportedVersions, "function");
+const browserNode = browser.supportedVersions("node", { asOf: "2026-11-15" });
+assert.equal(browserNode.recommendation && browserNode.recommendation.lineId, "26.x");
+const browserPython = browser.supportedVersions("python", { asOf: "2026-11-15" });
+assert.equal(browserPython.recommendation && browserPython.recommendation.lineId, "3.15");
+await assert.rejects(() => import("@velella/ebb/pick-version"), (err) => err && err.code === "ERR_PACKAGE_PATH_NOT_EXPORTED");
 
 const pkg = await import("@velella/ebb/package.json", { with: { type: "json" } });
 assert.equal(pkg.default.name, "@velella/ebb");

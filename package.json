@@ -106,6 +106,7 @@
       "default": "./dist/src/mcp/index.js"
     },
     "./mcp/*": null,
+    "./pick-version": null,
     "./*": {
       "types": "./dist/src/*.d.ts",
       "import": "./dist/src/*.js",

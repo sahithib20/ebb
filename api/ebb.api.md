@@ -414,6 +414,15 @@ export interface StaleResult {
 }
 
 // @public
+export function supportedVersions(purlOrName: string, options?: SupportedVersionsOptions): SupportedVersionsResult;
+
+// @public (undocumented)
+export interface SupportedVersionsOptions {
+    readonly asOf?: string | undefined;
+    readonly rules?: readonly RegistryV2Rule[] | undefined;
+}
+
+// @public
 export interface SupportedVersionsResult {
     // (undocumented)
     readonly asOf: string;

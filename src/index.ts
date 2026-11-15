@@ -41,7 +41,14 @@ export {
   asOf,
 } from "./as-of.js";
 
-export type { ReleaseLine, ReleaseLineStatus, SupportedVersionsResult, VersionRecommendation } from "./pick-version.js";
+export {
+  type ReleaseLine,
+  type ReleaseLineStatus,
+  type SupportedVersionsOptions,
+  type SupportedVersionsResult,
+  type VersionRecommendation,
+  supportedVersions,
+} from "./pick-version.js";
 
 export {
   type CheckAllEntry,
