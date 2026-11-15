@@ -8,6 +8,7 @@ import { OFFING_HINT_TEXT } from "../../src/hint.js";
 import { parsePurl, purlIdentity } from "../../src/purl.js";
 import type { RegistryV2, RegistryV2Rule } from "../../src/registry.js";
 import { sourcesOf } from "../../src/sources-of.js";
+import { writeCalendars } from "./calendar.js";
 
 export const API_SCHEMA_VERSION = "ebb.api.v1" as const;
 
@@ -100,6 +101,14 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
   // Ensure output directory exists
   await mkdir(outDir, { recursive: true });
 
+  const calendarFeeds = await writeCalendars({
+    outDir,
+    rules: allRules,
+    ecosystems: [...rulesByEcosystem.keys()],
+    baseUrl,
+    stamp: createdAt,
+  });
+
   // 1. Generate Component JSON files
   const indexComponents: Record<
     string,
@@ -141,6 +150,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     const latestReview = reviews.length > 0 ? reviews.sort().slice(-1)[0] : undefined;
 
     const hasIssue = comp.rules.length > 0;
+    const calendar = calendarFeeds.get(purl);
 
     const compDoc = {
       schemaVersion: API_SCHEMA_VERSION,
@@ -153,6 +163,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       ecosystems: Array.from(comp.ecosystems).sort(),
       rules: comp.rules,
       ...(hasIssue ? { hint: OFFING_HINT_TEXT } : {}),
+      ...(calendar ? { calendar } : {}),
     };
 
     const compJson = JSON.stringify(compDoc, null, 2);

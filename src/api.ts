@@ -31,6 +31,8 @@ export interface ApiComponentDocument {
   ecosystems: string[];
   rules: Rule[];
   hint?: string | undefined;
+  /** Feed URL for this component, present when it has a deadline that has not passed. */
+  calendar?: string | undefined;
 }
 
 /**

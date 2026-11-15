@@ -34,6 +34,9 @@ Base URL: `https://velella.sh/ebb/api/v1`
 | `/upcoming.json` | Scheduled deprecations and end-of-life dates, sorted by deadline | `/upcoming.json` |
 | `/recent.json` | Most recently reviewed and updated rules, sorted by date | `/recent.json` |
 | `/search-index.json` | Compact prefix search index for fast component autocomplete | `/search-index.json` |
+| `/calendar/all.ics` | Deadlines from the last 30 days and the next 24 months | `/calendar/all.ics` |
+| `/calendar/<ecosystem>.ics` | That window for one ecosystem | `/calendar/npm.ics` |
+| `/calendar/<type>/<name>.ics` | One component, only when a deadline is still ahead | `/calendar/generic/nodejs.ics` |
 
 ---
 

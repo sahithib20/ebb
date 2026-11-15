@@ -40,6 +40,7 @@ test("root entry exports only the public functions at runtime", () => {
     "rulesFor",
     "sourcesOf",
     "stale",
+    "toICal",
     "upcoming",
   ]);
 });
@@ -85,6 +86,9 @@ test("root exports evaluate components and expose the public types", () => {
   assert.equal(sources.ruleId, "npm.package.request.deprecated");
   assert.ok(sources.sources.length > 0);
   assert.equal(sources.reviewer, "arminazimi");
+
+  assert.equal(typeof root.toICal, "function");
+  assert.match(root.toICal({ rules: [], asOf: "2026-01-01", stamp: "2026-01-01" }), /BEGIN:VCALENDAR\r\n/);
 
   const scoped = createEbb({ ecosystems: ["npm"] });
   assert.equal(scoped.check("pkg:npm/request", "2.88.2").status, "deprecated");

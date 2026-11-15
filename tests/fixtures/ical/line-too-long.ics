@@ -1,0 +1,10 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Velella//Ebb//EN
+BEGIN:VEVENT
+UID:npm.example.eol@velella.sh
+DTSTAMP:20260115T000000Z
+DTSTART;VALUE=DATE:20260601
+SUMMARY:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+END:VEVENT
+END:VCALENDAR

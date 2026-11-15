@@ -394,6 +394,21 @@ export interface StaleResult {
 }
 
 // @public
+export function toICal(options?: ToICalOptions): string;
+
+// @public (undocumented)
+export interface ToICalOptions {
+    readonly asOf?: string | undefined;
+    readonly baseUrl?: string | undefined;
+    readonly ecosystem?: string | readonly string[] | undefined;
+    readonly name?: string | undefined;
+    readonly purl?: string | readonly string[] | undefined;
+    readonly rules?: readonly RegistryV2Rule[] | undefined;
+    readonly stamp?: string | undefined;
+    readonly within?: string | number | undefined;
+}
+
+// @public
 export function upcoming(options?: UpcomingOptions): UpcomingResult;
 
 // @public (undocumented)

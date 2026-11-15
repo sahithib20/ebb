@@ -35,7 +35,8 @@
           "type": "array",
           "items": { "$ref": "#/$defs/rule" }
         },
-        "hint": { "type": "string" }
+        "hint": { "type": "string" },
+        "calendar": { "type": "string" }
       }
     },
     "ecosystemDocument": {

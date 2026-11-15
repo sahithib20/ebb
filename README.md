@@ -395,6 +395,7 @@ These pages are also published as a site, built with [Mizzen](https://velella.sh
 - [Quickstart](docs/QUICKSTART.md): 5-minute guide across library, CLI, AI agents, static API, and GitHub Actions.
 - [CLI](docs/cli.md): command-line interface for offline checks and SBOM batch evaluation.
 - [Upcoming deadlines](docs/upcoming.md): query scheduled and upcoming end-of-life events within a time window.
+- [Calendar](docs/calendar.md): subscribe to end-of-life dates in Google Calendar, Apple Calendar, or Outlook.
 - [Time-travel evaluation (asOf)](docs/as-of.md): evaluate lifecycle status as of past or future dates with deterministic replay.
 - [Stale rule review](docs/stale.md): find rules past their review window and the weekly maintainer issue.
 - [Agent Skills](docs/skills.md): guardrails for AI coding agents via skills.sh.
