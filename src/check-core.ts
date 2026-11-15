@@ -170,6 +170,7 @@ const checkEventByLifecycle: Record<LifecycleEvent, CheckEvent> = {
   "end-of-life": "end-of-life",
   removed: "removed",
   "scheduled-end-of-life": "scheduled",
+  "end-of-active-support": "scheduled",
 };
 
 /** Most serious event first — shared by `status` and match ordering. */

@@ -283,6 +283,13 @@ describe("upcoming: real bundled registry data with fixed clock", () => {
   });
 });
 
+it("marks the officially projected Ruby 3.3 EOL as estimated", () => {
+  const result = upcoming({ within: "1y", purls: ["pkg:generic/ruby@3.3.6"], asOf: "2026-11-15" });
+  const item = result.items.find((item) => item.ruleId === "ruby.runtime.eol-3.3");
+  assert.equal(item?.deadline, "2027-03-31");
+  assert.equal(item?.estimated, true);
+});
+
 describe("upcoming: CLI command", () => {
   it("runs ebb upcoming with --as-of and returns text output", async () => {
     let stdout = "";

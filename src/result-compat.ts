@@ -24,6 +24,7 @@ const eventByLifecycle: Record<LifecycleEvent, ResultEvent> = {
   "end-of-life": "end-of-life",
   removed: "removed",
   "scheduled-end-of-life": "scheduled",
+  "end-of-active-support": "scheduled",
 };
 
 interface ActiveRuleMeta {

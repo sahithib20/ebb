@@ -16,6 +16,7 @@
       "severity": "low",
       "replacement": "Ruby 3.4 or later",
       "deadline": "2027-03-31",
+      "x-ruby": { "estimated": true },
       "sources": [
         {
           "title": "Ruby maintenance branches",

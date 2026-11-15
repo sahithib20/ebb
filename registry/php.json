@@ -10,10 +10,10 @@
       "ecosystem": "php",
       "purl": "pkg:generic/php",
       "vers": "vers:semver/>=8.2.0|<8.3.0",
-      "event": "end-of-support",
+      "event": "end-of-active-support",
       "title": "PHP 8.2 active support ended on 2024-12-31",
       "summary": "The PHP supported versions table lists active support for PHP 8.2 until 2024-12-31. After that date the branch receives security fixes only until 2026-12-31.",
-      "severity": "medium",
+      "severity": "low",
       "replacement": "PHP 8.5 or later",
       "deadline": "2024-12-31",
       "sources": [
@@ -43,7 +43,7 @@
           {
             "id": "update-php-declaration",
             "title": "Raise the PHP version",
-            "instructions": "Change the reported declaration from PHP 8.1 to a supported release (see the replacement), using the project's existing version manager.",
+            "instructions": "Change the reported declaration from PHP 8.2 to a supported release (see the replacement), using the project's existing version manager.",
             "targets": "declaration"
           },
           {
@@ -107,7 +107,7 @@
           {
             "id": "update-php-declaration",
             "title": "Raise the PHP version",
-            "instructions": "Change the reported declaration from PHP 8.1 to a supported release (see the replacement), using the project's existing version manager.",
+            "instructions": "Change the reported declaration from PHP 8.2 to a supported release (see the replacement), using the project's existing version manager.",
             "targets": "declaration"
           },
           {
@@ -138,10 +138,10 @@
       "ecosystem": "php",
       "purl": "pkg:generic/php",
       "vers": "vers:semver/>=8.3.0|<8.4.0",
-      "event": "end-of-support",
+      "event": "end-of-active-support",
       "title": "PHP 8.3 active support ended on 2025-12-31",
       "summary": "The PHP supported versions table lists active support for PHP 8.3 until 2025-12-31. After that date the branch receives security fixes only until 2027-12-31.",
-      "severity": "medium",
+      "severity": "low",
       "replacement": "PHP 8.5 or later",
       "deadline": "2025-12-31",
       "sources": [
@@ -171,7 +171,7 @@
           {
             "id": "update-php-declaration",
             "title": "Raise the PHP version",
-            "instructions": "Change the reported declaration from PHP 8.1 to a supported release (see the replacement), using the project's existing version manager.",
+            "instructions": "Change the reported declaration from PHP 8.3 to a supported release (see the replacement), using the project's existing version manager.",
             "targets": "declaration"
           },
           {
@@ -235,7 +235,7 @@
           {
             "id": "update-php-declaration",
             "title": "Raise the PHP version",
-            "instructions": "Change the reported declaration from PHP 8.1 to a supported release (see the replacement), using the project's existing version manager.",
+            "instructions": "Change the reported declaration from PHP 8.3 to a supported release (see the replacement), using the project's existing version manager.",
             "targets": "declaration"
           },
           {
@@ -266,7 +266,7 @@
       "ecosystem": "php",
       "purl": "pkg:generic/php",
       "vers": "vers:semver/>=8.4.0|<8.5.0",
-      "event": "scheduled-end-of-life",
+      "event": "end-of-active-support",
       "title": "PHP 8.4 active support ends on 2026-12-31",
       "summary": "The PHP supported versions table schedules the end of active support for PHP 8.4 on 2026-12-31. After that date the branch receives security fixes only until 2028-12-31.",
       "severity": "low",
@@ -299,7 +299,7 @@
           {
             "id": "update-php-declaration",
             "title": "Raise the PHP version",
-            "instructions": "Change the reported declaration from PHP 8.1 to a supported release (see the replacement), using the project's existing version manager.",
+            "instructions": "Change the reported declaration from PHP 8.4 to a supported release (see the replacement), using the project's existing version manager.",
             "targets": "declaration"
           },
           {
@@ -363,7 +363,7 @@
           {
             "id": "update-php-declaration",
             "title": "Raise the PHP version",
-            "instructions": "Change the reported declaration from PHP 8.1 to a supported release (see the replacement), using the project's existing version manager.",
+            "instructions": "Change the reported declaration from PHP 8.4 to a supported release (see the replacement), using the project's existing version manager.",
             "targets": "declaration"
           },
           {
@@ -394,7 +394,7 @@
       "ecosystem": "php",
       "purl": "pkg:generic/php",
       "vers": "vers:semver/>=8.5.0|<8.6.0",
-      "event": "scheduled-end-of-life",
+      "event": "end-of-active-support",
       "title": "PHP 8.5 active support ends on 2027-12-31",
       "summary": "The PHP supported versions table schedules the end of active support for PHP 8.5 on 2027-12-31. After that date the branch receives security fixes only until 2029-12-31.",
       "severity": "low",
@@ -427,7 +427,7 @@
           {
             "id": "update-php-declaration",
             "title": "Raise the PHP version",
-            "instructions": "Change the reported declaration from PHP 8.1 to a supported release (see the replacement), using the project's existing version manager.",
+            "instructions": "Change the reported declaration from PHP 8.5 to a supported release (see the replacement), using the project's existing version manager.",
             "targets": "declaration"
           },
           {
@@ -491,7 +491,7 @@
           {
             "id": "update-php-declaration",
             "title": "Raise the PHP version",
-            "instructions": "Change the reported declaration from PHP 8.1 to a supported release (see the replacement), using the project's existing version manager.",
+            "instructions": "Change the reported declaration from PHP 8.5 to a supported release (see the replacement), using the project's existing version manager.",
             "targets": "declaration"
           },
           {

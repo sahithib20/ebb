@@ -16,6 +16,7 @@ export const lifecycleEvents = [
   "end-of-life",
   "removed",
   "scheduled-end-of-life",
+  "end-of-active-support",
 ] as const;
 export type LifecycleEvent = (typeof lifecycleEvents)[number];
 
@@ -29,6 +30,7 @@ export const lifecycleEventPrecedence: readonly LifecycleEvent[] = [
   "end-of-support",
   "deprecated",
   "scheduled-end-of-life",
+  "end-of-active-support",
 ];
 
 export const provenanceMethods = ["manual", "imported", "upstream"] as const;
@@ -201,6 +203,9 @@ function descriptionIssues(rule: UnknownRecord, problem: Problem): void {
 /** The deadline, and the announced date a scheduled end of life needs (decision 0010). */
 function deadlineIssues(rule: UnknownRecord, problem: Problem): void {
   if (rule.deadline !== undefined && !isIsoDate(rule.deadline)) problem("deadline must be a valid date (YYYY-MM-DD)");
+  if (rule.event === "end-of-active-support" && rule.deadline === undefined) {
+    problem("an end-of-active-support rule needs the announced date as its deadline");
+  }
   // An announced end of life that has not happened yet: it needs the announced date, and it must not fail a severity gate (decision 0010).
   if (rule.event !== "scheduled-end-of-life") return;
   if (rule.deadline === undefined) problem("a scheduled-end-of-life rule needs the announced date as its deadline");

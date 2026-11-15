@@ -65,6 +65,7 @@ function mapLifecycleToCheckEvent(event: LifecycleEvent): CheckEvent {
       return "end-of-life";
     case "removed":
       return "removed";
+    case "end-of-active-support":
     case "scheduled-end-of-life":
       return "scheduled";
   }

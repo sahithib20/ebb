@@ -20,7 +20,7 @@
     "typePath": { "type": "string", "pattern": "^types/[a-z][a-z0-9.+-]*\\.json$" },
     "rulePath": { "type": "string", "pattern": "^rules/[a-z0-9]+(?:[.-][a-z0-9]+)*\\.json$" },
     "event": {
-      "enum": ["deprecated", "end-of-support", "end-of-life", "removed", "scheduled-end-of-life"]
+      "enum": ["deprecated", "end-of-support", "end-of-life", "removed", "scheduled-end-of-life", "end-of-active-support"]
     },
     "events": {
       "type": "array",
