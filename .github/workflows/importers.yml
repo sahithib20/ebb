@@ -12,6 +12,11 @@ on:
   schedule:
     - cron: "43 5 * * 2" # Tuesdays, 05:43 UTC, after the Monday source-freshness check
   workflow_dispatch:
+    inputs:
+      coverage-only:
+        description: Run only the runtime coverage report
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -21,6 +26,7 @@ concurrency:
 
 jobs:
   draft:
+    if: ${{ !inputs.coverage-only }}
     name: draft (${{ matrix.importer }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
