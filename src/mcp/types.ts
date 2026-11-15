@@ -61,6 +61,8 @@ export type McpToolContent = McpTextContent;
 
 export interface McpToolResult {
   content: McpToolContent[];
+  /** Library result for clients that read native MCP structured content. Text in `content` stays for older clients. */
+  structuredContent?: Record<string, unknown>;
   isError?: boolean;
 }
 
