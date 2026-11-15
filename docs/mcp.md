@@ -140,6 +140,13 @@ Evaluates a batch of components in a single round-trip.
   - `purls` *(array, required)*: List of PURL strings or `{ purl, version? }` objects.
 - **Returns**: Markdown or JSON report with a summary table, counts by status, and individual findings.
 
+### `pick_version`
+Call this before choosing a runtime or a major version. It returns the release lines Ebb knows, the line it recommends, and whether that list is complete.
+- **Parameters**:
+  - `purl` *(string, required)*: Package URL or product name (e.g. `node`, `pkg:generic/python`).
+  - `as_of` *(string, optional)*: Reference date `YYYY-MM-DD`. When set, the clock is not read.
+- **Returns**: JSON text with `lines`, `recommendation`, `complete`, `reason`, `notes`, and a text `summary`, plus the library result as `structuredContent` (no summary). A line is recommended only when the library recommends it. Worked calls: `{ "purl": "node", "as_of": "2026-11-15" }` recommends `26.x`; `{ "purl": "python", "as_of": "2026-11-15" }` recommends `3.15`; `{ "purl": "pkg:npm/request", "as_of": "2026-11-15" }` returns line `*` and no recommendation.
+
 ### `replacement_for`
 Returns the suggested modern alternative for a deprecated component.
 - **Parameters**:
