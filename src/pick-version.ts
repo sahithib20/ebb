@@ -11,7 +11,7 @@ import { normalizePurl, parsePurl, purlIdentity } from "./purl.js";
 import { isIsoDate, lifecycleEventPrecedence } from "./registry.js";
 import type { LifecycleEvent, RegistryV2Rule } from "./registry.js";
 import { releaseLineFromVers } from "./rule-versions.js";
-import { versionScheme } from "./vers.js";
+import { parseVers, versContains, versionScheme } from "./vers.js";
 
 /** How far ahead an end date must sit before Ebb will recommend that line. */
 export const RECOMMEND_AFTER_DAYS = 180;
@@ -158,6 +158,20 @@ function selectRules(purlOrName: string, custom: readonly RegistryV2Rule[] | und
   }
 }
 
+type UnboundedKind = "below" | "above" | "other";
+
+function unboundedKind(vers: string): UnboundedKind {
+  const parsed = parseVers(vers);
+  const bounds = parsed.constraints.filter(
+    (constraint) => constraint.comparator !== "=" && constraint.comparator !== "!=",
+  );
+  const lower = bounds.filter((constraint) => constraint.comparator === ">" || constraint.comparator === ">=");
+  const upper = bounds.filter((constraint) => constraint.comparator === "<" || constraint.comparator === "<=");
+  if (upper.length > 0 && lower.length === 0) return "below";
+  if (lower.length > 0 && upper.length === 0) return "above";
+  return "other";
+}
+
 interface BuiltLine {
   readonly line: ReleaseLine;
   readonly lower: string;
@@ -172,6 +186,43 @@ function chooseRule(current: RegistryV2Rule | undefined, candidate: RegistryV2Ru
   const currentDate = current.deadline ?? "9999-12-31";
   if (candidateDate !== currentDate) return candidateDate < currentDate ? candidate : current;
   return candidate.id < current.id ? candidate : current;
+}
+
+function missingLineIds(lines: readonly ReleaseLine[]): string[] {
+  const majors: number[] = [];
+  const families = new Map<string, number[]>();
+  for (const line of lines) {
+    if (line.id === "*") continue;
+    const major = /^(\d+)\.x$/.exec(line.id);
+    if (major?.[1]) {
+      majors.push(Number(major[1]));
+      continue;
+    }
+    const parts = line.id.split(".");
+    const step = Number(parts[parts.length - 1]);
+    const family = parts.slice(0, -1).join(".");
+    if (!Number.isInteger(step) || family === "") continue;
+    const bucket = families.get(family) ?? [];
+    bucket.push(step);
+    families.set(family, bucket);
+  }
+
+  const missing: string[] = [];
+  const majorsSorted = [...new Set(majors)].sort((left, right) => left - right);
+  for (let index = 1; index < majorsSorted.length; index++) {
+    const previous = majorsSorted[index - 1] ?? 0;
+    const next = majorsSorted[index] ?? previous;
+    for (let number = previous + 1; number < next; number++) missing.push(`${number}.x`);
+  }
+  for (const [family, steps] of families) {
+    const sorted = [...new Set(steps)].sort((left, right) => left - right);
+    for (let index = 1; index < sorted.length; index++) {
+      const previous = sorted[index - 1] ?? 0;
+      const next = sorted[index] ?? previous;
+      for (let number = previous + 1; number < next; number++) missing.push(`${family}.${number}`);
+    }
+  }
+  return missing;
 }
 
 function sortBuilt(lines: readonly BuiltLine[]): BuiltLine[] {
@@ -220,6 +271,37 @@ function recommend(
   return { recommendation: { lineId: latest.id, reason }, reason };
 }
 
+function lineProbe(id: string): string | undefined {
+  const major = /^(\d+)\.x$/.exec(id);
+  if (major?.[1]) return `${major[1]}.0.0`;
+  if (!/^\d+(?:\.\d+)+$/.test(id)) return undefined;
+  const parts = id.split(".");
+  while (parts.length < 3) parts.push("0");
+  return parts.join(".");
+}
+
+function nextProbe(id: string): string | undefined {
+  const major = /^(\d+)\.x$/.exec(id);
+  if (major?.[1]) return `${Number(major[1]) + 1}.0.0`;
+  if (!/^\d+(?:\.\d+)+$/.test(id)) return undefined;
+  const parts = id.split(".").map((part) => Number(part));
+  const last = parts.length - 1;
+  parts[last] = (parts[last] ?? 0) + 1;
+  while (parts.length < 3) parts.push(0);
+  return parts.join(".");
+}
+
+function rangeCoversVersion(ranges: readonly string[], version: string | undefined): boolean {
+  if (version === undefined) return false;
+  return ranges.some((vers) => {
+    try {
+      return versContains(vers, version);
+    } catch {
+      return false;
+    }
+  });
+}
+
 function emptyResult(purl: string | null, asOf: string, note: string): SupportedVersionsResult {
   return {
     purl,
@@ -251,10 +333,25 @@ function evaluate(
   }
 
   const byLine = new Map<string, { rule: RegistryV2Rule; lower: string; scheme: string }>();
+  const below: string[] = [];
+  const above: string[] = [];
+  const residual: string[] = [];
+  const spans: string[] = [];
+  let other = 0;
 
   for (const rule of visible) {
     const bounds = releaseLineFromVers(rule.vers);
-    if (!bounds) continue;
+    if (!bounds) {
+      residual.push(rule.vers);
+      const kind = unboundedKind(rule.vers);
+      if (kind === "below") below.push(rule.id);
+      else if (kind === "above") above.push(rule.id);
+      else {
+        other += 1;
+        spans.push(rule.vers);
+      }
+      continue;
+    }
     const current = byLine.get(bounds.id);
     byLine.set(bounds.id, {
       rule: chooseRule(current?.rule, rule, asOf),
@@ -282,8 +379,47 @@ function evaluate(
     }),
   );
   const lines = built.map((entry) => entry.line);
-  const { recommendation, reason } = recommend(lines, asOf, false);
-  return { purl: selected.purl, asOf, lines, recommendation, reason, complete: false, notes: [] };
+  const hasStar = lines.some((line) => line.id === "*");
+  const missing = hasStar ? [] : missingLineIds(lines);
+  const coveredMissing = missing.filter((id) => rangeCoversVersion(residual, lineProbe(id)));
+  const newest = lines[lines.length - 1];
+  const newerCovered = !hasStar && newest !== undefined && rangeCoversVersion(residual, nextProbe(newest.id));
+  const spanPastNewest = !hasStar && newest !== undefined && rangeCoversVersion(spans, nextProbe(newest.id));
+  const complete = hasStar || (lines.length > 0 && missing.length === 0 && !spanPastNewest);
+
+  const notes: string[] = [];
+  if (lines.length === 0) {
+    notes.push("Ebb has rules for this component, but none of them name a single release line.");
+  }
+  for (const id of missing) {
+    if (coveredMissing.includes(id)) {
+      notes.push(`A rule covers ${id}, but not as its own release line.`);
+    } else {
+      notes.push(`No rule covers ${id}.`);
+    }
+  }
+  if (!hasStar && below.length > 0 && lines.length > 0) {
+    const oldest = lines.find((line) => line.id !== "*")?.id ?? lines[0]?.id;
+    notes.push(
+      `Versions older than ${oldest} are covered by ${below.join(", ")} as one open range, not as separate lines.`,
+    );
+  }
+  if (above.length > 0) {
+    const shown = above.slice(0, 3).join(", ");
+    const extra = above.length > 3 ? ` and ${above.length - 3} more` : "";
+    notes.push(`A rule covers versions upward without closing the release line (${shown}${extra}).`);
+  }
+  if (other > 0) notes.push("Some rules name individual versions or a span, not a single release line.");
+  if (!hasStar && newest) {
+    notes.push(
+      newerCovered
+        ? `A rule covers versions newer than ${newest.id}, but not as its own release line.`
+        : `Ebb has no rule for versions newer than ${newest.id}.`,
+    );
+  }
+
+  const { recommendation, reason } = recommend(lines, asOf, complete);
+  return { purl: selected.purl, asOf, lines, recommendation, reason, complete, notes };
 }
 
 /**
