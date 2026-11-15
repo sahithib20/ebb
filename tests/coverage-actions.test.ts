@@ -306,16 +306,36 @@ test("artifact v1/v2 and v3 keep separate removal deadlines", () => {
   });
 });
 
+test("removed Actions recommend a release that clears the service and runtime rules", () => {
+  for (const [action, retired, supported] of [
+    ["cache", "2.0.0", 5],
+    ["upload-artifact", "1.0.0", 6],
+    ["upload-artifact", "3.0.0", 6],
+    ["download-artifact", "2.0.0", 7],
+    ["download-artifact", "3.0.0", 7],
+  ] as const) {
+    const purl = `pkg:github/actions/${action}`;
+    assert.equal(check(purl, retired).matches[0]?.replacement, `actions/${action}@v${supported} or later`);
+    assert.equal(check(purl, `${supported}.0.0`).status, "ok");
+  }
+});
+
 test("a moving major tag resolves to the exact release on the same commit", () => {
   assert.deepEqual(
     aliasesFor([
+      { name: "v0", sha: "zero" },
+      { name: "v0.1.0", sha: "zero" },
       { name: "v6", sha: "aaa" },
+      { name: "v7.0.0", sha: "aaa" },
       { name: "v6.0.0", sha: "old" },
       { name: "v6.1.0", sha: "old" },
       { name: "v6.2.0", sha: "mid" },
       { name: "v6.5.0", sha: "aaa" },
     ]),
-    [{ major: 6, version: "6.5.0" }],
+    [
+      { major: 0, version: "0.1.0" },
+      { major: 6, version: "6.5.0" },
+    ],
   );
 });
 

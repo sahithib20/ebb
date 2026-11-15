@@ -192,7 +192,7 @@ export const rules: readonly RegistryV2Rule[] = [
     summary:
       "v1 and v2 of the actions/cache service were retired on 2025-03-01. Brownouts ran on 2025-02-04, 2025-02-11, and 2025-02-18. This retirement does not affect GitHub Enterprise Server.",
     severity: "critical",
-    replacement: "actions/cache@v3 or later",
+    replacement: "actions/cache@v5 or later",
     deadline: "2025-03-01",
     sources: [
       {
@@ -205,6 +205,11 @@ export const rules: readonly RegistryV2Rule[] = [
         url: "https://github.blog/changelog/2024-12-05-notice-of-upcoming-releases-and-breaking-changes-for-github-actions/",
         accessedAt: "2026-11-15",
       },
+      {
+        title: "actions/cache v5.0.0 Node.js 24 action manifest",
+        url: "https://github.com/actions/cache/blob/v5.0.0/action.yml",
+        accessedAt: "2026-11-15",
+      },
     ],
     provenance: { observedAt: "2026-11-15", reviewedAt: "2026-11-15", reviewer: "unreviewed", method: "manual" },
     migration: {
@@ -213,8 +218,7 @@ export const rules: readonly RegistryV2Rule[] = [
         {
           id: "upgrade-action-ref",
           title: "Move off the retired cache service",
-          instructions:
-            "Change the uses reference to actions/cache@v3 or a later release. v3 and v4 still run on a retired Node.js runtime; v5 runs on Node.js 24.",
+          instructions: "On GitHub.com, change the uses reference to actions/cache@v5 or a later supported release.",
           targets: "declaration",
         },
       ],
@@ -232,12 +236,17 @@ export const rules: readonly RegistryV2Rule[] = [
     summary:
       "v1 and v2 of actions/upload-artifact were removed on 2024-06-30. This removal does not affect GitHub Enterprise Server. v3 was removed later, on 2025-01-30.",
     severity: "critical",
-    replacement: "actions/upload-artifact@v4 or later",
+    replacement: "actions/upload-artifact@v6 or later",
     deadline: "2024-06-30",
     sources: [
       {
         title: "Deprecation notice: v1 and v2 of the artifact actions",
         url: "https://github.blog/changelog/2024-02-13-deprecation-notice-v1-and-v2-of-the-artifact-actions/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/upload-artifact v6.0.0 Node.js 24 action manifest",
+        url: "https://github.com/actions/upload-artifact/blob/v6.0.0/action.yml",
         accessedAt: "2026-11-15",
       },
     ],
@@ -255,13 +264,13 @@ export const rules: readonly RegistryV2Rule[] = [
           id: "upgrade-action-ref",
           title: "Upgrade upload-artifact",
           instructions:
-            "Change the uses reference to actions/upload-artifact@v4 or a later release. v3 was removed on 2025-01-30, and v4 and v5 still run on Node.js 20.",
+            "On GitHub.com, change the uses reference to actions/upload-artifact@v6 or a later supported release.",
           targets: "declaration",
         },
       ],
       verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
     },
-    "x-github-actions": { action: "actions/upload-artifact", supportedFromMajor: 4 },
+    "x-github-actions": { action: "actions/upload-artifact", supportedFromMajor: 3 },
   },
   {
     id: "github-actions.upload-artifact.retired",
@@ -273,7 +282,7 @@ export const rules: readonly RegistryV2Rule[] = [
     summary:
       "v3 of actions/upload-artifact was removed on 2025-01-30. Brownouts ran on 2025-01-09, 2025-01-16, and 2025-01-23. This removal does not affect GitHub Enterprise Server. v1 and v2 were removed earlier, on 2024-06-30. v4 restores the artifact service and runs on Node.js 20.",
     severity: "critical",
-    replacement: "actions/upload-artifact@v4 or later",
+    replacement: "actions/upload-artifact@v6 or later",
     deadline: "2025-01-30",
     sources: [
       {
@@ -284,6 +293,11 @@ export const rules: readonly RegistryV2Rule[] = [
       {
         title: "Notice of upcoming releases and breaking changes for GitHub Actions",
         url: "https://github.blog/changelog/2024-12-05-notice-of-upcoming-releases-and-breaking-changes-for-github-actions/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/upload-artifact v6.0.0 Node.js 24 action manifest",
+        url: "https://github.com/actions/upload-artifact/blob/v6.0.0/action.yml",
         accessedAt: "2026-11-15",
       },
     ],
@@ -301,7 +315,7 @@ export const rules: readonly RegistryV2Rule[] = [
           id: "upgrade-action-ref",
           title: "Upgrade upload-artifact",
           instructions:
-            "Change the uses reference to actions/upload-artifact@v4 or a later release. v4 and v5 still run on Node.js 20.",
+            "On GitHub.com, change the uses reference to actions/upload-artifact@v6 or a later supported release.",
           targets: "declaration",
         },
         {
@@ -371,12 +385,17 @@ export const rules: readonly RegistryV2Rule[] = [
     summary:
       "v1 and v2 of actions/download-artifact were removed on 2024-06-30. This removal does not affect GitHub Enterprise Server. v3 was removed later, on 2025-01-30.",
     severity: "critical",
-    replacement: "actions/download-artifact@v4 or later",
+    replacement: "actions/download-artifact@v7 or later",
     deadline: "2024-06-30",
     sources: [
       {
         title: "Deprecation notice: v1 and v2 of the artifact actions",
         url: "https://github.blog/changelog/2024-02-13-deprecation-notice-v1-and-v2-of-the-artifact-actions/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/download-artifact v7.0.0 Node.js 24 action manifest",
+        url: "https://github.com/actions/download-artifact/blob/v7.0.0/action.yml",
         accessedAt: "2026-11-15",
       },
     ],
@@ -394,13 +413,13 @@ export const rules: readonly RegistryV2Rule[] = [
           id: "upgrade-action-ref",
           title: "Upgrade download-artifact",
           instructions:
-            "Change the uses reference to actions/download-artifact@v4 or a later release. v3 was removed on 2025-01-30, and v4, v5, and v6 still run on Node.js 20.",
+            "On GitHub.com, change the uses reference to actions/download-artifact@v7 or a later supported release.",
           targets: "declaration",
         },
       ],
       verification: [{ command: "git diff --check", purpose: "Validate the edited workflow diff." }],
     },
-    "x-github-actions": { action: "actions/download-artifact", supportedFromMajor: 4 },
+    "x-github-actions": { action: "actions/download-artifact", supportedFromMajor: 3 },
   },
   {
     id: "github-actions.download-artifact.retired",
@@ -412,7 +431,7 @@ export const rules: readonly RegistryV2Rule[] = [
     summary:
       "v3 of actions/download-artifact was removed on 2025-01-30. Brownouts ran on 2025-01-09, 2025-01-16, and 2025-01-23. This removal does not affect GitHub Enterprise Server. v1 and v2 were removed earlier, on 2024-06-30. v4 restores the artifact service and runs on Node.js 20.",
     severity: "critical",
-    replacement: "actions/download-artifact@v4 or later",
+    replacement: "actions/download-artifact@v7 or later",
     deadline: "2025-01-30",
     sources: [
       {
@@ -423,6 +442,11 @@ export const rules: readonly RegistryV2Rule[] = [
       {
         title: "Notice of upcoming releases and breaking changes for GitHub Actions",
         url: "https://github.blog/changelog/2024-12-05-notice-of-upcoming-releases-and-breaking-changes-for-github-actions/",
+        accessedAt: "2026-11-15",
+      },
+      {
+        title: "actions/download-artifact v7.0.0 Node.js 24 action manifest",
+        url: "https://github.com/actions/download-artifact/blob/v7.0.0/action.yml",
         accessedAt: "2026-11-15",
       },
     ],
@@ -440,7 +464,7 @@ export const rules: readonly RegistryV2Rule[] = [
           id: "upgrade-action-ref",
           title: "Upgrade download-artifact",
           instructions:
-            "Change the uses reference to actions/download-artifact@v4 or a later release. v4, v5, and v6 still run on Node.js 20.",
+            "On GitHub.com, change the uses reference to actions/download-artifact@v7 or a later supported release.",
           targets: "declaration",
         },
         {

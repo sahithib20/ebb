@@ -418,6 +418,7 @@ jobs:
           if-no-files-found: warn
 
   actions-inventory:
+    if: ${{ !inputs.coverage-only }}
     name: actions inventory
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -437,7 +438,9 @@ jobs:
       - name: Refresh the inventory snapshot
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node dist/tools/coverage/refresh-actions-inventory.js
+        run: |
+          node dist/tools/coverage/refresh-actions-inventory.js
+          npm exec --no -- biome format --write tools/coverage/expected/github-actions-inventory.json
       - name: Report gaps and publish the coverage table
         env:
           GH_TOKEN: ${{ github.token }}

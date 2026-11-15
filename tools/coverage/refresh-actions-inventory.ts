@@ -62,9 +62,9 @@ export function aliasesFor(tags: readonly { name: string; sha: string }[]): Inve
   const aliases: InventoryAlias[] = [];
   for (const tag of tags) {
     const major = MAJOR_TAG.exec(tag.name);
-    if (!major || !tag.sha || Number(major[1]) < 1) continue;
+    if (!major || !tag.sha) continue;
     const matches = exact
-      .filter((candidate) => candidate.sha === tag.sha)
+      .filter((candidate) => candidate.sha === tag.sha && EXACT.exec(candidate.name)?.[1] === major[1])
       .map((candidate) => candidate.name.slice(1))
       .sort(compareVersion);
     const version = matches.at(-1);
@@ -148,20 +148,14 @@ async function refreshAction(action: string, notes: string | undefined): Promise
   const files = subpath ? [`${subpath}/action.yml`, `${subpath}/action.yaml`] : ["action.yml", "action.yaml"];
   const names = await tags(repo);
   const aliases = aliasesFor(names);
-  // Integer major tags only (v1, v2, …). Pre-1.0 tags are not majors and are not probed here.
   const majorTags = [
     ...new Set(
-      names
-        .map((tag) => MAJOR_TAG.exec(tag.name)?.[1])
-        .filter((major): major is string => major !== undefined && Number(major) >= 1),
+      names.map((tag) => MAJOR_TAG.exec(tag.name)?.[1]).filter((major): major is string => major !== undefined),
     ),
   ];
   const exact = names
     .map((tag) => tag.name)
-    .filter((name) => {
-      const match = EXACT.exec(name);
-      return match !== null && Number(match[1]) >= 1;
-    })
+    .filter((name) => EXACT.test(name))
     .sort((left, right) => compareVersion(left.slice(1), right.slice(1)));
 
   const majorResults = await mapPool(majorTags, 6, async (major) => {
@@ -172,8 +166,7 @@ async function refreshAction(action: string, notes: string | undefined): Promise
     .filter((entry): entry is InventoryMajor => entry !== undefined)
     .sort((a, b) => a.major - b.major);
 
-  // Only record exact releases inside majors that already have a major tag, and only when
-  // runs.using is not uniform across that major (e.g. setup-go 6.0.0 vs 6.2.0).
+  // Record release boundaries where runs.using changes inside a major (e.g. setup-go 6.0.0 vs 6.2.0).
   const exactResults = await mapPool(exact, 6, async (tag) => {
     const found = await usingAt(repo, tag, files);
     return found ? { version: tag.slice(1), using: found.using, file: found.file } : undefined;
