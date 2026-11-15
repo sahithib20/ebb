@@ -307,7 +307,10 @@ export function assessRuntime(expected: ExpectedRuntime, rules: readonly Registr
 }
 
 export async function loadExpectedRuntimes(dir = EXPECTED_DIR): Promise<ExpectedRuntime[]> {
-  const names = (await readdir(dir)).filter((name) => name.endsWith(".json")).sort();
+  // Official Actions scope and inventory live in this directory and are read by tools/coverage/actions.ts.
+  const names = (await readdir(dir))
+    .filter((name) => name.endsWith(".json") && !name.startsWith("github-actions"))
+    .sort();
   const out: ExpectedRuntime[] = [];
   for (const name of names) {
     const value = JSON.parse(await readFile(join(dir, name), "utf8")) as ExpectedRuntime;

@@ -1,0 +1,449 @@
+{
+  "cases": [
+    {
+      "purl": "pkg:generic/github-actions/add-path",
+      "version": "1.0.0",
+      "rules": ["github-actions.workflow-command.add-path"]
+    },
+    {
+      "purl": "pkg:generic/github-actions/save-state",
+      "version": "1.0.0",
+      "rules": ["github-actions.workflow-command.save-state"]
+    },
+    {
+      "purl": "pkg:generic/github-actions/set-env",
+      "version": "1.0.0",
+      "rules": ["github-actions.workflow-command.set-env"]
+    },
+    {
+      "purl": "pkg:generic/github-actions/set-output",
+      "version": "1.0.0",
+      "rules": ["github-actions.workflow-command.set-output"]
+    },
+    {
+      "purl": "pkg:github/actions/ai-inference",
+      "version": "1.0.0",
+      "rules": ["github-actions.ai-inference.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/ai-inference",
+      "version": "2.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/attest",
+      "version": "1.0.0",
+      "rules": ["github-actions.attest.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/attest",
+      "version": "3.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/cache",
+      "version": "1.0.0",
+      "rules": ["github-actions.cache.service-v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/cache",
+      "version": "2.0.0",
+      "rules": ["github-actions.cache.service-v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/cache",
+      "version": "4.0.0",
+      "rules": ["github-actions.cache.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/cache",
+      "version": "5.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/checkout",
+      "version": "1.0.0",
+      "rules": ["github-actions.checkout.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/checkout",
+      "version": "5.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/configure-pages",
+      "version": "1.0.0",
+      "rules": ["github-actions.configure-pages.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/configure-pages",
+      "version": "6.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/create-github-app-token",
+      "version": "1.0.0",
+      "rules": ["github-actions.create-github-app-token.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/create-github-app-token",
+      "version": "3.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/delete-package-versions",
+      "version": "1.0.0",
+      "rules": ["github-actions.delete-package-versions.node12"]
+    },
+    {
+      "purl": "pkg:github/actions/delete-package-versions",
+      "version": "3.0.0",
+      "rules": ["github-actions.delete-package-versions.node16"]
+    },
+    {
+      "purl": "pkg:github/actions/delete-package-versions",
+      "version": "5.0.0",
+      "rules": ["github-actions.delete-package-versions.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/delete-package-versions",
+      "version": "6.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/dependency-review-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.dependency-review-action.node16"]
+    },
+    {
+      "purl": "pkg:github/actions/dependency-review-action",
+      "version": "4.0.0",
+      "rules": ["github-actions.dependency-review-action.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/dependency-review-action",
+      "version": "5.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/deploy-pages",
+      "version": "1.0.0",
+      "rules": ["github-actions.deploy-pages.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/deploy-pages",
+      "version": "5.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
+      "version": "1.0.0",
+      "rules": ["github-actions.download-artifact.v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
+      "version": "2.0.0",
+      "rules": ["github-actions.download-artifact.v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
+      "version": "3.0.0",
+      "rules": ["github-actions.download-artifact.retired"]
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
+      "version": "4.0.0",
+      "rules": ["github-actions.download-artifact.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
+      "version": "6.0.0",
+      "rules": ["github-actions.download-artifact.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/download-artifact",
+      "version": "7.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/first-interaction",
+      "version": "1.0.0",
+      "rules": ["github-actions.first-interaction.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/first-interaction",
+      "version": "3.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/github-script",
+      "version": "1.0.0",
+      "rules": ["github-actions.github-script.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/github-script",
+      "version": "8.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/go-dependency-submission",
+      "version": "1.0.0",
+      "rules": ["github-actions.go-dependency-submission.node16"]
+    },
+    {
+      "purl": "pkg:github/actions/go-dependency-submission",
+      "version": "2.0.0",
+      "rules": ["github-actions.go-dependency-submission.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/go-dependency-submission",
+      "version": "3.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/labeler",
+      "version": "1.0.0",
+      "rules": ["github-actions.labeler.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/labeler",
+      "version": "6.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/setup-dotnet",
+      "version": "1.0.0",
+      "rules": ["github-actions.setup-dotnet.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/setup-dotnet",
+      "version": "5.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/setup-go",
+      "version": "1.0.0",
+      "rules": ["github-actions.setup-go.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/setup-go",
+      "version": "6.0.0",
+      "rules": ["github-actions.setup-go.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/setup-go",
+      "version": "6.1.0",
+      "rules": ["github-actions.setup-go.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/setup-go",
+      "version": "6.2.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/setup-go",
+      "version": "7.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/setup-java",
+      "version": "1.0.0",
+      "rules": ["github-actions.setup-java.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/setup-java",
+      "version": "5.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/setup-node",
+      "version": "1.0.0",
+      "rules": ["github-actions.setup-node.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/setup-node",
+      "version": "5.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/setup-python",
+      "version": "1.0.0",
+      "rules": ["github-actions.setup-python.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/setup-python",
+      "version": "6.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/stale",
+      "version": "1.0.0",
+      "rules": ["github-actions.stale.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/stale",
+      "version": "10.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
+      "version": "1.0.0",
+      "rules": ["github-actions.upload-artifact.v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
+      "version": "2.0.0",
+      "rules": ["github-actions.upload-artifact.v1-v2"]
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
+      "version": "3.0.0",
+      "rules": ["github-actions.upload-artifact.retired"]
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
+      "version": "4.0.0",
+      "rules": ["github-actions.upload-artifact.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
+      "version": "5.0.0",
+      "rules": ["github-actions.upload-artifact.node20"]
+    },
+    {
+      "purl": "pkg:github/actions/upload-artifact",
+      "version": "6.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/astral-sh/setup-uv",
+      "version": "1.0.0",
+      "rules": ["github-actions.setup-uv.node20"]
+    },
+    {
+      "purl": "pkg:github/astral-sh/setup-uv",
+      "version": "7.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/docker/bake-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.bake-action.node20"]
+    },
+    {
+      "purl": "pkg:github/docker/bake-action",
+      "version": "7.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/docker/build-push-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.build-push-action.node20"]
+    },
+    {
+      "purl": "pkg:github/docker/build-push-action",
+      "version": "7.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/docker/login-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.login-action.node20"]
+    },
+    {
+      "purl": "pkg:github/docker/login-action",
+      "version": "4.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/docker/metadata-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.metadata-action.node20"]
+    },
+    {
+      "purl": "pkg:github/docker/metadata-action",
+      "version": "6.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/docker/setup-buildx-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.setup-buildx-action.node20"]
+    },
+    {
+      "purl": "pkg:github/docker/setup-buildx-action",
+      "version": "4.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/docker/setup-qemu-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.setup-qemu-action.node20"]
+    },
+    {
+      "purl": "pkg:github/docker/setup-qemu-action",
+      "version": "4.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/github/codeql-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.codeql-action.node12"]
+    },
+    {
+      "purl": "pkg:github/github/codeql-action",
+      "version": "2.0.0",
+      "rules": ["github-actions.codeql-action.node16"]
+    },
+    {
+      "purl": "pkg:github/github/codeql-action",
+      "version": "3.0.0",
+      "rules": ["github-actions.codeql-action.node20"]
+    },
+    {
+      "purl": "pkg:github/github/codeql-action",
+      "version": "4.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/hashicorp/setup-terraform",
+      "version": "1.0.0",
+      "rules": ["github-actions.setup-terraform.node20"]
+    },
+    {
+      "purl": "pkg:github/hashicorp/setup-terraform",
+      "version": "4.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/softprops/action-gh-release",
+      "version": "1.0.0",
+      "rules": ["github-actions.action-gh-release.node20"]
+    },
+    {
+      "purl": "pkg:github/softprops/action-gh-release",
+      "version": "3.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/hello-world-javascript-action",
+      "version": "1.0.0",
+      "rules": ["github-actions.hello-world-javascript-action.node12"]
+    },
+    {
+      "purl": "pkg:github/actions/hello-world-javascript-action",
+      "version": "2.0.0",
+      "rules": []
+    },
+    {
+      "purl": "pkg:github/actions/javascript-action",
+      "version": "1.0.1",
+      "rules": ["github-actions.javascript-action.node12"]
+    },
+    {
+      "purl": "pkg:github/actions/javascript-action",
+      "version": "2.0.0",
+      "rules": []
+    }
+  ]
+}

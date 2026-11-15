@@ -138,10 +138,10 @@
       "id": "github-actions.cache.node20",
       "ecosystem": "github-actions",
       "purl": "pkg:github/actions/cache",
-      "vers": "vers:semver/<5.0.0",
+      "vers": "vers:semver/>=3.0.0|<5.0.0",
       "event": "end-of-support",
       "title": "Unsupported actions/cache runtime",
-      "summary": "This release uses a retired JavaScript runtime or cache service. Version 5 moved the action to Node.js 24.",
+      "summary": "v3 sets runs.using to node16 and v4 sets it to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v5 sets runs.using to node24.",
       "severity": "high",
       "replacement": "actions/cache@v5 or later",
       "deadline": "2026-09-23",
@@ -149,24 +149,30 @@
         {
           "title": "Node 20 is no longer available in GitHub Actions",
           "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-          "accessedAt": "2026-10-16",
-          "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-          "archivedAt": "2026-10-16"
+          "accessedAt": "2026-11-15"
         },
         {
-          "title": "actions/cache runtime and service guidance",
-          "url": "https://github.com/actions/cache#whats-new",
-          "accessedAt": "2026-10-16",
-          "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.com/actions/cache#whats-new",
-          "archivedAt": "2026-10-16"
+          "title": "actions/cache v3 action.yml",
+          "url": "https://github.com/actions/cache/blob/v3/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/cache v4 action.yml",
+          "url": "https://github.com/actions/cache/blob/v4/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/cache v5 action.yml",
+          "url": "https://github.com/actions/cache/blob/v5/action.yml",
+          "accessedAt": "2026-11-15"
         }
       ],
       "provenance": {
         "observedAt": "2026-10-13",
-        "reviewedAt": "2026-10-14",
-        "reviewer": "arminazimi",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
         "reviewers": [
-          "arminazimi"
+          "unreviewed"
         ],
         "method": "manual"
       },
@@ -201,38 +207,92 @@
       }
     },
     {
-      "id": "github-actions.upload-artifact.retired",
+      "id": "github-actions.cache.service-v1-v2",
       "ecosystem": "github-actions",
-      "purl": "pkg:github/actions/upload-artifact",
-      "vers": "vers:semver/<7.0.0",
+      "purl": "pkg:github/actions/cache",
+      "vers": "vers:semver/<3.0.0",
       "event": "removed",
-      "title": "Retired actions/upload-artifact release",
-      "summary": "This release uses a retired artifact service or JavaScript runtime. Version 7 runs on Node.js 24.",
+      "title": "Retired actions/cache service",
+      "summary": "v1 and v2 of the actions/cache service were retired on 2025-03-01. Brownouts ran on 2025-02-04, 2025-02-11, and 2025-02-18. This retirement does not affect GitHub Enterprise Server.",
       "severity": "critical",
-      "replacement": "actions/upload-artifact@v7 or later",
-      "deadline": "2026-09-23",
+      "replacement": "actions/cache@v5 or later",
+      "deadline": "2025-03-01",
       "sources": [
         {
-          "title": "Node 20 is no longer available in GitHub Actions",
-          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-          "accessedAt": "2026-10-16",
-          "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-          "archivedAt": "2026-10-16"
+          "title": "Notice of upcoming deprecations and changes in GitHub Actions services",
+          "url": "https://github.blog/changelog/2024-09-16-notice-of-upcoming-deprecations-and-changes-in-github-actions-services/",
+          "accessedAt": "2026-11-15"
         },
         {
-          "title": "Deprecation notice for artifact actions v3",
-          "url": "https://github.blog/changelog/2024-04-16-deprecation-notice-v3-of-the-artifact-actions/",
-          "accessedAt": "2026-10-16",
-          "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.blog/changelog/2024-04-16-deprecation-notice-v3-of-the-artifact-actions/",
-          "archivedAt": "2026-10-16"
+          "title": "Notice of upcoming releases and breaking changes for GitHub Actions",
+          "url": "https://github.blog/changelog/2024-12-05-notice-of-upcoming-releases-and-breaking-changes-for-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/cache v5.0.0 Node.js 24 action manifest",
+          "url": "https://github.com/actions/cache/blob/v5.0.0/action.yml",
+          "accessedAt": "2026-11-15"
         }
       ],
       "provenance": {
-        "observedAt": "2026-10-13",
-        "reviewedAt": "2026-10-14",
-        "reviewer": "arminazimi",
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Preserve cache keys, restore-key ordering, paths, and cache-hit dependent control flow."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Move off the retired cache service",
+            "instructions": "On GitHub.com, change the uses reference to actions/cache@v5 or a later supported release.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/cache",
+        "supportedFromMajor": 3
+      }
+    },
+    {
+      "id": "github-actions.upload-artifact.v1-v2",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/upload-artifact",
+      "vers": "vers:semver/<3.0.0",
+      "event": "removed",
+      "title": "Removed actions/upload-artifact v1 and v2",
+      "summary": "v1 and v2 of actions/upload-artifact were removed on 2024-06-30. This removal does not affect GitHub Enterprise Server. v3 was removed later, on 2025-01-30.",
+      "severity": "critical",
+      "replacement": "actions/upload-artifact@v6 or later",
+      "deadline": "2024-06-30",
+      "sources": [
+        {
+          "title": "Deprecation notice: v1 and v2 of the artifact actions",
+          "url": "https://github.blog/changelog/2024-02-13-deprecation-notice-v1-and-v2-of-the-artifact-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/upload-artifact v6.0.0 Node.js 24 action manifest",
+          "url": "https://github.com/actions/upload-artifact/blob/v6.0.0/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
         "reviewers": [
-          "arminazimi"
+          "unreviewed"
         ],
         "method": "manual"
       },
@@ -244,7 +304,68 @@
           {
             "id": "upgrade-action-ref",
             "title": "Upgrade upload-artifact",
-            "instructions": "Change the uses reference to actions/upload-artifact@v7 or a later supported major.",
+            "instructions": "On GitHub.com, change the uses reference to actions/upload-artifact@v6 or a later supported release.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/upload-artifact",
+        "supportedFromMajor": 3
+      }
+    },
+    {
+      "id": "github-actions.upload-artifact.retired",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/upload-artifact",
+      "vers": "vers:semver/>=3.0.0|<4.0.0",
+      "event": "removed",
+      "title": "Retired actions/upload-artifact release",
+      "summary": "v3 of actions/upload-artifact was removed on 2025-01-30. Brownouts ran on 2025-01-09, 2025-01-16, and 2025-01-23. This removal does not affect GitHub Enterprise Server. v1 and v2 were removed earlier, on 2024-06-30. v4 restores the artifact service and runs on Node.js 20.",
+      "severity": "critical",
+      "replacement": "actions/upload-artifact@v6 or later",
+      "deadline": "2025-01-30",
+      "sources": [
+        {
+          "title": "Deprecation notice: v3 of the artifact actions",
+          "url": "https://github.blog/changelog/2024-04-16-deprecation-notice-v3-of-the-artifact-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "Notice of upcoming releases and breaking changes for GitHub Actions",
+          "url": "https://github.blog/changelog/2024-12-05-notice-of-upcoming-releases-and-breaking-changes-for-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/upload-artifact v6.0.0 Node.js 24 action manifest",
+          "url": "https://github.com/actions/upload-artifact/blob/v6.0.0/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-10-13",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "reviewers": [
+          "unreviewed"
+        ],
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Preserve artifact names, selected paths, retention settings, and overwrite behavior."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade upload-artifact",
+            "instructions": "On GitHub.com, change the uses reference to actions/upload-artifact@v6 or a later supported release.",
             "targets": "declaration"
           },
           {
@@ -263,42 +384,96 @@
       },
       "x-github-actions": {
         "action": "actions/upload-artifact",
-        "supportedFromMajor": 7
+        "supportedFromMajor": 4
       }
     },
     {
-      "id": "github-actions.download-artifact.retired",
+      "id": "github-actions.upload-artifact.node20",
       "ecosystem": "github-actions",
-      "purl": "pkg:github/actions/download-artifact",
-      "vers": "vers:semver/<7.0.0",
-      "event": "removed",
-      "title": "Retired actions/download-artifact release",
-      "summary": "This release uses a retired artifact service or JavaScript runtime. Version 7 runs on Node.js 24.",
-      "severity": "critical",
-      "replacement": "actions/download-artifact@v7 or later",
+      "purl": "pkg:github/actions/upload-artifact",
+      "vers": "vers:semver/>=4.0.0|<6.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/upload-artifact runtime",
+      "summary": "v4 and v5 set runs.using to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v6 sets runs.using to node24.",
+      "severity": "high",
+      "replacement": "actions/upload-artifact@v6 or later",
       "deadline": "2026-09-23",
       "sources": [
         {
           "title": "Node 20 is no longer available in GitHub Actions",
           "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-          "accessedAt": "2026-10-16",
-          "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-          "archivedAt": "2026-10-16"
+          "accessedAt": "2026-11-15"
         },
         {
-          "title": "Deprecation notice for artifact actions v3",
-          "url": "https://github.blog/changelog/2024-04-16-deprecation-notice-v3-of-the-artifact-actions/",
-          "accessedAt": "2026-10-16",
-          "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.blog/changelog/2024-04-16-deprecation-notice-v3-of-the-artifact-actions/",
-          "archivedAt": "2026-10-16"
+          "title": "actions/upload-artifact v5 action.yml",
+          "url": "https://github.com/actions/upload-artifact/blob/v5/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/upload-artifact v6 action.yml",
+          "url": "https://github.com/actions/upload-artifact/blob/v6/action.yml",
+          "accessedAt": "2026-11-15"
         }
       ],
       "provenance": {
-        "observedAt": "2026-10-13",
-        "reviewedAt": "2026-10-14",
-        "reviewer": "arminazimi",
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Preserve artifact names, selected paths, retention settings, and overwrite behavior."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade upload-artifact",
+            "instructions": "Change the uses reference to actions/upload-artifact@v6 or a later release. v4 and v5 still run on Node.js 20.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/upload-artifact",
+        "supportedFromMajor": 6
+      }
+    },
+    {
+      "id": "github-actions.download-artifact.v1-v2",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/download-artifact",
+      "vers": "vers:semver/<3.0.0",
+      "event": "removed",
+      "title": "Removed actions/download-artifact v1 and v2",
+      "summary": "v1 and v2 of actions/download-artifact were removed on 2024-06-30. This removal does not affect GitHub Enterprise Server. v3 was removed later, on 2025-01-30.",
+      "severity": "critical",
+      "replacement": "actions/download-artifact@v7 or later",
+      "deadline": "2024-06-30",
+      "sources": [
+        {
+          "title": "Deprecation notice: v1 and v2 of the artifact actions",
+          "url": "https://github.blog/changelog/2024-02-13-deprecation-notice-v1-and-v2-of-the-artifact-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/download-artifact v7.0.0 Node.js 24 action manifest",
+          "url": "https://github.com/actions/download-artifact/blob/v7.0.0/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
         "reviewers": [
-          "arminazimi"
+          "unreviewed"
         ],
         "method": "manual"
       },
@@ -310,13 +485,132 @@
           {
             "id": "upgrade-action-ref",
             "title": "Upgrade download-artifact",
-            "instructions": "Change the uses reference to actions/download-artifact@v7 or a later supported major.",
+            "instructions": "On GitHub.com, change the uses reference to actions/download-artifact@v7 or a later supported release.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/download-artifact",
+        "supportedFromMajor": 3
+      }
+    },
+    {
+      "id": "github-actions.download-artifact.retired",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/download-artifact",
+      "vers": "vers:semver/>=3.0.0|<4.0.0",
+      "event": "removed",
+      "title": "Retired actions/download-artifact release",
+      "summary": "v3 of actions/download-artifact was removed on 2025-01-30. Brownouts ran on 2025-01-09, 2025-01-16, and 2025-01-23. This removal does not affect GitHub Enterprise Server. v1 and v2 were removed earlier, on 2024-06-30. v4 restores the artifact service and runs on Node.js 20.",
+      "severity": "critical",
+      "replacement": "actions/download-artifact@v7 or later",
+      "deadline": "2025-01-30",
+      "sources": [
+        {
+          "title": "Deprecation notice: v3 of the artifact actions",
+          "url": "https://github.blog/changelog/2024-04-16-deprecation-notice-v3-of-the-artifact-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "Notice of upcoming releases and breaking changes for GitHub Actions",
+          "url": "https://github.blog/changelog/2024-12-05-notice-of-upcoming-releases-and-breaking-changes-for-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/download-artifact v7.0.0 Node.js 24 action manifest",
+          "url": "https://github.com/actions/download-artifact/blob/v7.0.0/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-10-13",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "reviewers": [
+          "unreviewed"
+        ],
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Preserve artifact selection, download paths, merge behavior, and downstream file locations."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade download-artifact",
+            "instructions": "On GitHub.com, change the uses reference to actions/download-artifact@v7 or a later supported release.",
             "targets": "declaration"
           },
           {
             "id": "review-artifact-layout",
             "title": "Review downloaded layout",
             "instructions": "Confirm artifact filters, paths, merge-multiple behavior, and downstream consumers against the target release.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/download-artifact",
+        "supportedFromMajor": 4
+      }
+    },
+    {
+      "id": "github-actions.download-artifact.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/download-artifact",
+      "vers": "vers:semver/>=4.0.0|<7.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/download-artifact runtime",
+      "summary": "v4, v5, and v6 set runs.using to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v7 sets runs.using to node24.",
+      "severity": "high",
+      "replacement": "actions/download-artifact@v7 or later",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/download-artifact v6 action.yml",
+          "url": "https://github.com/actions/download-artifact/blob/v6/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/download-artifact v7 action.yml",
+          "url": "https://github.com/actions/download-artifact/blob/v7/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Preserve artifact selection, download paths, merge behavior, and downstream file locations."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade download-artifact",
+            "instructions": "Change the uses reference to actions/download-artifact@v7 or a later release. v4, v5, and v6 still run on Node.js 20.",
             "targets": "declaration"
           }
         ],
@@ -402,35 +696,35 @@
       "id": "github-actions.setup-go.node20",
       "ecosystem": "github-actions",
       "purl": "pkg:github/actions/setup-go",
-      "vers": "vers:semver/<6.0.0",
+      "vers": "vers:semver/<6.2.0",
       "event": "end-of-support",
       "title": "Unsupported actions/setup-go runtime",
       "summary": "This release predates the action's Node.js 24 runtime. GitHub no longer provides Node.js 20 on Actions runners. Version 6.0.0 and 6.1.0 still declare node20; version 6.2.0 and later declare node24.",
       "severity": "high",
-      "replacement": "actions/setup-go@v6 or later",
+      "replacement": "actions/setup-go@v6.2.0 or later",
       "deadline": "2026-09-23",
       "sources": [
         {
           "title": "Node 20 is no longer available in GitHub Actions",
           "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-          "accessedAt": "2026-10-16",
+          "accessedAt": "2026-11-15",
           "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
           "archivedAt": "2026-10-16"
         },
         {
           "title": "actions/setup-go v6.2.0 release notes (action.yml moves to node24)",
           "url": "https://github.com/actions/setup-go/releases/tag/v6.2.0",
-          "accessedAt": "2026-10-16",
-          "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.com/actions/setup-go/releases/tag/v6.2.0",
-          "archivedAt": "2026-10-16"
+          "accessedAt": "2026-11-15",
+          "archiveUrl": "https://web.archive.org/web/20261115000000/https://github.com/actions/setup-go/releases/tag/v6.2.0",
+          "archivedAt": "2026-11-15"
         }
       ],
       "provenance": {
-        "observedAt": "2026-10-16",
-        "reviewedAt": "2026-10-16",
-        "reviewer": "claude-agent",
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
         "reviewers": [
-          "claude-agent"
+          "unreviewed"
         ],
         "method": "manual"
       },
@@ -442,7 +736,7 @@
           {
             "id": "upgrade-action-ref",
             "title": "Upgrade setup-go",
-            "instructions": "Change the uses reference to actions/setup-go@v6 or a later supported major.",
+            "instructions": "Change the uses reference to actions/setup-go@v6.2.0 or a later supported release. Versions 6.0.0 and 6.1.0 still run on node20.",
             "targets": "declaration"
           },
           {
@@ -801,7 +1095,7 @@
       "vers": "vers:semver/<6.0.0",
       "event": "end-of-support",
       "title": "Unsupported actions/configure-pages runtime",
-      "summary": "This release predates the action's Node.js 24 runtime. GitHub no longer provides Node.js 20 on Actions runners.",
+      "summary": "This release predates the action's Node.js 24 runtime. GitHub no longer provides Node.js 20 on Actions runners. On GitHub.com, custom Pages workflows must use actions/upload-pages-artifact@v3 and actions/deploy-pages@v4 from 2025-01-30. That requirement does not affect GitHub Enterprise Server.",
       "severity": "high",
       "replacement": "actions/configure-pages@v6 or later",
       "deadline": "2026-09-23",
@@ -809,24 +1103,29 @@
         {
           "title": "Node 20 is no longer available in GitHub Actions",
           "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-          "accessedAt": "2026-10-16",
+          "accessedAt": "2026-11-15",
           "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
           "archivedAt": "2026-10-16"
         },
         {
           "title": "actions/configure-pages v6.0.0 release notes",
           "url": "https://github.com/actions/configure-pages/releases/tag/v6.0.0",
-          "accessedAt": "2026-10-16",
+          "accessedAt": "2026-11-15",
           "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.com/actions/configure-pages/releases/tag/v6.0.0",
           "archivedAt": "2026-10-16"
+        },
+        {
+          "title": "Deprecation notice: GitHub Pages actions to require artifacts actions v4 on GitHub.com",
+          "url": "https://github.blog/changelog/2024-12-05-deprecation-notice-github-pages-actions-to-require-artifacts-actions-v4-on-github-com/",
+          "accessedAt": "2026-11-15"
         }
       ],
       "provenance": {
         "observedAt": "2026-10-16",
-        "reviewedAt": "2026-10-16",
-        "reviewer": "claude-agent",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
         "reviewers": [
-          "claude-agent"
+          "unreviewed"
         ],
         "method": "manual"
       },
@@ -867,7 +1166,7 @@
       "vers": "vers:semver/<5.0.0",
       "event": "end-of-support",
       "title": "Unsupported actions/deploy-pages runtime",
-      "summary": "This release predates the action's Node.js 24 runtime. GitHub no longer provides Node.js 20 on Actions runners.",
+      "summary": "This release predates the action's Node.js 24 runtime. GitHub no longer provides Node.js 20 on Actions runners. On GitHub.com, custom Pages workflows must use actions/upload-pages-artifact@v3 and actions/deploy-pages@v4 from 2025-01-30. That requirement does not affect GitHub Enterprise Server.",
       "severity": "high",
       "replacement": "actions/deploy-pages@v5 or later",
       "deadline": "2026-09-23",
@@ -875,24 +1174,29 @@
         {
           "title": "Node 20 is no longer available in GitHub Actions",
           "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
-          "accessedAt": "2026-10-16",
+          "accessedAt": "2026-11-15",
           "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
           "archivedAt": "2026-10-16"
         },
         {
           "title": "actions/deploy-pages v5.0.0 release notes",
           "url": "https://github.com/actions/deploy-pages/releases/tag/v5.0.0",
-          "accessedAt": "2026-10-16",
+          "accessedAt": "2026-11-15",
           "archiveUrl": "https://web.archive.org/web/20261016000000/https://github.com/actions/deploy-pages/releases/tag/v5.0.0",
           "archivedAt": "2026-10-16"
+        },
+        {
+          "title": "Deprecation notice: GitHub Pages actions to require artifacts actions v4 on GitHub.com",
+          "url": "https://github.blog/changelog/2024-12-05-deprecation-notice-github-pages-actions-to-require-artifacts-actions-v4-on-github-com/",
+          "accessedAt": "2026-11-15"
         }
       ],
       "provenance": {
         "observedAt": "2026-10-16",
-        "reviewedAt": "2026-10-16",
-        "reviewer": "claude-agent",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
         "reviewers": [
-          "claude-agent"
+          "unreviewed"
         ],
         "method": "manual"
       },
@@ -1056,6 +1360,756 @@
       "x-github-actions": {
         "action": "actions/first-interaction",
         "supportedFromMajor": 3
+      }
+    },
+    {
+      "id": "github-actions.ai-inference.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/ai-inference",
+      "vers": "vers:semver/<2.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/ai-inference runtime",
+      "summary": "v1, and the 0.x tags, set runs.using to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v2 sets runs.using to node24.",
+      "severity": "high",
+      "replacement": "actions/ai-inference@v2 or later",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/ai-inference v1 action.yml",
+          "url": "https://github.com/actions/ai-inference/blob/v1/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/ai-inference v2 action.yml",
+          "url": "https://github.com/actions/ai-inference/blob/v2/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Keep prompt, model, and token. v2's action.yml adds temperature, top-p, and max-completion-tokens, which v1 does not declare. v3's action.yml drops endpoint, max-tokens, temperature, and top-p."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade ai-inference",
+            "instructions": "Change the uses reference to actions/ai-inference@v2 or a later major whose action.yml sets runs.using to node24.",
+            "targets": "declaration"
+          },
+          {
+            "id": "review-inference-inputs",
+            "title": "Review inference inputs",
+            "instructions": "Compare prompt, model, token, and sampling inputs with the target major's action.yml before moving past v2.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/ai-inference",
+        "supportedFromMajor": 2
+      }
+    },
+    {
+      "id": "github-actions.attest.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/attest",
+      "vers": "vers:semver/<3.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/attest runtime",
+      "summary": "v1 and v2 set runs.using to node20, as do the v0.1 tags. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v3 sets runs.using to node24.",
+      "severity": "high",
+      "replacement": "actions/attest@v3 or later",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/attest v2 action.yml",
+          "url": "https://github.com/actions/attest/blob/v2/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/attest v3 action.yml",
+          "url": "https://github.com/actions/attest/blob/v3/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Keep subject-path or subject-digest, predicate-type, and predicate. v2's action.yml adds subject-checksums, attestation-id, and attestation-url. v3 keeps those inputs and sets runs.using to node24."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade attest",
+            "instructions": "Change the uses reference to actions/attest@v3 or a later major.",
+            "targets": "declaration"
+          },
+          {
+            "id": "review-attestation-inputs",
+            "title": "Review attestation inputs",
+            "instructions": "Confirm subject, predicate, and bundle outputs against the v3 action.yml. v1 does not declare subject-checksums, attestation-id, or attestation-url.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/attest",
+        "supportedFromMajor": 3
+      }
+    },
+    {
+      "id": "github-actions.delete-package-versions.node12",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/delete-package-versions",
+      "vers": "vers:semver/<3.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/delete-package-versions runtime",
+      "summary": "v1 and v2 set runs.using to node12. GitHub removed Node.js 12 from Actions runners on 2023-08-14.",
+      "severity": "high",
+      "replacement": "No supported major of actions/delete-package-versions is published",
+      "deadline": "2023-08-14",
+      "sources": [
+        {
+          "title": "Removal of Node12 from the Actions runner",
+          "url": "https://github.blog/changelog/2023-07-16-github-actions-removal-of-node12-from-the-actions-runner/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/delete-package-versions v2 action.yml",
+          "url": "https://github.com/actions/delete-package-versions/blob/v2/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "No published major sets runs.using to node24. v5 and the default branch both set it to node20."
+        ],
+        "steps": [
+          {
+            "id": "stop-using-retired-majors",
+            "title": "Stop pinning a retired major",
+            "instructions": "Do not move to v5. Keep package-name, package-type, token, and the version-selection inputs until a release sets runs.using to node24.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/delete-package-versions"
+      }
+    },
+    {
+      "id": "github-actions.delete-package-versions.node16",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/delete-package-versions",
+      "vers": "vers:semver/>=3.0.0|<5.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/delete-package-versions runtime",
+      "summary": "v3 and v4 set runs.using to node16. GitHub removed Node.js 16 from Actions runners on 2024-11-12.",
+      "severity": "high",
+      "replacement": "No supported major of actions/delete-package-versions is published",
+      "deadline": "2024-11-12",
+      "sources": [
+        {
+          "title": "End of life for Actions Node16",
+          "url": "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/delete-package-versions v4 action.yml",
+          "url": "https://github.com/actions/delete-package-versions/blob/v4/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "No published major sets runs.using to node24. v5 and the default branch both set it to node20."
+        ],
+        "steps": [
+          {
+            "id": "stop-using-retired-majors",
+            "title": "Stop pinning a retired major",
+            "instructions": "Do not move to v5. Keep package-name, package-type, token, and the version-selection inputs until a release sets runs.using to node24.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/delete-package-versions"
+      }
+    },
+    {
+      "id": "github-actions.delete-package-versions.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/delete-package-versions",
+      "vers": "vers:semver/>=5.0.0|<6.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/delete-package-versions runtime",
+      "summary": "v5 sets runs.using to node20, and the default branch still does. GitHub removed Node.js 20 from Actions runners on 2026-09-23. No later major is published.",
+      "severity": "high",
+      "replacement": "No supported major of actions/delete-package-versions is published",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/delete-package-versions v5 action.yml",
+          "url": "https://github.com/actions/delete-package-versions/blob/v5/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/delete-package-versions main action.yml",
+          "url": "https://github.com/actions/delete-package-versions/blob/main/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "No published major sets runs.using to node24. v5 and the default branch both set it to node20."
+        ],
+        "steps": [
+          {
+            "id": "stop-using-retired-majors",
+            "title": "Stop pinning a retired major",
+            "instructions": "Do not move to v5. Keep package-name, package-type, token, and the version-selection inputs until a release sets runs.using to node24.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/delete-package-versions"
+      }
+    },
+    {
+      "id": "github-actions.dependency-review-action.node16",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/dependency-review-action",
+      "vers": "vers:semver/<4.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/dependency-review-action runtime",
+      "summary": "v1, v2, and v3 set runs.using to node16. GitHub removed Node.js 16 from Actions runners on 2024-11-12. v5 sets runs.using to node24.",
+      "severity": "high",
+      "replacement": "actions/dependency-review-action@v5 or later",
+      "deadline": "2024-11-12",
+      "sources": [
+        {
+          "title": "End of life for Actions Node16",
+          "url": "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/dependency-review-action v3 action.yml",
+          "url": "https://github.com/actions/dependency-review-action/blob/v3/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/dependency-review-action v5 action.yml",
+          "url": "https://github.com/actions/dependency-review-action/blob/v5/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Keep fail-on-severity, the license and package lists, and repo-token. The v4 and v5 action.yml files declare the same input names; v5 sets runs.using to node24."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade dependency-review-action",
+            "instructions": "Change the uses reference to actions/dependency-review-action@v5 or a later major. v4 still sets runs.using to node20.",
+            "targets": "declaration"
+          },
+          {
+            "id": "review-dependency-policy",
+            "title": "Review dependency policy inputs",
+            "instructions": "Keep fail-on-severity, license allow and deny lists, and deny-packages aligned with the v5 action.yml.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/dependency-review-action",
+        "supportedFromMajor": 5
+      }
+    },
+    {
+      "id": "github-actions.dependency-review-action.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/dependency-review-action",
+      "vers": "vers:semver/>=4.0.0|<5.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/dependency-review-action runtime",
+      "summary": "v4 sets runs.using to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v5 sets runs.using to node24.",
+      "severity": "high",
+      "replacement": "actions/dependency-review-action@v5 or later",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/dependency-review-action v4 action.yml",
+          "url": "https://github.com/actions/dependency-review-action/blob/v4/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/dependency-review-action v5 action.yml",
+          "url": "https://github.com/actions/dependency-review-action/blob/v5/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Keep fail-on-severity, the license and package lists, and repo-token. The v4 and v5 action.yml files declare the same input names; v5 sets runs.using to node24."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade dependency-review-action",
+            "instructions": "Change the uses reference to actions/dependency-review-action@v5 or a later major. v4 still sets runs.using to node20.",
+            "targets": "declaration"
+          },
+          {
+            "id": "review-dependency-policy",
+            "title": "Review dependency policy inputs",
+            "instructions": "Keep fail-on-severity, license allow and deny lists, and deny-packages aligned with the v5 action.yml.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/dependency-review-action",
+        "supportedFromMajor": 5
+      }
+    },
+    {
+      "id": "github-actions.go-dependency-submission.node16",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/go-dependency-submission",
+      "vers": "vers:semver/<2.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/go-dependency-submission runtime",
+      "summary": "v1 sets runs.using to node16. GitHub removed Node.js 16 from Actions runners on 2024-11-12.",
+      "severity": "high",
+      "replacement": "A published actions/go-dependency-submission release whose action.yml sets runs.using to node24",
+      "deadline": "2024-11-12",
+      "sources": [
+        {
+          "title": "End of life for Actions Node16",
+          "url": "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/go-dependency-submission v1 action.yml",
+          "url": "https://github.com/actions/go-dependency-submission/blob/v1/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "v1 sets runs.using to node16 and v2 sets it to node20. The default branch sets runs.using to node24 and adds snapshot-sha, snapshot-ref, detector-name, detector-version, and detector-url. That branch is not tagged as a major."
+        ],
+        "steps": [
+          {
+            "id": "wait-for-node24-release",
+            "title": "Move to a Node.js 24 release",
+            "instructions": "Do not stay on v2. Keep token, go-mod-path, and go-build-target, and review the snapshot and detector inputs on the default branch when a major that sets runs.using to node24 is published.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/go-dependency-submission"
+      }
+    },
+    {
+      "id": "github-actions.go-dependency-submission.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/go-dependency-submission",
+      "vers": "vers:semver/>=2.0.0|<3.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/go-dependency-submission runtime",
+      "summary": "v2 sets runs.using to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. The default branch sets runs.using to node24 and is not tagged as a major.",
+      "severity": "high",
+      "replacement": "A published actions/go-dependency-submission release whose action.yml sets runs.using to node24",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/go-dependency-submission v2 action.yml",
+          "url": "https://github.com/actions/go-dependency-submission/blob/v2/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/go-dependency-submission main action.yml",
+          "url": "https://github.com/actions/go-dependency-submission/blob/main/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "v1 sets runs.using to node16 and v2 sets it to node20. The default branch sets runs.using to node24 and adds snapshot-sha, snapshot-ref, detector-name, detector-version, and detector-url. That branch is not tagged as a major."
+        ],
+        "steps": [
+          {
+            "id": "wait-for-node24-release",
+            "title": "Move to a Node.js 24 release",
+            "instructions": "Do not stay on v2. Keep token, go-mod-path, and go-build-target, and review the snapshot and detector inputs on the default branch when a major that sets runs.using to node24 is published.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/go-dependency-submission"
+      }
+    },
+    {
+      "id": "github-actions.codeql-action.node12",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/github/codeql-action",
+      "vers": "vers:semver/<2.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported github/codeql-action runtime",
+      "summary": "v1 of github/codeql-action/init, autobuild, analyze, and upload-sarif sets runs.using to node12. GitHub removed Node.js 12 from Actions runners on 2023-08-14.",
+      "severity": "high",
+      "replacement": "github/codeql-action/{init,autobuild,analyze,upload-sarif}@v4 or later",
+      "deadline": "2023-08-14",
+      "sources": [
+        {
+          "title": "Removal of Node12 from the Actions runner",
+          "url": "https://github.blog/changelog/2023-07-16-github-actions-removal-of-node12-from-the-actions-runner/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v1 init/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v1/init/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v1 autobuild/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v1/autobuild/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v1 analyze/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v1/analyze/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v1 upload-sarif/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v1/upload-sarif/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Keep the CodeQL language, queries, and SARIF upload inputs. init, autobuild, analyze, and upload-sarif move together."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade CodeQL actions",
+            "instructions": "Change each uses reference to github/codeql-action/init@v4, autobuild@v4, analyze@v4, or upload-sarif@v4, or a later major. v1 uses node12, v2 uses node16, and v3 uses node20.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "github/codeql-action",
+        "supportedFromMajor": 4
+      }
+    },
+    {
+      "id": "github-actions.codeql-action.node16",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/github/codeql-action",
+      "vers": "vers:semver/>=2.0.0|<3.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported github/codeql-action runtime",
+      "summary": "v2 of github/codeql-action/init, autobuild, analyze, and upload-sarif sets runs.using to node16. GitHub removed Node.js 16 from Actions runners on 2024-11-12.",
+      "severity": "high",
+      "replacement": "github/codeql-action/{init,autobuild,analyze,upload-sarif}@v4 or later",
+      "deadline": "2024-11-12",
+      "sources": [
+        {
+          "title": "End of life for Actions Node16",
+          "url": "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v2 init/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v2/init/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v2 autobuild/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v2/autobuild/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v2 analyze/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v2/analyze/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v2 upload-sarif/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v2/upload-sarif/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Keep the CodeQL language, queries, and SARIF upload inputs. init, autobuild, analyze, and upload-sarif move together."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade CodeQL actions",
+            "instructions": "Change each uses reference to github/codeql-action/init@v4, autobuild@v4, analyze@v4, or upload-sarif@v4, or a later major. v1 uses node12, v2 uses node16, and v3 uses node20.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "github/codeql-action",
+        "supportedFromMajor": 4
+      }
+    },
+    {
+      "id": "github-actions.codeql-action.node20",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/github/codeql-action",
+      "vers": "vers:semver/>=3.0.0|<4.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported github/codeql-action runtime",
+      "summary": "v3 of github/codeql-action/init, autobuild, analyze, and upload-sarif sets runs.using to node20. GitHub removed Node.js 20 from Actions runners on 2026-09-23. v4 sets runs.using to node24.",
+      "severity": "high",
+      "replacement": "github/codeql-action/{init,autobuild,analyze,upload-sarif}@v4 or later",
+      "deadline": "2026-09-23",
+      "sources": [
+        {
+          "title": "Node 20 is no longer available in GitHub Actions",
+          "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v3 init/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v3/init/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v3 autobuild/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v3/autobuild/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v3 analyze/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v3/analyze/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v3 upload-sarif/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v3/upload-sarif/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v4 init/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v4/init/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v4 autobuild/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v4/autobuild/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v4 analyze/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v4/analyze/action.yml",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "github/codeql-action v4 upload-sarif/action.yml",
+          "url": "https://github.com/github/codeql-action/blob/v4/upload-sarif/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "Keep the CodeQL language, queries, and SARIF upload inputs. init, autobuild, analyze, and upload-sarif move together."
+        ],
+        "steps": [
+          {
+            "id": "upgrade-action-ref",
+            "title": "Upgrade CodeQL actions",
+            "instructions": "Change each uses reference to github/codeql-action/init@v4, autobuild@v4, analyze@v4, or upload-sarif@v4, or a later major. v1 uses node12, v2 uses node16, and v3 uses node20.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "github/codeql-action",
+        "supportedFromMajor": 4
       }
     },
     {
@@ -1849,6 +2903,116 @@
         ]
       },
       "deadline": "2020-11-16"
+    },
+    {
+      "id": "github-actions.hello-world-javascript-action.node12",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/hello-world-javascript-action",
+      "vers": "vers:semver/<2.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/hello-world-javascript-action runtime",
+      "summary": "v1 sets runs.using to node12. GitHub removed Node.js 12 from Actions runners on 2023-08-14. No later major is published.",
+      "severity": "high",
+      "replacement": "No supported major of actions/hello-world-javascript-action is published",
+      "deadline": "2023-08-14",
+      "sources": [
+        {
+          "title": "Removal of Node12 from the Actions runner",
+          "url": "https://github.blog/changelog/2023-07-16-github-actions-removal-of-node12-from-the-actions-runner/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/hello-world-javascript-action v1 action.yml",
+          "url": "https://github.com/actions/hello-world-javascript-action/blob/v1/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "reviewers": [
+          "unreviewed"
+        ],
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "This repository is a starter template. v1 is the only published major and it sets runs.using to node12."
+        ],
+        "steps": [
+          {
+            "id": "stop-using-retired-major",
+            "title": "Stop pinning v1",
+            "instructions": "Do not pin actions/hello-world-javascript-action@v1. Copy the template and set runs.using to node24 before publishing a workflow that uses it.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/hello-world-javascript-action"
+      }
+    },
+    {
+      "id": "github-actions.javascript-action.node12",
+      "ecosystem": "github-actions",
+      "purl": "pkg:github/actions/javascript-action",
+      "vers": "vers:semver/<2.0.0",
+      "event": "end-of-support",
+      "title": "Unsupported actions/javascript-action runtime",
+      "summary": "v1 sets runs.using to node12. GitHub removed Node.js 12 from Actions runners on 2023-08-14. No later major is published.",
+      "severity": "high",
+      "replacement": "No supported major of actions/javascript-action is published",
+      "deadline": "2023-08-14",
+      "sources": [
+        {
+          "title": "Removal of Node12 from the Actions runner",
+          "url": "https://github.blog/changelog/2023-07-16-github-actions-removal-of-node12-from-the-actions-runner/",
+          "accessedAt": "2026-11-15"
+        },
+        {
+          "title": "actions/javascript-action v1 action.yml",
+          "url": "https://github.com/actions/javascript-action/blob/v1/action.yml",
+          "accessedAt": "2026-11-15"
+        }
+      ],
+      "provenance": {
+        "observedAt": "2026-11-15",
+        "reviewedAt": "2026-11-15",
+        "reviewer": "unreviewed",
+        "reviewers": [
+          "unreviewed"
+        ],
+        "method": "manual"
+      },
+      "migration": {
+        "constraints": [
+          "This repository is a starter template. v1 is the only published major and it sets runs.using to node12."
+        ],
+        "steps": [
+          {
+            "id": "stop-using-retired-major",
+            "title": "Stop pinning v1",
+            "instructions": "Do not pin actions/javascript-action@v1. Copy the template and set runs.using to node24 before publishing a workflow that uses it.",
+            "targets": "declaration"
+          }
+        ],
+        "verification": [
+          {
+            "command": "git diff --check",
+            "purpose": "Validate the edited workflow diff."
+          }
+        ]
+      },
+      "x-github-actions": {
+        "action": "actions/javascript-action"
+      }
     }
   ]
 }

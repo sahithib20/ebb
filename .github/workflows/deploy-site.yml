@@ -38,19 +38,21 @@ jobs:
           npm install --no-audit --no-fund --save-exact @velella/mizzen@0.2.0 @velella/lateen@0.2.2
       - name: Install dependencies
         run: npm ci
-      - name: Publish runtime coverage table into the docs
+      - name: Publish coverage tables into the docs
         run: |
           npm run build --silent
           # Exit 0 = complete, 1 = gaps (table still written), >=2 = checker/write failure.
           set +e
           node dist/tools/coverage/runtimes.js --write-docs
-          code=$?
+          runtime_code=$?
+          node dist/tools/coverage/actions.js --write-docs
+          actions_code=$?
           set -e
-          if [ "$code" -ge 2 ]; then
-            echo "Coverage checker or docs write failed with exit $code"
-            exit "$code"
+          if [ "$runtime_code" -ge 2 ] || [ "$actions_code" -ge 2 ]; then
+            echo "Coverage checker or docs write failed (runtime $runtime_code, actions $actions_code)"
+            exit 2
           fi
-          echo "Coverage table published (checker exit $code)"
+          echo "Coverage tables published (runtime $runtime_code, actions $actions_code)"
       - name: Check the site
         run: |
           $RUNNER_TEMP/site-tools/node_modules/.bin/mizzen doctor docs --theme "$RUNNER_TEMP/site-tools/node_modules/@velella/lateen"
