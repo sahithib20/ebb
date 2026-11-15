@@ -507,7 +507,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          node dist/tools/coverage/actions.js --write-docs
+          # Gaps open issues; they must not fail the inventory refresh job.
           node --input-type=module <<'EOF'
           import { writeFileSync } from "node:fs";
           import {
@@ -516,6 +516,7 @@ jobs:
             coverageIssueTitle,
             formatCoverageIssueBody,
             formatCoverageText,
+            writeCoverageDoc,
           } from "./dist/tools/coverage/actions.js";
 
           const report = await checkActionCoverage();
@@ -524,6 +525,7 @@ jobs:
           if (process.env.GITHUB_STEP_SUMMARY) {
             writeFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`, { flag: "a" });
           }
+          await writeCoverageDoc(report);
           writeFileSync("actions-inventory-coverage.json", `${JSON.stringify(report, null, 2)}\n`);
           const gaps = report.actions.filter((action) => !action.complete);
           for (const action of gaps) {

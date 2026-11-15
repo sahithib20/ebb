@@ -123,12 +123,18 @@ async function refreshAction(action: string, notes: string | undefined): Promise
   const subpath = action.split("/")[2];
   const files = subpath ? [`${subpath}/action.yml`, `${subpath}/action.yaml`] : ["action.yml", "action.yaml"];
   const names = await tags(repo);
-  const majorTags = names
-    .map((tag) => MAJOR_TAG.exec(tag.name)?.[1])
-    .filter((major): major is string => major !== undefined);
+  // Integer major tags only (v1, v2, …). Pre-1.0 tags are not majors and are not probed here.
+  const majorTags = [
+    ...new Set(
+      names.map((tag) => MAJOR_TAG.exec(tag.name)?.[1]).filter((major): major is string => major !== undefined),
+    ),
+  ];
   const exact = names
     .map((tag) => tag.name)
-    .filter((name) => EXACT.test(name))
+    .filter((name) => {
+      const match = EXACT.exec(name);
+      return match !== null && Number(match[1]) >= 1;
+    })
     .sort((left, right) => compareVersion(left.slice(1), right.slice(1)));
 
   const majorResults = await mapPool(majorTags, 6, async (major) => {
@@ -139,6 +145,8 @@ async function refreshAction(action: string, notes: string | undefined): Promise
     .filter((entry): entry is InventoryMajor => entry !== undefined)
     .sort((a, b) => a.major - b.major);
 
+  // Only record exact releases inside majors that already have a major tag, and only when
+  // runs.using is not uniform across that major (e.g. setup-go 6.0.0 vs 6.2.0).
   const exactResults = await mapPool(exact, 6, async (tag) => {
     const found = await usingAt(repo, tag, files);
     return found ? { version: tag.slice(1), using: found.using, file: found.file } : undefined;
@@ -164,6 +172,17 @@ export async function refreshActionsInventory(root = ROOT): Promise<boolean> {
   const actions: Record<string, InventoryAction> = {};
   for (const action of scope.actions) {
     const previous = inventory.actions[action.action];
+    // Documented limits stay empty in the refreshed snapshot so a network refresh cannot
+    // invent retired majors that the limit is not allowed to hide.
+    if (action.coverageLimit) {
+      actions[action.action] = {
+        majors: [],
+        retiredMajors: [],
+        ...(previous?.notes || action.coverageLimit ? { notes: previous?.notes ?? action.coverageLimit } : {}),
+      };
+      process.stdout.write(`skipped ${action.action} (coverage limit)\n`);
+      continue;
+    }
     actions[action.action] = await refreshAction(action.action, previous?.notes);
     process.stdout.write(`refreshed ${action.action}\n`);
   }

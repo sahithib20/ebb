@@ -76,53 +76,11 @@
       ]
     },
     "actions/attest-build-provenance": {
-      "majors": [
-        {
-          "major": 1,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 2,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 3,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 4,
-          "using": "composite",
-          "file": "action.yml"
-        }
-      ],
+      "majors": [],
       "retiredMajors": []
     },
     "actions/attest-sbom": {
-      "majors": [
-        {
-          "major": 1,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 2,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 3,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 4,
-          "using": "composite",
-          "file": "action.yml"
-        }
-      ],
+      "majors": [],
       "retiredMajors": []
     },
     "actions/cache": {
@@ -746,13 +704,7 @@
       "notes": "Starter template. No released major is classified."
     },
     "actions/jekyll-build-pages": {
-      "majors": [
-        {
-          "major": 1,
-          "using": "docker",
-          "file": "action.yml"
-        }
-      ],
+      "majors": [],
       "retiredMajors": []
     },
     "actions/labeler": {
@@ -1308,95 +1260,175 @@
       ]
     },
     "actions/upload-code-coverage": {
-      "majors": [
-        {
-          "major": 1,
-          "using": "composite",
-          "file": "action.yml"
-        }
-      ],
+      "majors": [],
       "retiredMajors": []
     },
     "actions/upload-pages-artifact": {
-      "majors": [
-        {
-          "major": 1,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 2,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 3,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 4,
-          "using": "composite",
-          "file": "action.yml"
-        },
-        {
-          "major": 5,
-          "using": "composite",
-          "file": "action.yml"
-        }
-      ],
+      "majors": [],
       "retiredMajors": []
     },
     "github/codeql-action/init": {
       "majors": [
-        { "major": 1, "using": "node12", "file": "init/action.yml" },
-        { "major": 2, "using": "node16", "file": "init/action.yml" },
-        { "major": 3, "using": "node20", "file": "init/action.yml" },
-        { "major": 4, "using": "node24", "file": "init/action.yml" }
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "major": 2,
+          "using": "node16",
+          "file": "init/action.yml"
+        },
+        {
+          "major": 3,
+          "using": "node20",
+          "file": "init/action.yml"
+        },
+        {
+          "major": 4,
+          "using": "node24",
+          "file": "init/action.yml"
+        }
       ],
       "retiredMajors": [
-        { "major": 1, "using": "node12", "file": "init/action.yml" },
-        { "major": 2, "using": "node16", "file": "init/action.yml" },
-        { "major": 3, "using": "node20", "file": "init/action.yml" }
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "init/action.yml"
+        },
+        {
+          "major": 2,
+          "using": "node16",
+          "file": "init/action.yml"
+        },
+        {
+          "major": 3,
+          "using": "node20",
+          "file": "init/action.yml"
+        }
       ]
     },
     "github/codeql-action/autobuild": {
       "majors": [
-        { "major": 1, "using": "node12", "file": "autobuild/action.yml" },
-        { "major": 2, "using": "node16", "file": "autobuild/action.yml" },
-        { "major": 3, "using": "node20", "file": "autobuild/action.yml" },
-        { "major": 4, "using": "node24", "file": "autobuild/action.yml" }
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "major": 2,
+          "using": "node16",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "major": 3,
+          "using": "node20",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "major": 4,
+          "using": "node24",
+          "file": "autobuild/action.yml"
+        }
       ],
       "retiredMajors": [
-        { "major": 1, "using": "node12", "file": "autobuild/action.yml" },
-        { "major": 2, "using": "node16", "file": "autobuild/action.yml" },
-        { "major": 3, "using": "node20", "file": "autobuild/action.yml" }
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "major": 2,
+          "using": "node16",
+          "file": "autobuild/action.yml"
+        },
+        {
+          "major": 3,
+          "using": "node20",
+          "file": "autobuild/action.yml"
+        }
       ]
     },
     "github/codeql-action/analyze": {
       "majors": [
-        { "major": 1, "using": "node12", "file": "analyze/action.yml" },
-        { "major": 2, "using": "node16", "file": "analyze/action.yml" },
-        { "major": 3, "using": "node20", "file": "analyze/action.yml" },
-        { "major": 4, "using": "node24", "file": "analyze/action.yml" }
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "major": 2,
+          "using": "node16",
+          "file": "analyze/action.yml"
+        },
+        {
+          "major": 3,
+          "using": "node20",
+          "file": "analyze/action.yml"
+        },
+        {
+          "major": 4,
+          "using": "node24",
+          "file": "analyze/action.yml"
+        }
       ],
       "retiredMajors": [
-        { "major": 1, "using": "node12", "file": "analyze/action.yml" },
-        { "major": 2, "using": "node16", "file": "analyze/action.yml" },
-        { "major": 3, "using": "node20", "file": "analyze/action.yml" }
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "analyze/action.yml"
+        },
+        {
+          "major": 2,
+          "using": "node16",
+          "file": "analyze/action.yml"
+        },
+        {
+          "major": 3,
+          "using": "node20",
+          "file": "analyze/action.yml"
+        }
       ]
     },
     "github/codeql-action/upload-sarif": {
       "majors": [
-        { "major": 1, "using": "node12", "file": "upload-sarif/action.yml" },
-        { "major": 2, "using": "node16", "file": "upload-sarif/action.yml" },
-        { "major": 3, "using": "node20", "file": "upload-sarif/action.yml" },
-        { "major": 4, "using": "node24", "file": "upload-sarif/action.yml" }
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "major": 2,
+          "using": "node16",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "major": 3,
+          "using": "node20",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "major": 4,
+          "using": "node24",
+          "file": "upload-sarif/action.yml"
+        }
       ],
       "retiredMajors": [
-        { "major": 1, "using": "node12", "file": "upload-sarif/action.yml" },
-        { "major": 2, "using": "node16", "file": "upload-sarif/action.yml" },
-        { "major": 3, "using": "node20", "file": "upload-sarif/action.yml" }
+        {
+          "major": 1,
+          "using": "node12",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "major": 2,
+          "using": "node16",
+          "file": "upload-sarif/action.yml"
+        },
+        {
+          "major": 3,
+          "using": "node20",
+          "file": "upload-sarif/action.yml"
+        }
       ]
     }
   },
