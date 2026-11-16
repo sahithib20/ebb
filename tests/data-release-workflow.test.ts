@@ -15,6 +15,7 @@ interface Step {
 }
 interface Workflow {
   on: {
+    schedule?: Array<{ cron: string }>;
     push?: { tags?: string[] };
     workflow_dispatch?: {
       inputs?: Record<string, { default?: boolean; type?: string }>;
@@ -24,6 +25,7 @@ interface Workflow {
   jobs: Record<
     string,
     {
+      "runs-on"?: string;
       permissions?: Record<string, string>;
       env?: Record<string, string>;
       steps: Step[];
@@ -36,25 +38,35 @@ const workflow = parse(await readFile(resolve(path), "utf8")) as Workflow;
 const job = workflow.jobs.release!;
 const commands = job.steps.map((step) => step.run ?? "").join("\n");
 
-test("it releases on data tags, and a manual run is a dry run by default", () => {
+test("it releases on data tags and weekly schedule, and a manual run is a dry run by default", () => {
   assert.deepEqual(workflow.on.push?.tags, ["data-v*"]);
   assert.equal(workflow.on.workflow_dispatch?.inputs?.dry_run?.default, true);
   assert.equal(workflow.on.workflow_dispatch?.inputs?.dry_run?.type, "boolean");
+  // data-release-4: weekly schedule
+  assert.ok(workflow.on.schedule && workflow.on.schedule.length > 0, "weekly schedule exists");
   const publish = job.steps.find((step) => step.run?.includes("gh release create"));
   assert.ok(publish, "a publish step exists");
-  assert.equal(publish.if, "github.ref_type == 'tag'", "only a tag publishes");
+  assert.match(publish.if ?? "", /github\.ref_type == 'tag'/, "tags publish");
+  assert.match(publish.if ?? "", /github\.event_name == 'schedule'/, "scheduled runs publish");
 });
 
-test("permissions are read-only except in the release job, which needs only contents and the OIDC token", () => {
+test("permissions are read-only except in the release job, which needs contents, OIDC, issues, and PRs", () => {
   assert.deepEqual(workflow.permissions, { contents: "read" });
-  assert.deepEqual(job.permissions, { contents: "write", "id-token": "write" });
+  assert.deepEqual(job.permissions, {
+    contents: "write",
+    "id-token": "write",
+    issues: "write",
+    "pull-requests": "write",
+  });
 });
 
 test("third-party actions are pinned to exact versions", () => {
-  for (const step of job.steps.filter((item) => item.uses)) {
-    // `./` and `$/` resolve inside this repository, so neither carries a pinned ref.
-    if (step.uses!.startsWith("$/") || step.uses!.startsWith("./")) continue;
-    assert.match(step.uses!, /^[\w./-]+@[0-9a-f]{40}$/, step.uses);
+  for (const item of Object.values(workflow.jobs)) {
+    for (const step of item.steps.filter((s) => s.uses)) {
+      // `./` and `$/` resolve inside this repository, so neither carries a pinned ref.
+      if (step.uses!.startsWith("$/") || step.uses!.startsWith("./")) continue;
+      assert.match(step.uses!, /^[\w./-]+@[0-9a-f]{40}$/, step.uses);
+    }
   }
   assert.ok(job.steps.some((step) => step.uses?.startsWith("sigstore/cosign-installer@")));
 });
@@ -132,4 +144,39 @@ test("release-log-4: release workflow generates release notes and uses them as r
   assert.match(commands, /--json-diff out\/data-diff\.json/);
   assert.match(commands, /cat out\/release-notes\.md/);
   assert.match(commands, /--notes-file out\/release-notes\.md/);
+});
+
+test("data-release-4 & 2: detects whether data changed and stops early when unchanged", () => {
+  assert.match(commands, /data-release-needed\.js/);
+  assert.match(commands, /needed=\$\{STATUS\}/);
+});
+
+test("data-release-5: gates release on npm run lint:rules and source report date-changed findings", () => {
+  assert.match(commands, /npm run lint:rules/);
+  assert.match(commands, /date-changed/);
+  assert.match(commands, /GITHUB_STEP_SUMMARY/);
+});
+
+test("data-release-6: verifies published release on clean machine with ebb update and ebb verify", () => {
+  const verifyJob = workflow.jobs.verify;
+  assert.ok(verifyJob, "verify job exists");
+  assert.equal(verifyJob["runs-on"], "ubuntu-latest");
+  const verifyCommands = verifyJob.steps.map((s) => s.run ?? "").join("\n");
+  assert.match(verifyCommands, /npm install -g @velella\/ebb/);
+  assert.match(verifyCommands, /ebb update/);
+  assert.match(verifyCommands, /ebb verify/);
+});
+
+test("data-release-7: manages failure issue on scheduled runs and reuses existing open issue", () => {
+  assert.match(commands, /<!-- data-release-failure -->/);
+  assert.match(commands, /gh issue list/);
+  assert.match(commands, /gh issue comment/);
+  assert.match(commands, /gh issue create/);
+  assert.match(commands, /gh issue close/);
+});
+
+test("data-release-8: prepares a patch pull request with fresh data after release", () => {
+  assert.match(commands, /npm version patch --no-git-tag-version/);
+  assert.match(commands, /gh pr create/);
+  assert.match(commands, /--body-file out\/release-notes\.md/);
 });

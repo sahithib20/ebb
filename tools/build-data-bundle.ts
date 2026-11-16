@@ -46,7 +46,7 @@ export async function main(argv: string[]): Promise<void> {
     root: ebbRoot,
     createdAt,
     format,
-    ...(revision ? { revision: Number(revision) } : {}),
+    ...(revision !== undefined && revision !== "" ? { revision: Number(revision) } : {}),
     ...(sequence ? { sequence: Number(sequence) } : {}),
     ...(ecosystem ? { ecosystem } : {}),
     minimumEbbVersion: option(argv, "--minimum-version") ?? packageVersion,

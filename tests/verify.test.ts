@@ -257,3 +257,42 @@ test("CLI: ebb verify <file> checks bundles and artifacts", async () => {
   assert.equal(parsedJson.ok, false);
   assert.equal(parsedJson.file, artifactPath);
 });
+
+test("CLI: ebb verify without arguments checks active cached bundle if present", async () => {
+  const fakeCache = join(tempDir, "mock-cache");
+  const currentDir = join(fakeCache, "current");
+  const { mkdir } = await import("node:fs/promises");
+  await mkdir(currentDir, { recursive: true });
+  await writeFile(join(currentDir, "bundle.json"), "{}");
+  await writeFile(join(currentDir, "bundle.json.sigstore.json"), "{}");
+
+  const originalEnv = process.env.EBB_DATA_DIR;
+  process.env.EBB_DATA_DIR = fakeCache;
+  try {
+    let stderr = "";
+    let stdout = "";
+    const io = {
+      stdout: {
+        write: (str: string) => {
+          stdout += str;
+        },
+      },
+      stderr: {
+        write: (str: string) => {
+          stderr += str;
+        },
+      },
+    };
+    const code = await runCli(["verify"], io);
+    // Fails verification because {} is not a valid bundle, but does NOT fail with "Missing file argument"
+    assert.equal(code, 2);
+    assert.doesNotMatch(stderr, /Missing file argument/);
+    assert.match(stderr, /Verification failed/);
+  } finally {
+    if (originalEnv !== undefined) {
+      process.env.EBB_DATA_DIR = originalEnv;
+    } else {
+      delete process.env.EBB_DATA_DIR;
+    }
+  }
+});

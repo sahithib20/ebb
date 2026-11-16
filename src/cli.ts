@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import {
   asOf,
@@ -14,6 +14,7 @@ import {
   supportedVersions,
   upcoming,
 } from "./index.js";
+import { BUNDLE_FILE, defaultCacheDirectory } from "./data-source.js";
 import { dataStatus } from "./data-status.js";
 import { rollback, update } from "./data-update.js";
 import { diff, formatDiffMarkdown, formatDiffText } from "./diff.js";
@@ -918,10 +919,15 @@ export async function runCli(
     }
 
     if (first === "verify") {
-      const fileArg = positionals[1];
+      let fileArg = positionals[1];
       if (!fileArg) {
-        io.stderr.write("Error: Missing file argument. Usage: ebb verify <file> [--signature <sig-file>]\n");
-        return 2;
+        const activeBundle = join(defaultCacheDirectory(), "current", BUNDLE_FILE);
+        if (existsSync(activeBundle)) {
+          fileArg = activeBundle;
+        } else {
+          io.stderr.write("Error: Missing file argument. Usage: ebb verify <file> [--signature <sig-file>]\n");
+          return 2;
+        }
       }
 
       const filePath = resolve(fileArg);

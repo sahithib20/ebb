@@ -161,6 +161,7 @@ test("the content address follows the data, not the version or the time", async 
 
 test("the version comes from the supplied time, never from a clock", () => {
   assert.equal(bundleVersion("2026-10-16T09:30:00Z"), "2026.10.16");
+  assert.equal(bundleVersion("2026-10-16T09:30:00Z", 1), "2026.10.16.1");
   assert.equal(bundleVersion("2026-10-16T09:30:00Z", 2), "2026.10.16.2");
   assert.throws(() => bundleVersion("2026-10-16"), /UTC like/);
   assert.throws(() => bundleVersion("2026-10-16T09:30:00+02:00"), /UTC like/);

@@ -245,4 +245,67 @@ Every rule carries its own `sources` (title, URL, and the `accessedAt` day it wa
 
 ## Publishing a bundle
 
-Push a `data-vYYYY.MM.DD` tag (or `data-vYYYY.MM.DD.N` for a second bundle on the same day). [`data-release.yml`](https://github.com/velella-sh/ebb/blob/main/.github/workflows/data-release.yml) builds the bundle twice and requires identical bytes, signs it, verifies the signature, extends the release log, and attaches the bundle, the signatures, and checksums to a GitHub release that is never marked "Latest". A manual run of the workflow is a dry run that keeps the files as an artifact.
+Ebb publishes lifecycle data bundles automatically on a weekly schedule and on demand. The release pipeline is orchestrated by [`.github/workflows/data-release.yml`](https://github.com/velella-sh/ebb/blob/main/.github/workflows/data-release.yml).
+
+### Weekly schedule and change detection
+
+- **Schedule**: The workflow runs automatically every Wednesday at 07:00 UTC (`0 7 * * 3`), after the Monday source-freshness check and Tuesday importers.
+- **Branch protection**: Scheduled runs execute exclusively against the `main` branch.
+- **Change detection**: Before building, the workflow checks `tools/data-release-needed.js` against the latest entry in `release-log.jsonl`. If the bundle content digest is unchanged, the workflow halts early without creating a release or noise.
+
+### Release quality gates
+
+Before building or signing any bundle, strict data quality gates must pass:
+1. `npm run check` and rule linting (`npm run lint:rules`) must pass with zero errors.
+2. The latest source freshness report (`source-report.json`) is inspected. If it contains any `date-changed` findings, the release halts immediately, and the reason is recorded in `$GITHUB_STEP_SUMMARY`. The gate cannot be bypassed on scheduled runs.
+
+### Naming conventions and same-day releases
+
+- **Standard name**: Dated by the release commit's UTC date as `YYYY.MM.DD` (for example, `2026.11.20`), corresponding to git tag `data-vYYYY.MM.DD`.
+- **Same-day releases**: If a second or subsequent release is required on the same day, `.N` is appended (for example, `2026.11.20.1`, `2026.11.20.2`).
+- **Ordering**: Version comparison treats unadorned dates as earlier than same-day revisions: `2026.11.20` < `2026.11.20.1` < `2026.11.20.2` < `2026.11.21`.
+
+### Triggering a release by hand
+
+You can trigger a data release manually in two ways:
+1. **Pushing a tag**: Push a tag matching `data-vYYYY.MM.DD` or `data-vYYYY.MM.DD.N`.
+2. **Workflow dispatch**: Run the workflow manually from the GitHub Actions tab or CLI:
+   ```bash
+   # Dry run (builds, signs, and uploads artifact out/ without publishing):
+   gh workflow run data-release.yml -f dry_run=true
+
+   # Live release:
+   gh workflow run data-release.yml -f dry_run=false
+   ```
+
+### Post-release verification on a clean runner
+
+After publishing a real release:
+1. A fresh verification job (`verify`) spins up on a clean `ubuntu-latest` runner with no access to build files.
+2. It installs `@velella/ebb` from npm and runs `ebb update` and `ebb verify`.
+3. If either update or cryptographic verification fails, the job fails loudly.
+
+### Shipping fresh data in the npm package
+
+Following every published data release:
+1. The workflow automatically prepares a patch release of `@velella/ebb` by incrementing the patch version in `package.json` and opening a pull request (`chore/data-${VERSION}`).
+2. The PR description embeds the generated release notes and data diff summary.
+3. Merging and publishing the npm package remains the responsibility of the repository maintainer.
+
+### When a release fails
+
+- **Automated issue tracking**: If a scheduled run fails at any step, the workflow creates an issue with label `area: release, priority: P0` citing the failing run and job status.
+- **Deduplication**: If a failure issue is already open, subsequent failing scheduled runs add a comment to that issue rather than opening duplicate issues.
+- **Automatic resolution**: When the next scheduled run succeeds, the open failure issue is closed automatically.
+- **Manual dry runs**: Dry runs never open failure issues; inspect the Action execution logs directly.
+
+### Correcting an errant release
+
+Published data bundles are cryptographically signed, immutable, and appended to the transparency log and hash chain. Never attempt to delete or unpublish a released bundle. To correct errors in a published release, fix the underlying registry rules on `main` and publish a new data release (`YYYY.MM.DD.N`), which supersedes the earlier release and propagates cleanly via `ebb update`.
+
+### npm distribution tags (`dist-tags`)
+
+The npm package `@velella/ebb` follows strict tag rules:
+- `latest` always points to the newest stable release.
+- `next` is reserved exclusively for prereleases (e.g. `0.1.0-rc.1`) and is cleared or pointed to stable when a stable version is released.
+- Release workflows never leave `next` pointing to an outdated prerelease when a newer stable version exists.
