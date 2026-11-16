@@ -4,10 +4,11 @@ import type { CheckAllEntry, CheckAllResult, CheckMatch, CheckResult } from "../
 import { sourcesOf } from "../index.js";
 import { confidenceOf, type RuleConfidence } from "../confidence.js";
 import type { RegistryV2Rule } from "../registry.js";
-import { getOffingHint } from "./hint.js";
+import { dataStatus } from "../data-status.js";
 
 export interface FormattedMatch extends CheckMatch {
   reviewer: string | null;
+  reviewedAt: string;
   confidence: RuleConfidence;
   confidenceNote?: string | null;
   verificationAdvice?: string;
@@ -19,8 +20,11 @@ export interface FormattedCheckResult extends Omit<CheckResult, "matches"> {
     sources: string[];
     reviewers: string[];
   };
-  hint?: string;
+  dataVersion?: string;
   verificationAdvice?: string;
+  message?: string;
+  ecosystem?: string;
+  ecosystemRules?: number;
 }
 
 interface IndexedRuleMeta {
@@ -92,6 +96,7 @@ export function formatCheckResult(result: CheckResult): FormattedCheckResult {
   const formattedMatches: FormattedMatch[] = result.matches.map((match) => {
     const meta = index.get(match.ruleId);
     const reviewer = meta?.reviewer ?? null;
+    const reviewedAt = match.reviewedAt ?? meta?.reviewedAt ?? "";
 
     if (reviewer) {
       reviewerNames.add(reviewer);
@@ -125,6 +130,7 @@ export function formatCheckResult(result: CheckResult): FormattedCheckResult {
       ...match,
       sources: matchSources,
       reviewer,
+      reviewedAt,
       confidence,
       ...(confidenceNote ? { confidenceNote } : {}),
       ...(isTentative
@@ -138,16 +144,21 @@ export function formatCheckResult(result: CheckResult): FormattedCheckResult {
     return formattedMatch;
   });
 
-  const hint = getOffingHint(result.status);
+  let currentDataVersion: string | undefined;
+  try {
+    currentDataVersion = dataStatus().version;
+  } catch {
+    // fallback if dataStatus cannot resolve
+  }
 
   return {
     ...result,
     matches: formattedMatches,
+    ...(currentDataVersion ? { dataVersion: currentDataVersion } : {}),
     provenance: {
       sources: Array.from(sourceUrls),
       reviewers: Array.from(reviewerNames),
     },
-    ...(hint ? { hint } : {}),
     ...(hasTentative
       ? {
           verificationAdvice:
@@ -160,11 +171,11 @@ export function formatCheckResult(result: CheckResult): FormattedCheckResult {
 export function formatCheckAllResult(result: CheckAllResult): {
   results: Array<FormattedCheckResult | (CheckAllEntry & { status: "error" })>;
   summary: CheckAllResult["summary"];
+  dataVersion?: string;
   provenance: {
     sources: string[];
     reviewers: string[];
   };
-  hint?: string;
 } {
   const allSources = new Set<string>();
   const allReviewers = new Set<string>();
@@ -183,17 +194,20 @@ export function formatCheckAllResult(result: CheckAllResult): {
     return formatted;
   });
 
-  const hasIssues =
-    result.summary.byStatus && Object.entries(result.summary.byStatus).some(([s, count]) => s !== "ok" && count > 0);
-  const rootHint = hasIssues ? getOffingHint("deprecated") : null;
+  let currentDataVersion: string | undefined;
+  try {
+    currentDataVersion = dataStatus().version;
+  } catch {
+    // fallback
+  }
 
   return {
     results: formattedResults,
     summary: result.summary,
+    ...(currentDataVersion ? { dataVersion: currentDataVersion } : {}),
     provenance: {
       sources: Array.from(allSources),
       reviewers: Array.from(allReviewers),
     },
-    ...(rootHint ? { hint: rootHint } : {}),
   };
 }

@@ -5,7 +5,7 @@ export const diffTool: McpTool = {
   definition: {
     name: "diff",
     description:
-      "Compare two software lifecycle data versions, dates, files, or active data and report added, changed, removed, and renamed rules with field-level delta tracking.",
+      'Call to compare two lifecycle data versions, dates, files, or active data and inspect added, changed, or removed rules. Example: {"from":"2026.10.01","to":"active"}.',
     inputSchema: {
       type: "object",
       properties: {
@@ -29,6 +29,19 @@ export const diffTool: McpTool = {
         },
       },
     },
+    outputSchema: {
+      type: "object",
+      properties: {
+        from: { type: "object" },
+        to: { type: "object" },
+        summary: { type: "object" },
+        added: { type: "array" },
+        changed: { type: "array" },
+        removed: { type: "array" },
+        renamed: { type: "array" },
+      },
+      required: ["from", "to", "summary"],
+    },
   },
   handler: async (args: Record<string, unknown>): Promise<McpToolResult> => {
     const from = typeof args.from === "string" && args.from.trim() ? args.from.trim() : undefined;
@@ -41,11 +54,13 @@ export const diffTool: McpTool = {
       if (format === "json") {
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          structuredContent: result as unknown as Record<string, unknown>,
           isError: false,
         };
       }
       return {
         content: [{ type: "text", text: formatDiffMarkdown(result) }],
+        structuredContent: result as unknown as Record<string, unknown>,
         isError: false,
       };
     } catch (err) {

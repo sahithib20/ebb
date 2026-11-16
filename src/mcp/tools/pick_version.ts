@@ -19,7 +19,7 @@ export const pickVersionTool: McpTool = {
   definition: {
     name: "pick_version",
     description:
-      "Call before choosing a runtime or a major version. Returns the release lines Ebb knows, the line it recommends, and whether that answer is complete. It does not claim a line is supported when no rule names it.",
+      'Call before choosing a runtime or a major version. Returns known release lines, the recommended line, and whether coverage is complete. Example: {"purl":"node","as_of":"2026-11-15"}.',
     inputSchema: {
       type: "object",
       properties: {
@@ -33,6 +33,19 @@ export const pickVersionTool: McpTool = {
         },
       },
       required: ["purl"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        purl: { type: "string" },
+        asOf: { type: "string" },
+        lines: { type: "array" },
+        recommendation: { type: ["object", "null"] },
+        reason: { type: "string" },
+        complete: { type: "boolean" },
+        notes: { type: "array" },
+      },
+      required: ["lines", "complete"],
     },
   },
   handler: (args: Record<string, unknown>): McpToolResult => {

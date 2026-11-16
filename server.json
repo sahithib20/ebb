@@ -29,7 +29,26 @@
   ],
   "_meta": {
     "io.modelcontextprotocol.registry/publisher-provided": {
-      "tools": ["check", "check_all", "diff", "pick_version", "replacement_for", "sources_of"]
+      "tools": [
+        "check",
+        "check_all",
+        "check_install",
+        "diff",
+        "pick_version",
+        "replacement_for",
+        "sources_of",
+        "upcoming"
+      ],
+      "toolDescriptions": {
+        "check": "Call before installing or upgrading a package or runtime version. Checks against known end-of-life and deprecation dates. Example: {\"purl\":\"pkg:npm/request@2.88.2\"}.",
+        "check_all": "Call before installing or auditing multiple packages or dependencies in batch. Checks each against known end-of-life and deprecation dates. Example: {\"items\":[\"pkg:npm/request@2.88.2\",\"node@18.0.0\"]}.",
+        "check_install": "Call before running an install command. Parses package manager commands (npm, pnpm, yarn, bun, pip, cargo, go) and checks every package against lifecycle rules. Example: {\"command\":\"npm install request@2.88.2\"}.",
+        "diff": "Call to compare two lifecycle data versions, dates, files, or active data and inspect added, changed, or removed rules. Example: {\"from\":\"2026.10.01\",\"to\":\"active\"}.",
+        "pick_version": "Call before choosing a runtime or a major version. Returns known release lines, the recommended line, and whether coverage is complete. Example: {\"purl\":\"node\",\"as_of\":\"2026-11-15\"}.",
+        "replacement_for": "Call when a component is deprecated or end-of-life to find recommended migration targets or alternatives. Example: {\"purl\":\"pkg:npm/request\",\"version\":\"2.88.2\"}.",
+        "sources_of": "Call to inspect authoritative sources, archive snapshot URLs, health status, and review provenance for a lifecycle rule. Example: {\"ruleId\":\"npm.package.request.deprecated\"}.",
+        "upcoming": "Call before planning upgrades to list scheduled deprecation and end-of-life deadlines within a time window. Example: {\"within\":\"90d\",\"ecosystem\":\"npm\"}."
+      }
     }
   }
 }
