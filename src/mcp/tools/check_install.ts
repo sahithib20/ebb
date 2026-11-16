@@ -185,17 +185,27 @@ export function parseInstallCommand(command: string): { items: CheckAllItem[]; e
         }
       }
     } else if (ecosystem === "pypi") {
-      const match = token.match(/^([a-zA-Z0-9_.-]+)(.*)$/);
-      if (match) {
-        const name = match[1];
-        const rest = match[2]?.trim() ?? "";
+      let cleanToken = token;
+      const bracketStart = cleanToken.indexOf("[");
+      const bracketEnd = cleanToken.indexOf("]", bracketStart);
+      if (bracketStart !== -1 && bracketEnd !== -1) {
+        cleanToken = cleanToken.slice(0, bracketStart) + cleanToken.slice(bracketEnd + 1);
+      }
+      const opIndex = cleanToken.search(/[=><~!@]/);
+      if (opIndex === -1) {
+        items.push({ purl: `pkg:pypi/${cleanToken.trim()}`, version: "*" });
+      } else {
+        const name = cleanToken.slice(0, opIndex).trim();
+        const rest = cleanToken.slice(opIndex).trim();
         let ver = "*";
         if (rest.startsWith("==")) {
           ver = rest.slice(2).trim();
         } else if (rest.length > 0) {
           ver = rest;
         }
-        items.push({ purl: `pkg:pypi/${name}`, version: ver || "*" });
+        if (name) {
+          items.push({ purl: `pkg:pypi/${name}`, version: ver || "*" });
+        }
       }
     } else if (ecosystem === "cargo") {
       const at = token.indexOf("@");
