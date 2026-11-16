@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { runCli } from "../src/cli.js";
+import { buildDataBundle } from "../src/data-bundle.js";
+import { configureActiveData } from "../src/data-source.js";
 import { dataStatus } from "../src/data-status.js";
 
 function createMockIo() {
@@ -116,5 +121,68 @@ describe("offline-8: warn when active data is old", () => {
       if (prevAge === undefined) delete process.env.EBB_DATA_MAX_AGE_DAYS;
       else process.env.EBB_DATA_MAX_AGE_DAYS = prevAge;
     }
+  });
+
+  describe("cache-10: show cache state in ebb data-status", () => {
+    it("reports package origin when using bundled data", () => {
+      const status = dataStatus();
+      assert.equal(status.schemaVersion, "ebb.data-status.v1", "schemaVersion must not be bumped");
+      assert.equal(status.origin, "package");
+      assert.equal(status.hasRollback, false);
+      assert.equal(status.rollbackVersion, null);
+      assert.ok(typeof status.cachePath === "string");
+    });
+
+    it("reports cache origin, cachePath, and rollback info when cache is active", async () => {
+      const tmp = await mkdtemp(join(tmpdir(), "ebb-status-cache-test-"));
+      const oldDir = process.env.EBB_DATA_DIR;
+      process.env.EBB_DATA_DIR = tmp;
+      configureActiveData({
+        verifySignature: () => ({ identity: "ci@example.com", issuer: "https://token.actions.githubusercontent.com" }),
+      });
+      try {
+        const bundle = await buildDataBundle({
+          root: resolve("."),
+          createdAt: "2026-11-20T00:00:00Z",
+          minimumEbbVersion: "0.2.0",
+          ecosystem: "npm",
+        });
+        const version = bundle.manifest.version;
+        const versionDir = join(tmp, "data", version);
+        await mkdir(versionDir, { recursive: true });
+        await writeFile(join(tmp, "data", "active.json"), JSON.stringify({ version }) + "\n");
+        await writeFile(join(tmp, "data", "previous.json"), JSON.stringify({ version: "2026.10.01" }) + "\n");
+        await writeFile(join(versionDir, "bundle.json"), JSON.stringify(bundle));
+        await writeFile(join(versionDir, "bundle.json.sigstore.json"), "{}");
+
+        const status = dataStatus();
+        assert.equal(status.schemaVersion, "ebb.data-status.v1");
+        assert.equal(status.origin, "cache");
+        assert.equal(status.hasRollback, true);
+        assert.equal(status.rollbackVersion, "2026.10.01");
+        assert.equal(status.cachePath, tmp);
+
+        // CLI text output
+        const mockText = createMockIo();
+        const codeText = await runCli(["data-status"], mockText.io);
+        assert.equal(codeText, 0);
+        assert.match(mockText.stdout, /Origin:\s+cache/);
+        assert.match(mockText.stdout, /Rollback copy:\s+yes \(2026\.10\.01\)/);
+
+        // CLI JSON output
+        const mockJson = createMockIo();
+        const codeJson = await runCli(["data-status", "--json"], mockJson.io);
+        assert.equal(codeJson, 0);
+        const parsed = JSON.parse(mockJson.stdout);
+        assert.equal(parsed.origin, "cache");
+        assert.equal(parsed.hasRollback, true);
+        assert.equal(parsed.rollbackVersion, "2026.10.01");
+      } finally {
+        configureActiveData({});
+        if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+        else delete process.env.EBB_DATA_DIR;
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
   });
 });

@@ -8,16 +8,18 @@ import { join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { buildDataBundle, canonicalJson, serializeDataBundle } from "../src/data-bundle.js";
 import { DataSignatureError } from "../src/data-signature.js";
-import { configureActiveData, resolveActiveData } from "../src/data-source.js";
+import { configureActiveData, resolveActiveData, resolveActiveDataSync } from "../src/data-source.js";
 import { DATA_STATUS_SCHEMA_VERSION, dataInfoFrom, dataStatusFrom, getDataStatus } from "../src/data-status.js";
 import {
   compareBundleVersions,
   DATA_UPDATE_SCHEMA_VERSION,
   DataUpdateError,
   latestDataRelease,
+  RELEASES_ETAG_FILE,
   rollback,
   update,
   updateData,
+  writeAtomically,
 } from "../src/data-update.js";
 import { VERSION } from "../src/version.js";
 
@@ -1135,4 +1137,247 @@ test("release-log-2: rejects update when release-log is tampered and leaves cach
     const files = existsSync(join(cache, "data")) ? await readdir(join(cache, "data")) : [];
     assert.deepEqual(files, [], `Cache must remain untouched on ${scenario}`);
   }
+});
+
+test("writeAtomically: interrupted write leaves previous data intact and cleans up temp files (cache-3)", async () => {
+  const cache = await mkdtemp(join(workspace, "atomic-test-"));
+  const targetFile = join(cache, "target.json");
+  await writeFile(targetFile, "original content\n");
+
+  // Attempt atomic write where directory does not exist
+  const nonExistentTarget = join(cache, "nonexistent", "deep", "file.json");
+  await assert.rejects(
+    () => writeAtomically(nonExistentTarget, "new content\n"),
+    (err: unknown) => (err as NodeJS.ErrnoException).code === "ENOENT",
+  );
+
+  // Original target is untouched
+  const current = await readFile(targetFile, "utf8");
+  assert.equal(current, "original content\n");
+
+  // No temporary files left behind
+  const files = await readdir(cache);
+  assert.equal(
+    files.some((f) => f.includes(".tmp-")),
+    false,
+  );
+
+  // Successful atomic write updates content
+  await writeAtomically(targetFile, "updated content\n");
+  assert.equal(await readFile(targetFile, "utf8"), "updated content\n");
+});
+
+test("cache-4: two concurrent updates run and end with a valid cache", async () => {
+  const cache = await mkdtemp(join(workspace, "concurrent-update-"));
+  const bundle = await buildDataBundle({
+    root: fixtureRepo,
+    createdAt: "2026-11-20T00:00:00Z",
+    minimumEbbVersion: "0.2.0",
+    ecosystem: "npm",
+  });
+  const serialized = serializeDataBundle(bundle);
+  const version = bundle.manifest.version;
+  const baseUrl = "https://example-concurrent.com";
+  const releases = releasesFor(version, baseUrl);
+
+  const fetchHandler = (url: string | URL | Request) => {
+    const urlStr = typeof url === "string" ? url : url instanceof URL ? url.toString() : url.url;
+    if (urlStr === `${baseUrl}/releases.json`) return new Response(JSON.stringify(releases));
+    if (urlStr.includes("/bundle-") && urlStr.endsWith(".json")) return new Response(serialized);
+    if (urlStr.endsWith(".sigstore.json")) return new Response("{}");
+    throw new Error(`Unexpected url ${urlStr}`);
+  };
+
+  // Run two updates concurrently
+  const [res1, res2] = await Promise.all([
+    update({
+      releasesUrl: `${baseUrl}/releases.json`,
+      cacheDirectory: cache,
+      verifySignature,
+      fetch: fetchHandler as unknown as typeof fetch,
+    }),
+    update({
+      releasesUrl: `${baseUrl}/releases.json`,
+      cacheDirectory: cache,
+      verifySignature,
+      fetch: fetchHandler as unknown as typeof fetch,
+    }),
+  ]);
+
+  assert.ok(res1.status === "updated" || res1.status === "up-to-date");
+  assert.ok(res2.status === "updated" || res2.status === "up-to-date");
+
+  // Verify cache is in a valid state
+  const activeJson = JSON.parse(await readFile(join(cache, "data", "active.json"), "utf8")) as { version: string };
+  assert.equal(activeJson.version, version);
+  assert.equal(existsSync(join(cache, "data", ".lock")), false, "lock file must be released");
+});
+
+test("cache-4: treats a lock older than 10 minutes as stale and cleans it up", async () => {
+  const cache = await mkdtemp(join(workspace, "stale-lock-"));
+  const lockDir = join(cache, "data");
+  await mkdir(lockDir, { recursive: true });
+  const lockFile = join(lockDir, ".lock");
+
+  // Create a stale lock file with timestamp 15 minutes ago
+  const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+  await writeFile(lockFile, JSON.stringify({ pid: 99999, acquiredAt: fifteenMinutesAgo.toISOString() }) + "\n");
+  const { utimes } = await import("node:fs/promises");
+  await utimes(lockFile, fifteenMinutesAgo, fifteenMinutesAgo);
+
+  const bundle = await buildDataBundle({
+    root: fixtureRepo,
+    createdAt: "2026-11-20T00:00:00Z",
+    minimumEbbVersion: "0.2.0",
+    ecosystem: "npm",
+  });
+  const serialized = serializeDataBundle(bundle);
+  const version = bundle.manifest.version;
+  const baseUrl = "https://example-stale-lock.com";
+  const releases = releasesFor(version, baseUrl);
+
+  const fetchHandler = (url: string | URL | Request) => {
+    const urlStr = typeof url === "string" ? url : url instanceof URL ? url.toString() : url.url;
+    if (urlStr === `${baseUrl}/releases.json`) return new Response(JSON.stringify(releases));
+    if (urlStr.includes("/bundle-") && urlStr.endsWith(".json")) return new Response(serialized);
+    if (urlStr.endsWith(".sigstore.json")) return new Response("{}");
+    throw new Error(`Unexpected url ${urlStr}`);
+  };
+
+  // Update should break stale lock and succeed
+  const res = await update({
+    releasesUrl: `${baseUrl}/releases.json`,
+    cacheDirectory: cache,
+    verifySignature,
+    fetch: fetchHandler as unknown as typeof fetch,
+  });
+  assert.equal(res.status, "updated");
+  assert.equal(existsSync(lockFile), false, "lock file must be removed upon completion");
+});
+
+test("cache-7: handles read-only cache directory with error code cache-read-only while reads continue to work", async () => {
+  const cache = await mkdtemp(join(workspace, "readonly-cache-"));
+  const bundle = await buildDataBundle({
+    root: fixtureRepo,
+    createdAt: "2026-11-20T00:00:00Z",
+    minimumEbbVersion: "0.2.0",
+    ecosystem: "npm",
+  });
+  const version = bundle.manifest.version;
+  const versionDir = join(cache, "data", version);
+  await mkdir(versionDir, { recursive: true });
+  await writeFile(join(cache, "data", "active.json"), JSON.stringify({ version }) + "\n");
+  await writeFile(join(versionDir, "bundle.json"), JSON.stringify(bundle));
+  await writeFile(join(versionDir, "bundle.json.sigstore.json"), "{}");
+
+  // Make data directory read-only (chmod 0o555)
+  const { chmod } = await import("node:fs/promises");
+  await chmod(join(cache, "data"), 0o555);
+
+  try {
+    // 1. Reading cached data still works
+    const active = resolveActiveDataSync({
+      cacheDirectory: cache,
+      verifySignature,
+    });
+    assert.equal(active.info.source, "cache");
+    assert.equal(active.info.version, version);
+
+    // 2. Updating throws DataUpdateError with code "cache-read-only"
+    const newVersion = "2026.11.25";
+    const newBundle = await buildDataBundle({
+      root: fixtureRepo,
+      createdAt: "2026-11-25T00:00:00Z",
+      minimumEbbVersion: "0.2.0",
+      ecosystem: "npm",
+    });
+    const serialized = serializeDataBundle(newBundle);
+    const baseUrl = "https://example-ro.com";
+    const releases = releasesFor(newVersion, baseUrl);
+
+    const fetchHandler = (url: string | URL | Request) => {
+      const urlStr = typeof url === "string" ? url : url instanceof URL ? url.toString() : url.url;
+      if (urlStr === `${baseUrl}/releases.json`) return new Response(JSON.stringify(releases));
+      if (urlStr.includes("/bundle-") && urlStr.endsWith(".json")) return new Response(serialized);
+      if (urlStr.endsWith(".sigstore.json")) return new Response("{}");
+      throw new Error(`Unexpected url ${urlStr}`);
+    };
+
+    await assert.rejects(
+      () =>
+        update({
+          releasesUrl: `${baseUrl}/releases.json`,
+          cacheDirectory: cache,
+          verifySignature,
+          fetch: fetchHandler as unknown as typeof fetch,
+        }),
+      (err: unknown) => {
+        assert(err instanceof DataUpdateError);
+        assert.equal(err.code, "cache-read-only");
+        return true;
+      },
+    );
+  } finally {
+    await chmod(join(cache, "data"), 0o755);
+  }
+});
+
+test("cache-8: uses conditional requests with ETag, 304 avoids bundle download", async () => {
+  const cache = await mkdtemp(join(workspace, "etag-cache-"));
+  const bundle = await buildDataBundle({
+    root: fixtureRepo,
+    createdAt: "2026-11-20T00:00:00Z",
+    minimumEbbVersion: "0.2.0",
+    ecosystem: "npm",
+  });
+  const serialized = serializeDataBundle(bundle);
+  const version = bundle.manifest.version;
+  const baseUrl = "https://example-etag.com";
+  const releases = releasesFor(version, baseUrl);
+
+  let bundleDownloadCount = 0;
+  let receivedIfNoneMatch: string | null = null;
+
+  const fetchHandler = (input: string | URL | Request, init?: RequestInit) => {
+    const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    const reqHeaders = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+
+    if (urlStr === `${baseUrl}/releases.json`) {
+      receivedIfNoneMatch = reqHeaders.get("if-none-match");
+      if (receivedIfNoneMatch === '"etag-v1"') {
+        return new Response(null, { status: 304, headers: { ETag: '"etag-v1"' } });
+      }
+      return new Response(JSON.stringify(releases), { headers: { ETag: '"etag-v1"' } });
+    }
+    if (urlStr.endsWith(".sigstore.json")) return new Response("{}");
+    if (urlStr.includes("/bundle-") && urlStr.endsWith(".json")) {
+      bundleDownloadCount++;
+      return new Response(serialized);
+    }
+    throw new Error(`Unexpected url ${urlStr}`);
+  };
+
+  // First update downloads and records ETag
+  const res1 = await update({
+    releasesUrl: `${baseUrl}/releases.json`,
+    cacheDirectory: cache,
+    verifySignature,
+    fetch: fetchHandler as unknown as typeof fetch,
+  });
+  assert.equal(res1.status, "updated");
+  assert.equal(bundleDownloadCount, 1);
+  assert.equal(receivedIfNoneMatch, null);
+  assert.equal(existsSync(join(cache, "data", RELEASES_ETAG_FILE)), true);
+  assert.equal(await readFile(join(cache, "data", RELEASES_ETAG_FILE), "utf8"), '"etag-v1"\n');
+
+  // Second update sends If-None-Match: "etag-v1", gets 304, does NOT download bundle
+  const res2 = await update({
+    releasesUrl: `${baseUrl}/releases.json`,
+    cacheDirectory: cache,
+    verifySignature,
+    fetch: fetchHandler as unknown as typeof fetch,
+  });
+  assert.equal(res2.status, "up-to-date");
+  assert.equal(bundleDownloadCount, 1, "must not download bundle on 304 not modified");
+  assert.equal(receivedIfNoneMatch, '"etag-v1"');
 });

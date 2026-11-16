@@ -236,4 +236,5 @@ Every item needs both `purl` and `version`. Even when a PURL from CycloneDX or S
 | `"dns-failure"` | DNS resolution failed during network operation. |
 | `"proxy-error"` | Proxy connection or authentication failed. |
 | `"rate-limited"` | Remote rate limit (HTTP 429) was encountered. |
+| `"cache-read-only"` | Cache directory is read-only and cannot be written to. |
 | `"check-failed"` | Fallback when checking an item throws any other error. |

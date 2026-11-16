@@ -131,8 +131,9 @@ export function verifyDataBundle(
 
   let signer: VerifiedSigner;
   try {
-    if (options.verifySignature) {
-      signer = options.verifySignature(bytes, signatureJson);
+    const verifySig = options.verifySignature ?? configured.verifySignature;
+    if (verifySig) {
+      signer = verifySig(bytes, signatureJson);
     } else {
       try {
         signer = verifyArtifactSignature(bytes, signatureJson, options.signerPolicy, options.trustedRoot);
@@ -334,16 +335,18 @@ function cachedData(
  * form {@link resolveActiveData} / {@link getActiveData} wraps the same result.
  */
 export function resolveActiveDataSync(options: DataSourceOptions = {}): ActiveData {
-  const ebbVersion = options.ebbVersion ?? VERSION;
-  const cache = options.cacheDirectory ?? defaultCacheDirectory();
+  const effectiveOptions = { ...configured, ...options };
+  const ebbVersion = effectiveOptions.ebbVersion ?? VERSION;
+  const cache = effectiveOptions.cacheDirectory ?? defaultCacheDirectory();
   const warnings: string[] = [];
 
-  if (options.pinnedVersion !== undefined) return pinnedData(options.pinnedVersion, cache, ebbVersion, options);
+  if (effectiveOptions.pinnedVersion !== undefined)
+    return pinnedData(effectiveOptions.pinnedVersion, cache, ebbVersion, effectiveOptions);
 
   const activeVersion = readActiveVersion(cache, warnings);
   if (!activeVersion) return bundledData(warnings, ebbVersion);
 
-  return cachedData(activeVersion, cache, ebbVersion, options, warnings);
+  return cachedData(activeVersion, cache, ebbVersion, effectiveOptions, warnings);
 }
 
 /** Async wrapper around {@link resolveActiveDataSync}; kept for callers that already await. */

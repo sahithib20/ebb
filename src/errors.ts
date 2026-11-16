@@ -14,6 +14,7 @@ export const EBB_ERROR_CODES = [
   "dns-failure",
   "proxy-error",
   "rate-limited",
+  "cache-read-only",
 ] as const;
 export type EbbErrorCode = (typeof EBB_ERROR_CODES)[number];
 
