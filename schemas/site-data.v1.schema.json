@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/velella-sh/ebb/schemas/site-data.v1.schema.json",
+  "title": "Ebb site data v1",
+  "description": "Component, release line, and rule records and collection lists for building documentation and lifecycle pages.",
+  "oneOf": [
+    { "$ref": "#/$defs/componentRecord" },
+    { "$ref": "#/$defs/ruleRecord" },
+    { "$ref": "#/$defs/releaseLineRecord" },
+    { "$ref": "#/$defs/componentsCollection" },
+    { "$ref": "#/$defs/rulesCollection" },
+    { "$ref": "#/$defs/linesCollection" },
+    { "$ref": "#/$defs/ecosystemsDocument" },
+    { "$ref": "#/$defs/upcomingDocument" },
+    { "$ref": "#/$defs/releasesDocument" },
+    { "$ref": "#/$defs/redirectsDocument" },
+    { "$ref": "#/$defs/indexDocument" }
+  ],
+  "$defs": {
+    "componentRecord": {
+      "type": "object",
+      "required": [
+        "id",
+        "recordType",
+        "slug",
+        "name",
+        "ecosystem",
+        "purl",
+        "title",
+        "summary",
+        "status",
+        "rules",
+        "dates",
+        "links"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "id": { "type": "string" },
+        "recordType": { "const": "component" },
+        "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "name": { "type": "string" },
+        "ecosystem": { "type": "string" },
+        "purl": { "type": "string" },
+        "title": { "type": "string", "maxLength": 70 },
+        "summary": { "type": "string", "maxLength": 160 },
+        "status": { "type": "string" },
+        "dates": {
+          "type": "object",
+          "properties": {
+            "earliestDeadline": { "type": ["string", "null"] },
+            "latestReview": { "type": ["string", "null"] },
+            "observedAt": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "nextEvent": {
+          "type": ["object", "null"],
+          "properties": {
+            "event": { "type": "string" },
+            "date": { "type": "string" }
+          },
+          "required": ["event", "date"],
+          "additionalProperties": false
+        },
+        "rules": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "links": {
+          "type": "object",
+          "required": ["rules", "lines", "apiUrl", "sourcePath"],
+          "additionalProperties": false,
+          "properties": {
+            "rules": { "type": "array", "items": { "type": "string" } },
+            "lines": { "type": "array", "items": { "type": "string" } },
+            "apiUrl": { "type": "string" },
+            "sourcePath": { "type": "string" }
+          }
+        }
+      }
+    },
+    "ruleRecord": {
+      "type": "object",
+      "required": [
+        "id",
+        "recordType",
+        "slug",
+        "title",
+        "summary",
+        "status",
+        "event",
+        "affectedRange",
+        "sources",
+        "reviewDate",
+        "dates",
+        "links"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "id": { "type": "string" },
+        "recordType": { "const": "rule" },
+        "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "title": { "type": "string", "maxLength": 70 },
+        "summary": { "type": "string", "maxLength": 160 },
+        "status": { "type": "string" },
+        "event": { "type": "string" },
+        "date": { "type": ["string", "null"] },
+        "dates": {
+          "type": "object",
+          "properties": {
+            "deadline": { "type": ["string", "null"] },
+            "announced": { "type": ["string", "null"] },
+            "observedAt": { "type": ["string", "null"] },
+            "reviewedAt": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "affectedRange": { "type": "string" },
+        "replacement": { "type": "string" },
+        "migration": { "type": "string" },
+        "severity": { "type": "string" },
+        "confidence": { "type": "string" },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["url", "title"],
+            "properties": {
+              "kind": { "type": "string" },
+              "url": { "type": "string" },
+              "title": { "type": "string" },
+              "accessedAt": { "type": "string" },
+              "archiveUrl": { "type": "string" },
+              "archivedAt": { "type": "string" },
+              "status": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "reviewDate": { "type": "string" },
+        "links": {
+          "type": "object",
+          "required": ["component", "apiUrl", "sourcePath"],
+          "additionalProperties": false,
+          "properties": {
+            "component": { "type": "string" },
+            "replacementComponent": { "type": "string" },
+            "apiUrl": { "type": "string" },
+            "sourcePath": { "type": "string" }
+          }
+        }
+      }
+    },
+    "releaseLineRecord": {
+      "type": "object",
+      "required": [
+        "id",
+        "recordType",
+        "slug",
+        "title",
+        "summary",
+        "status",
+        "endDate",
+        "line",
+        "vers",
+        "ruleId",
+        "dates",
+        "links"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "id": { "type": "string" },
+        "recordType": { "const": "release-line" },
+        "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "title": { "type": "string", "maxLength": 70 },
+        "summary": { "type": "string", "maxLength": 160 },
+        "status": { "type": "string", "enum": ["ended", "ending", "no-known-end"] },
+        "endDate": { "type": ["string", "null"] },
+        "dates": {
+          "type": "object",
+          "properties": {
+            "endDate": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "line": { "type": "string" },
+        "vers": { "type": "string" },
+        "ruleId": { "type": "string" },
+        "incomplete": { "type": "boolean" },
+        "links": {
+          "type": "object",
+          "required": ["component", "rule", "apiUrl", "sourcePath"],
+          "additionalProperties": false,
+          "properties": {
+            "component": { "type": "string" },
+            "rule": { "type": "string" },
+            "apiUrl": { "type": "string" },
+            "sourcePath": { "type": "string" }
+          }
+        }
+      }
+    },
+    "componentsCollection": {
+      "type": "object",
+      "required": ["dataVersion", "type", "records"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "dataVersion": { "type": "string" },
+        "type": { "const": "component" },
+        "records": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/componentRecord" }
+        }
+      }
+    },
+    "rulesCollection": {
+      "type": "object",
+      "required": ["dataVersion", "type", "records"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "dataVersion": { "type": "string" },
+        "type": { "const": "rule" },
+        "records": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ruleRecord" }
+        }
+      }
+    },
+    "linesCollection": {
+      "type": "object",
+      "required": ["dataVersion", "type", "records"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "dataVersion": { "type": "string" },
+        "type": { "const": "release-line" },
+        "records": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/releaseLineRecord" }
+        }
+      }
+    },
+    "ecosystemsDocument": {
+      "type": "object",
+      "required": ["dataVersion", "ecosystems"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "dataVersion": { "type": "string" },
+        "ecosystems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "componentCount", "recordIds"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "componentCount": { "type": "integer" },
+              "recordIds": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "upcomingDocument": {
+      "type": "object",
+      "required": ["dataVersion", "months"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "dataVersion": { "type": "string" },
+        "months": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["month", "events"],
+            "additionalProperties": false,
+            "properties": {
+              "month": { "type": "string" },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["date", "event", "ruleId", "componentId"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "date": { "type": "string" },
+                    "event": { "type": "string" },
+                    "ruleId": { "type": "string" },
+                    "componentId": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "releasesDocument": {
+      "type": "object",
+      "required": ["dataVersion", "releases"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "dataVersion": { "type": "string" },
+        "releases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["version", "date", "added", "changed", "removed"],
+            "additionalProperties": false,
+            "properties": {
+              "version": { "type": "string" },
+              "date": { "type": "string" },
+              "added": { "type": "array", "items": { "type": "string" } },
+              "changed": { "type": "array", "items": { "type": "string" } },
+              "removed": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "redirectsDocument": {
+      "type": "object",
+      "not": {
+        "anyOf": [
+          { "required": ["recordType"] },
+          { "required": ["dataVersion"] },
+          { "required": ["id"] }
+        ]
+      },
+      "additionalProperties": { "type": "string" }
+    },
+    "indexDocument": {
+      "type": "object",
+      "required": [
+        "dataVersion",
+        "generatedAt",
+        "componentCount",
+        "ruleCount",
+        "lineCount",
+        "ecosystemCount",
+        "files"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "dataVersion": { "type": "string" },
+        "generatedAt": { "type": "string" },
+        "componentCount": { "type": "integer" },
+        "ruleCount": { "type": "integer" },
+        "lineCount": { "type": "integer" },
+        "ecosystemCount": { "type": "integer" },
+        "files": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

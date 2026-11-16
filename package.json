@@ -136,6 +136,7 @@
     "build:ecosystems": "node dist/tools/build-ecosystem-modules.js",
     "build:llms": "npm run build --silent && node dist/tools/build-llms.js",
     "build:static-api": "npm run build --silent && node dist/tools/static-api/index.js",
+    "site-data": "npm run build --silent && node dist/tools/site-data/index.js",
     "eval:agents": "npm run build --silent && node dist/tools/eval-agents.js",
     "test": "npm run build --silent && node --test \"dist/tests/**/*.test.js\"",
     "test:coverage": "npm run build --silent && mkdir -p coverage && node --test --experimental-test-coverage --test-coverage-exclude=\"dist/tests/**\" --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info \"dist/tests/**/*.test.js\"",
@@ -160,6 +161,7 @@
   },
   "ebb": {
     "sizeBudget": 550000,
+    "siteDataBudget": 8388608,
     "staticApiBudgets": {
       "indexGzip": 51200,
       "searchGzip": 25600,
