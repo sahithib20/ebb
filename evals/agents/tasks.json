@@ -3,7 +3,11 @@
     "id": "task-001",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: request is deprecated",
+    "prompt": "HTTP client for making API calls and fetching remote web resources in Node.js",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/request"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/request",
       "version": "1.0.0",
@@ -20,7 +24,11 @@
     "id": "task-002",
     "category": "end-of-life",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: Node Sass is end-of-life",
+    "prompt": "Compile SCSS and Sass stylesheets to CSS in a Node.js project",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/node-sass"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/node-sass",
       "version": "1.0.0",
@@ -37,7 +45,11 @@
     "id": "task-003",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: left-pad is deprecated",
+    "prompt": "Pad strings with leading characters to a fixed length in JavaScript",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/left-pad"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/left-pad",
       "version": "1.0.0",
@@ -54,7 +66,11 @@
     "id": "task-004",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: @hapi/joi is deprecated",
+    "prompt": "Object schema validation and data sanitization for JavaScript and Node.js",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/%40hapi/joi"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/%40hapi/joi",
       "version": "1.0.0",
@@ -71,7 +87,11 @@
     "id": "task-005",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: babel-preset-es2015 is deprecated",
+    "prompt": "Babel preset to compile modern ECMAScript down to compatible ES5 JavaScript",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/babel-preset-es2015"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/babel-preset-es2015",
       "version": "1.0.0",
@@ -88,7 +108,11 @@
     "id": "task-006",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: boom is deprecated",
+    "prompt": "HTTP-friendly error utility creating standard status code errors for Node.js",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/boom"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/boom",
       "version": "1.0.0",
@@ -105,7 +129,11 @@
     "id": "task-007",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: cryptiles is deprecated",
+    "prompt": "Cryptographic utilities and random string generation helpers in Node.js",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/cryptiles"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/cryptiles",
       "version": "1.0.0",
@@ -122,7 +150,11 @@
     "id": "task-008",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: gulp-util is deprecated",
+    "prompt": "Logging and utility helpers for Gulp build system plugins",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/gulp-util"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/gulp-util",
       "version": "1.0.0",
@@ -139,7 +171,11 @@
     "id": "task-009",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: inflight is deprecated",
+    "prompt": "Deduplicate asynchronous operations in flight to prevent duplicate work",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/inflight"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/inflight",
       "version": "1.0.0",
@@ -156,7 +192,11 @@
     "id": "task-010",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: jade is deprecated",
+    "prompt": "Server-side HTML templating engine with concise indentation-based syntax for Node.js",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/jade"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/jade",
       "version": "1.0.0",
@@ -173,7 +213,11 @@
     "id": "task-011",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: karma-phantomjs-launcher is deprecated",
+    "prompt": "Headless browser launcher plugin for Karma unit testing",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/karma-phantomjs-launcher"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/karma-phantomjs-launcher",
       "version": "1.0.0",
@@ -190,7 +234,11 @@
     "id": "task-012",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: natives is deprecated",
+    "prompt": "Access internal Node.js core modules in JavaScript",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/natives"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/natives",
       "version": "1.0.0",
@@ -207,7 +255,11 @@
     "id": "task-013",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: popper.js is deprecated",
+    "prompt": "Position tooltips and dropdown floating elements relative to reference elements",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/popper.js"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/popper.js",
       "version": "1.0.0",
@@ -224,7 +276,11 @@
     "id": "task-014",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: querystring is deprecated",
+    "prompt": "Parse and serialize URL parameter strings in JavaScript",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/querystring"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/querystring",
       "version": "1.0.0",
@@ -241,7 +297,11 @@
     "id": "task-015",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: request-promise is deprecated",
+    "prompt": "Promise-based HTTP client for making REST API calls in Node.js",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/request-promise"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/request-promise",
       "version": "1.0.0",
@@ -258,7 +318,11 @@
     "id": "task-016",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: request-promise-native is deprecated",
+    "prompt": "Native ES6 Promise HTTP client for making API calls in Node.js",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/request-promise-native"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/request-promise-native",
       "version": "1.0.0",
@@ -275,7 +339,11 @@
     "id": "task-017",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: rollup-plugin-babel is deprecated",
+    "prompt": "Rollup bundler plugin to transpile JavaScript source code with Babel",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/rollup-plugin-babel"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/rollup-plugin-babel",
       "version": "1.0.0",
@@ -292,7 +360,11 @@
     "id": "task-018",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: sntp is deprecated",
+    "prompt": "Time protocol sync client library to adjust clock with remote servers in Node.js",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/sntp"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/sntp",
       "version": "1.0.0",
@@ -309,7 +381,11 @@
     "id": "task-019",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: stable is deprecated",
+    "prompt": "Predictable sorting algorithm implementation preserving relative order for JavaScript arrays",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/stable"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/stable",
       "version": "1.0.0",
@@ -326,7 +402,11 @@
     "id": "task-020",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: abab is deprecated",
+    "prompt": "WHATWG-compliant base64 binary decoding and encoding in JavaScript",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/abab"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/abab",
       "version": "1.0.0",
@@ -343,7 +423,11 @@
     "id": "task-021",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: domexception is deprecated",
+    "prompt": "Standard DOM error object implementation according to Web IDL standards",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/domexception"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/domexception",
       "version": "1.0.0",
@@ -360,7 +444,11 @@
     "id": "task-022",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: w3c-hr-time is deprecated",
+    "prompt": "High-resolution clock API and performance timer calculation according to W3C specification",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/w3c-hr-time"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/w3c-hr-time",
       "version": "1.0.0",
@@ -377,7 +465,11 @@
     "id": "task-023",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: sourcemap-codec is deprecated",
+    "prompt": "Encode and decode VLQ mapping lines efficiently",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/sourcemap-codec"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/sourcemap-codec",
       "version": "1.0.0",
@@ -394,7 +486,11 @@
     "id": "task-024",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: @humanwhocodes/config-array is deprecated",
+    "prompt": "Multi-tier options cascade management and pattern matching for linter tools",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/%40humanwhocodes/config-array"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/%40humanwhocodes/config-array",
       "version": "1.0.0",
@@ -411,7 +507,11 @@
     "id": "task-025",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: @humanwhocodes/object-schema is deprecated",
+    "prompt": "Validate and merge structured configuration data in JavaScript",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/%40humanwhocodes/object-schema"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/%40humanwhocodes/object-schema",
       "version": "1.0.0",
@@ -428,7 +528,11 @@
     "id": "task-026",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: q is deprecated",
+    "prompt": "Deferred execution library for asynchronous control flow in JavaScript",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/q"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/q",
       "version": "1.0.0",
@@ -445,7 +549,11 @@
     "id": "task-027",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: lodash.get is deprecated",
+    "prompt": "Safely read deeply nested properties from JavaScript objects with a default fallback",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/lodash.get"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/lodash.get",
       "version": "1.0.0",
@@ -462,7 +570,11 @@
     "id": "task-028",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: lodash.isequal is deprecated",
+    "prompt": "Perform deep comparison between two values to determine equivalence",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/lodash.isequal"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/lodash.isequal",
       "version": "1.0.0",
@@ -479,7 +591,11 @@
     "id": "task-029",
     "category": "end-of-life",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: read-package-json is no longer supported",
+    "prompt": "Read and normalize manifest files with version metadata in Node.js",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/read-package-json"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/read-package-json",
       "version": "1.0.0",
@@ -496,7 +612,11 @@
     "id": "task-030",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: @npmcli/move-file is deprecated",
+    "prompt": "Relocate files and directories across different partitions or devices reliably",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/%40npmcli/move-file"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/%40npmcli/move-file",
       "version": "1.0.0",
@@ -513,7 +633,11 @@
     "id": "task-031",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: source-map-url is deprecated",
+    "prompt": "Extract and manipulate source map comment links in source files",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/source-map-url"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/source-map-url",
       "version": "1.0.0",
@@ -530,7 +654,11 @@
     "id": "task-032",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: resolve-url is deprecated",
+    "prompt": "Calculate relative links against base web paths in JavaScript",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/resolve-url"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/resolve-url",
       "version": "1.0.0",
@@ -547,7 +675,11 @@
     "id": "task-033",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: babel-eslint is deprecated",
+    "prompt": "Syntax parser supporting experimental modern ECMAScript features",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/babel-eslint"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/babel-eslint",
       "version": "1.0.0",
@@ -564,7 +696,11 @@
     "id": "task-034",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: uglify-es is deprecated",
+    "prompt": "Code minifier and compressor for ES6+ JavaScript bundles",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/uglify-es"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/uglify-es",
       "version": "1.0.0",
@@ -581,7 +717,11 @@
     "id": "task-035",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: crypto-js is deprecated",
+    "prompt": "Hashing and standard cipher implementation for JavaScript applications",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/crypto-js"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/crypto-js",
       "version": "1.0.0",
@@ -598,7 +738,11 @@
     "id": "task-036",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: eslint-plugin-nuxt is deprecated",
+    "prompt": "Syntax verification and style rules for Nuxt.js web applications",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/eslint-plugin-nuxt"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/eslint-plugin-nuxt",
       "version": "1.0.0",
@@ -615,7 +759,11 @@
     "id": "task-037",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: i18next-parser is deprecated",
+    "prompt": "Extract internationalization translation keys from code files",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/i18next-parser"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/i18next-parser",
       "version": "1.0.0",
@@ -632,7 +780,11 @@
     "id": "task-038",
     "category": "deprecated",
     "ecosystem": "npm",
-    "prompt": "Recommend a component or configuration for: koa-router is deprecated",
+    "prompt": "Path-based routing middleware for Koa web framework applications",
+    "targetFile": "package.json",
+    "badPurls": [
+      "pkg:npm/koa-router"
+    ],
     "baselinePick": {
       "purl": "pkg:npm/koa-router",
       "version": "1.0.0",
@@ -649,7 +801,9 @@
     "id": "task-039",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Fast and low overhead web framework for Node.js",
+    "prompt": "Fast and low overhead web framework for Node.js",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/fastify",
       "version": "4.27.0",
@@ -666,7 +820,9 @@
     "id": "task-040",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: TypeScript-first schema validation with static type inference",
+    "prompt": "TypeScript-first schema validation with static type inference",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/zod",
       "version": "3.23.8",
@@ -683,7 +839,9 @@
     "id": "task-041",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: An extremely fast bundler for the web",
+    "prompt": "An extremely fast bundler for the web",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/esbuild",
       "version": "0.21.4",
@@ -700,7 +858,9 @@
     "id": "task-042",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: A Vite-native unit test framework",
+    "prompt": "A Vite-native unit test framework",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/vitest",
       "version": "1.6.0",
@@ -717,7 +877,9 @@
     "id": "task-043",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: TypeScript is a language for application-scale JavaScript development",
+    "prompt": "TypeScript is a language for application-scale JavaScript development",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/typescript",
       "version": "5.4.5",
@@ -734,7 +896,9 @@
     "id": "task-044",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: TypeScript Execute: run TypeScript files seamlessly",
+    "prompt": "TypeScript Execute: run TypeScript files seamlessly",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/tsx",
       "version": "4.11.0",
@@ -751,7 +915,9 @@
     "id": "task-045",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Fast, disk space efficient package manager",
+    "prompt": "Fast, disk space efficient package manager",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/pnpm",
       "version": "9.1.0",
@@ -768,7 +934,9 @@
     "id": "task-046",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Opinionated code formatter",
+    "prompt": "Opinionated code formatter",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/prettier",
       "version": "3.2.5",
@@ -785,7 +953,9 @@
     "id": "task-047",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Tool for transforming styles with JS plugins",
+    "prompt": "Tool for transforming styles with JS plugins",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/postcss",
       "version": "8.4.38",
@@ -802,7 +972,9 @@
     "id": "task-048",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: A utility-first CSS framework for rapid UI development",
+    "prompt": "A utility-first CSS framework for rapid UI development",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/tailwindcss",
       "version": "3.4.3",
@@ -819,7 +991,9 @@
     "id": "task-049",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Next-generation ORM for Node.js and TypeScript",
+    "prompt": "Next-generation ORM for Node.js and TypeScript",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/prisma",
       "version": "5.14.0",
@@ -836,7 +1010,9 @@
     "id": "task-050",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: TypeScript ORM with maximum type safety",
+    "prompt": "TypeScript ORM with maximum type safety",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/drizzle-orm",
       "version": "0.30.10",
@@ -853,7 +1029,9 @@
     "id": "task-051",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Type-safe SQL query builder for TypeScript",
+    "prompt": "Type-safe SQL query builder for TypeScript",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/kysely",
       "version": "0.27.3",
@@ -870,7 +1048,9 @@
     "id": "task-052",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Robust, performance-focused Redis client",
+    "prompt": "Robust, performance-focused Redis client",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/ioredis",
       "version": "5.4.1",
@@ -887,7 +1067,9 @@
     "id": "task-053",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Fast, lightweight Web framework for any JS runtime",
+    "prompt": "Fast, lightweight Web framework for any JS runtime",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/hono",
       "version": "4.3.11",
@@ -904,7 +1086,9 @@
     "id": "task-054",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: End-to-end typesafe APIs made easy",
+    "prompt": "End-to-end typesafe APIs made easy",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/trpc",
       "version": "10.45.2",
@@ -921,7 +1105,9 @@
     "id": "task-055",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Simple and composable data validation for JavaScript",
+    "prompt": "Simple and composable data validation for JavaScript",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/superstruct",
       "version": "1.0.3",
@@ -938,7 +1124,9 @@
     "id": "task-056",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Modular and type-safe schema library",
+    "prompt": "Modular and type-safe schema library",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/valibot",
       "version": "0.30.0",
@@ -955,7 +1143,9 @@
     "id": "task-057",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Small, safe, URL-friendly unique string ID generator",
+    "prompt": "Small, safe, URL-friendly unique string ID generator",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/nanoid",
       "version": "5.0.7",
@@ -972,7 +1162,9 @@
     "id": "task-058",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Loads environment variables from .env file",
+    "prompt": "Loads environment variables from .env file",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/dotenv",
       "version": "16.4.5",
@@ -989,7 +1181,9 @@
     "id": "task-059",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Run scripts that set and use environment variables across platforms",
+    "prompt": "Run scripts that set and use environment variables across platforms",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/cross-env",
       "version": "7.0.3",
@@ -1006,7 +1200,9 @@
     "id": "task-060",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Process execution for humans",
+    "prompt": "Process execution for humans",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/execa",
       "version": "9.1.0",
@@ -1023,7 +1219,9 @@
     "id": "task-061",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Complete solution for node.js command-line interfaces",
+    "prompt": "Complete solution for node.js command-line interfaces",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/commander",
       "version": "12.1.0",
@@ -1040,7 +1238,9 @@
     "id": "task-062",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: User-friendly glob matching",
+    "prompt": "User-friendly glob matching",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/globby",
       "version": "14.0.1",
@@ -1057,7 +1257,9 @@
     "id": "task-063",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Terminal string styling done right",
+    "prompt": "Terminal string styling done right",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/chalk",
       "version": "5.3.0",
@@ -1074,7 +1276,9 @@
     "id": "task-064",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Tiny and fast library for terminal colors",
+    "prompt": "Tiny and fast library for terminal colors",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/picocolors",
       "version": "1.0.1",
@@ -1091,7 +1295,9 @@
     "id": "task-065",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Highly configurable logging utility",
+    "prompt": "Highly configurable logging utility",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/signale",
       "version": "1.4.0",
@@ -1108,7 +1314,9 @@
     "id": "task-066",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Simple to use, blazingly fast WebSocket client and server",
+    "prompt": "Simple to use, blazingly fast WebSocket client and server",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/ws",
       "version": "8.17.0",
@@ -1125,7 +1333,9 @@
     "id": "task-067",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Fast, flexible, and lean implementation of core jQuery",
+    "prompt": "Fast, flexible, and lean implementation of core jQuery",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/cheerio",
       "version": "1.0.0",
@@ -1142,7 +1352,9 @@
     "id": "task-068",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Headless Chrome Node.js API",
+    "prompt": "Headless Chrome Node.js API",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/puppeteer",
       "version": "22.10.0",
@@ -1159,7 +1371,9 @@
     "id": "task-069",
     "category": "supported",
     "ecosystem": "npm",
-    "prompt": "Recommend a maintained package for: Expressive HTTP middleware framework for node.js",
+    "prompt": "Expressive HTTP middleware framework for node.js",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:npm/koa",
       "version": "2.15.3",
@@ -1176,7 +1390,9 @@
     "id": "task-070",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Next-generation HTTP client for Python",
+    "prompt": "Next-generation HTTP client for Python",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/httpx",
       "version": "0.27.0",
@@ -1193,7 +1409,9 @@
     "id": "task-071",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: FastAPI framework, high performance, easy to learn",
+    "prompt": "FastAPI framework, high performance, easy to learn",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/fastapi",
       "version": "0.111.0",
@@ -1210,7 +1428,9 @@
     "id": "task-072",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: An ASGI web server, for Python",
+    "prompt": "An ASGI web server, for Python",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/uvicorn",
       "version": "0.30.0",
@@ -1227,7 +1447,9 @@
     "id": "task-073",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: An extremely fast Python linter and code formatter",
+    "prompt": "An extremely fast Python linter and code formatter",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/ruff",
       "version": "0.4.5",
@@ -1244,7 +1466,9 @@
     "id": "task-074",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Simple powerful testing with Python",
+    "prompt": "Simple powerful testing with Python",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/pytest",
       "version": "8.2.1",
@@ -1261,7 +1485,9 @@
     "id": "task-075",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Optional static typing for Python",
+    "prompt": "Optional static typing for Python",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/mypy",
       "version": "1.10.0",
@@ -1278,7 +1504,9 @@
     "id": "task-076",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Render rich text and beautiful formatting in the terminal",
+    "prompt": "Render rich text and beautiful formatting in the terminal",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/rich",
       "version": "13.7.1",
@@ -1295,7 +1523,9 @@
     "id": "task-077",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Composable command line interface toolkit",
+    "prompt": "Composable command line interface toolkit",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/click",
       "version": "8.1.7",
@@ -1312,7 +1542,9 @@
     "id": "task-078",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Typer, build great CLIs. Easy to code. Based on Python type hints",
+    "prompt": "Typer, build great CLIs. Easy to code. Based on Python type hints",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/typer",
       "version": "0.12.3",
@@ -1329,7 +1561,9 @@
     "id": "task-079",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Database Abstraction Library",
+    "prompt": "Database Abstraction Library",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/sqlalchemy",
       "version": "2.0.30",
@@ -1346,7 +1580,9 @@
     "id": "task-080",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: A database migration tool for SQLAlchemy",
+    "prompt": "A database migration tool for SQLAlchemy",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/alembic",
       "version": "1.13.1",
@@ -1363,7 +1599,9 @@
     "id": "task-081",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Data validation using Python type hints",
+    "prompt": "Data validation using Python type hints",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/pydantic",
       "version": "2.7.2",
@@ -1380,7 +1618,9 @@
     "id": "task-082",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Blazingly fast DataFrames in Rust, Python, and Node.js",
+    "prompt": "Blazingly fast DataFrames in Rust, Python, and Node.js",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/polars",
       "version": "0.20.28",
@@ -1397,7 +1637,9 @@
     "id": "task-083",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Powerful data structures for data analysis, time series, and statistics",
+    "prompt": "Powerful data structures for data analysis, time series, and statistics",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/pandas",
       "version": "2.2.2",
@@ -1414,7 +1656,9 @@
     "id": "task-084",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Fundamental package for scientific computing with Python",
+    "prompt": "Fundamental package for scientific computing with Python",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/numpy",
       "version": "1.26.4",
@@ -1431,7 +1675,9 @@
     "id": "task-085",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Fundamental algorithms for scientific computing in Python",
+    "prompt": "Fundamental algorithms for scientific computing in Python",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/scipy",
       "version": "1.13.0",
@@ -1448,7 +1694,9 @@
     "id": "task-086",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Fast, correct Python JSON library",
+    "prompt": "Fast, correct Python JSON library",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/orjson",
       "version": "3.10.3",
@@ -1465,7 +1713,9 @@
     "id": "task-087",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Structured Logging for Python",
+    "prompt": "Structured Logging for Python",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/structlog",
       "version": "24.1.0",
@@ -1482,7 +1732,9 @@
     "id": "task-088",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Python logging made (stupidly) simple",
+    "prompt": "Python logging made (stupidly) simple",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/loguru",
       "version": "0.7.2",
@@ -1499,7 +1751,9 @@
     "id": "task-089",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Distributed Task Queue",
+    "prompt": "Distributed Task Queue",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/celery",
       "version": "5.4.0",
@@ -1516,7 +1770,9 @@
     "id": "task-090",
     "category": "supported",
     "ecosystem": "pypi",
-    "prompt": "Recommend a maintained package for: Python client for Redis database and key-value store",
+    "prompt": "Python client for Redis database and key-value store",
+    "targetFile": "requirements.txt",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:pypi/redis",
       "version": "5.0.4",
@@ -1533,7 +1789,9 @@
     "id": "task-091",
     "category": "supported",
     "ecosystem": "github-actions",
-    "prompt": "Recommend a maintained package for: Checkout a Git repository at a particular version",
+    "prompt": "Checkout a Git repository at a particular version",
+    "targetFile": ".github/workflows/ci.yml",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:github/actions/checkout",
       "version": "5.0.0",
@@ -1550,7 +1808,9 @@
     "id": "task-092",
     "category": "supported",
     "ecosystem": "github-actions",
-    "prompt": "Recommend a maintained package for: Setup your GitHub Actions workflow with a specific version of node.js",
+    "prompt": "Setup your GitHub Actions workflow with a specific version of node.js",
+    "targetFile": ".github/workflows/ci.yml",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:github/actions/setup-node",
       "version": "5.0.0",
@@ -1567,7 +1827,9 @@
     "id": "task-093",
     "category": "supported",
     "ecosystem": "github-actions",
-    "prompt": "Recommend a maintained package for: Cache dependencies and build outputs in GitHub Actions",
+    "prompt": "Cache dependencies and build outputs in GitHub Actions",
+    "targetFile": ".github/workflows/ci.yml",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:github/actions/cache",
       "version": "5.0.0",
@@ -1584,7 +1846,9 @@
     "id": "task-094",
     "category": "supported",
     "ecosystem": "container",
-    "prompt": "Recommend a maintained package for: Node.js official container image",
+    "prompt": "Node.js official container image",
+    "targetFile": "Dockerfile",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:docker/library/node",
       "version": "24.0.0",
@@ -1601,7 +1865,9 @@
     "id": "task-095",
     "category": "supported",
     "ecosystem": "container",
-    "prompt": "Recommend a maintained package for: Python official container image",
+    "prompt": "Python official container image",
+    "targetFile": "Dockerfile",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:docker/library/python",
       "version": "3.12.0",
@@ -1618,7 +1884,9 @@
     "id": "task-096",
     "category": "supported",
     "ecosystem": "container",
-    "prompt": "Recommend a maintained package for: PostgreSQL database official image",
+    "prompt": "PostgreSQL database official image",
+    "targetFile": "Dockerfile",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:docker/library/postgres",
       "version": "16.0.0",
@@ -1635,7 +1903,9 @@
     "id": "task-097",
     "category": "supported",
     "ecosystem": "generic",
-    "prompt": "Recommend a maintained package for: Node.js JavaScript runtime environment",
+    "prompt": "Node.js JavaScript runtime environment",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:generic/nodejs",
       "version": "24.0.0",
@@ -1652,7 +1922,9 @@
     "id": "task-098",
     "category": "supported",
     "ecosystem": "generic",
-    "prompt": "Recommend a maintained package for: Go programming language runtime and compiler",
+    "prompt": "Go programming language runtime and compiler",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:generic/go",
       "version": "1.23.0",
@@ -1669,7 +1941,9 @@
     "id": "task-099",
     "category": "supported",
     "ecosystem": "generic",
-    "prompt": "Recommend a maintained package for: Ruby programming language runtime",
+    "prompt": "Ruby programming language runtime",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:generic/ruby",
       "version": "3.3.0",
@@ -1686,7 +1960,9 @@
     "id": "task-100",
     "category": "supported",
     "ecosystem": "generic",
-    "prompt": "Recommend a maintained package for: PHP scripting language runtime",
+    "prompt": "PHP scripting language runtime",
+    "targetFile": "package.json",
+    "badPurls": [],
     "baselinePick": {
       "purl": "pkg:generic/php",
       "version": "8.3.0",

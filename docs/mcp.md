@@ -507,3 +507,9 @@ Do **not** run this against an unpublished version. After `@velella/ebb` is on n
    Send a JSON-RPC `initialize` on stdin. Assert `result.serverInfo.name` equals the installed package name and `result.serverInfo.version` equals the installed `package.json` `version` (read from the npx install under that cache). Then close stdin.
 
 Pre-merge coverage of the same install path uses the packed tarball stdio test (`tests/mcp/packed.test.ts`) against the version in this repo's `package.json` in an empty temp directory.
+
+---
+
+## Benchmark Evaluations
+
+To inspect empirical benchmark results measuring agent accuracy with and without the Ebb MCP server, see [Agent Evaluations](agent-evals.md).

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/velella-sh/ebb/schemas/eval-task.v1.schema.json",
+  "title": "Ebb Agent Evaluation Task",
+  "description": "Benchmark tasks evaluating AI coding agents on dependency and runtime selection tasks with and without Ebb lifecycle checks.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "category",
+      "ecosystem",
+      "prompt",
+      "targetFile",
+      "badPurls",
+      "baselinePick",
+      "modernPick",
+      "replacement"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^task-\\d{3}$"
+      },
+      "category": {
+        "type": "string"
+      },
+      "ecosystem": {
+        "type": "string"
+      },
+      "prompt": {
+        "type": "string",
+        "minLength": 5
+      },
+      "targetFile": {
+        "type": "string",
+        "minLength": 1
+      },
+      "badPurls": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^pkg:"
+        }
+      },
+      "baselinePick": {
+        "type": "object",
+        "required": ["purl", "version", "rationale"],
+        "properties": {
+          "purl": { "type": "string", "pattern": "^pkg:" },
+          "version": { "type": "string" },
+          "rationale": { "type": "string" }
+        }
+      },
+      "modernPick": {
+        "type": "object",
+        "required": ["purl", "version", "rationale"],
+        "properties": {
+          "purl": { "type": "string", "pattern": "^pkg:" },
+          "version": { "type": "string" },
+          "rationale": { "type": "string" }
+        }
+      },
+      "replacement": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  }
+}

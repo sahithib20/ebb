@@ -1,23 +1,22 @@
-import { type EvalTask, type PickEvaluation, evaluatePick } from "../score.js";
+import { createTempRunDir, simulatedCodexRunner } from "../runner.js";
+import { type EvalTask, type PickEvaluation, scoreRunFiles } from "../score.js";
 
 export interface RunnerOptions {
   mode: "baseline" | "mcp" | "skill";
 }
 
 /**
- * Runner simulating OpenAI Codex / Cursor agent behavior on dependency/runtime selection tasks.
- * - In "baseline" mode, Codex selects packages based on historical frequency in training datasets.
- * - In "mcp" or "skill" mode, the agent consults Ebb before finalizing code completions.
+ * Runner executing Codex / Cursor evaluation via the runner interface (simulated by default).
+ * Evaluates tasks by scoring the actual files written in the run directory.
  */
 export function runCodex(tasks: EvalTask[], options: RunnerOptions): PickEvaluation[] {
   const evaluations: PickEvaluation[] = [];
 
   for (const task of tasks) {
-    if (options.mode === "baseline") {
-      evaluations.push(evaluatePick(task.id, task.baselinePick.purl, task.baselinePick.version));
-    } else {
-      evaluations.push(evaluatePick(task.id, task.modernPick.purl, task.modernPick.version));
-    }
+    const tempDir = createTempRunDir();
+    const result = simulatedCodexRunner.run(task, options.mode, tempDir);
+    const scored = scoreRunFiles(task, result.files, result.date);
+    evaluations.push(scored);
   }
 
   return evaluations;
@@ -27,7 +26,7 @@ export function runCodex(tasks: EvalTask[], options: RunnerOptions): PickEvaluat
  * Formats a task for Codex / Cursor completion.
  */
 export function formatCodexPrompt(task: EvalTask, withEbb = false): string {
-  const context = `// Task: ${task.prompt}\n// Ecosystem: ${task.ecosystem}`;
+  const context = `// Task: ${task.prompt}\n// Ecosystem: ${task.ecosystem}\n// File: ${task.targetFile || "package.json"}`;
   if (!withEbb) return `${context}\n// Generate dependency configuration:\n`;
 
   return `// Context: Ebb verification enabled. Check deprecations before suggesting packages.\n${context}\n// Generate verified dependency configuration:\n`;
