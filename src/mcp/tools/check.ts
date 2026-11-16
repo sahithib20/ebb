@@ -1,6 +1,10 @@
 import { asOf, check } from "../../index.js";
 import { formatCheckResult } from "../format.js";
 import type { McpTool, McpToolResult } from "../types.js";
+import { isIsoDate } from "../../registry.js";
+import { resolveCandidateRules } from "../../check-core.js";
+import { purlToEcosystems } from "../../data/load.js";
+import { loadDataFileSync } from "../../data-source.js";
 
 export function extractPurlAndVersion(
   purlInput: string,
@@ -24,11 +28,25 @@ export function extractPurlAndVersion(
   return { purl: trimmedPurl, version: undefined };
 }
 
+function getEcosystemRuleCount(purl: string): { ecosystem: string; count: number } {
+  try {
+    const ecosystems = purlToEcosystems(purl);
+    const primary = ecosystems[0] ?? "unknown";
+    if (primary && primary !== "unknown") {
+      const data = loadDataFileSync(`registry/${primary}.json`) as { rules?: unknown[] };
+      return { ecosystem: primary, count: data.rules?.length ?? 0 };
+    }
+  } catch {
+    // fallback if data cannot be loaded
+  }
+  return { ecosystem: "unknown", count: 0 };
+}
+
 export const checkTool: McpTool = {
   definition: {
     name: "check",
     description:
-      "Check a package URL (PURL) or software product at a specific version against known end-of-life and deprecation dates.",
+      'Call before installing or upgrading a package or runtime version. Checks against known end-of-life and deprecation dates. Example: {"purl":"pkg:npm/request@2.88.2"}.',
     inputSchema: {
       type: "object",
       properties: {
@@ -41,12 +59,34 @@ export const checkTool: McpTool = {
           type: "string",
           description: "Version string to check (e.g. '2.88.2'). If omitted, version embedded in the PURL is used.",
         },
-        asOf: {
+        as_of: {
           type: "string",
           description: "Optional reference date in YYYY-MM-DD format to compute daysLeft relative to.",
         },
+        asOf: {
+          type: "string",
+          description: "Alias for as_of.",
+        },
       },
       required: ["purl"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        schemaVersion: { type: "number" },
+        status: { type: "string" },
+        version: { type: "string" },
+        purl: { type: "string" },
+        asOf: { type: "string" },
+        dataVersion: { type: "string" },
+        matches: { type: "array" },
+        provenance: { type: "object" },
+        message: { type: "string" },
+        ecosystem: { type: "string" },
+        ecosystemRules: { type: "number" },
+        verificationAdvice: { type: "string" },
+      },
+      required: ["status", "matches"],
     },
   },
   handler: (args: Record<string, unknown>): McpToolResult => {
@@ -64,7 +104,20 @@ export const checkTool: McpTool = {
     }
 
     const explicitVersion = typeof args.version === "string" ? args.version : undefined;
-    const asOfArg = typeof args.asOf === "string" ? args.asOf : undefined;
+    const asOfArg =
+      typeof args.as_of === "string" ? args.as_of.trim() : typeof args.asOf === "string" ? args.asOf.trim() : undefined;
+
+    if (asOfArg !== undefined && !isIsoDate(asOfArg)) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error: 'as_of' must be a valid date (YYYY-MM-DD), got "${asOfArg}".`,
+          },
+        ],
+        isError: true,
+      };
+    }
 
     const { purl, version } = extractPurlAndVersion(purlArg, explicitVersion);
 
@@ -83,6 +136,49 @@ export const checkTool: McpTool = {
     try {
       const rawResult = asOfArg ? asOf(asOfArg).check(purl, version) : check(purl, version);
       const result = formatCheckResult(rawResult);
+
+      let isUnknown = false;
+      let ecoInfo = { ecosystem: "unknown", count: 0 };
+      if (rawResult.matches.length === 0) {
+        try {
+          const candidates = resolveCandidateRules(purl);
+          if (candidates.length === 0) {
+            isUnknown = true;
+            ecoInfo = getEcosystemRuleCount(purl);
+          }
+        } catch {
+          // Keep standard result
+        }
+      }
+
+      if (isUnknown) {
+        const unknownMessage = `Ebb has no rule for this component (${purl}). This is not proof of support. Ebb knows ${ecoInfo.count} rules for the ${ecoInfo.ecosystem} ecosystem.`;
+        const structured = {
+          ...result,
+          status: "unknown",
+          message: unknownMessage,
+          ecosystem: ecoInfo.ecosystem,
+          ecosystemRules: ecoInfo.count,
+        };
+        const textPayload = {
+          ...result,
+          message: unknownMessage,
+          ecosystem: ecoInfo.ecosystem,
+          ecosystemRules: ecoInfo.count,
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(textPayload, null, 2),
+            },
+          ],
+          structuredContent: structured as unknown as Record<string, unknown>,
+          isError: false,
+        };
+      }
+
       return {
         content: [
           {
@@ -90,6 +186,7 @@ export const checkTool: McpTool = {
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result as unknown as Record<string, unknown>,
         isError: false,
       };
     } catch (err) {

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const serverPath = fileURLToPath(new URL("./run-stdio-server.js", import.meta.url));
 
 describe("MCP Server End-to-End (real stdio pipes)", () => {
-  it("executes complete lifecycle: handshake, tools/list, tool invocations, and resource reads", async () => {
+  it("executes complete lifecycle: handshake, tools/list, calling every tool, and resource reads", async () => {
     const child = spawn(process.execPath, [serverPath], {
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -92,7 +92,7 @@ describe("MCP Server End-to-End (real stdio pipes)", () => {
     assert.equal(pingResp.id, 2);
     assert.deepEqual(pingResp.result, {});
 
-    // 4. tools/list
+    // 4. tools/list: all 8 tools registered
     send({
       jsonrpc: "2.0",
       id: 3,
@@ -101,9 +101,15 @@ describe("MCP Server End-to-End (real stdio pipes)", () => {
     const listResp = await waitForResponse(3);
     assert.equal(listResp.id, 3);
     const toolNames = listResp.result.tools.map((t: { name: string }) => t.name);
+    assert.equal(toolNames.length, 8);
     assert.ok(toolNames.includes("check"));
     assert.ok(toolNames.includes("check_all"));
+    assert.ok(toolNames.includes("check_install"));
+    assert.ok(toolNames.includes("diff"));
+    assert.ok(toolNames.includes("pick_version"));
     assert.ok(toolNames.includes("replacement_for"));
+    assert.ok(toolNames.includes("sources_of"));
+    assert.ok(toolNames.includes("upcoming"));
 
     // 5. tools/call check
     send({
@@ -124,6 +130,7 @@ describe("MCP Server End-to-End (real stdio pipes)", () => {
     assert.equal(checkResult.status, "deprecated");
     assert.ok(checkResult.provenance.sources.length > 0);
     assert.ok(checkResult.provenance.reviewers.length > 0);
+    assert.ok(checkResp.result.structuredContent);
 
     // 6. tools/call check_all
     send({
@@ -143,11 +150,70 @@ describe("MCP Server End-to-End (real stdio pipes)", () => {
     const checkAllResult = JSON.parse(checkAllResp.result.content[0].text);
     assert.equal(checkAllResult.summary.total, 2);
     assert.equal(checkAllResult.results.length, 2);
+    assert.ok(checkAllResp.result.structuredContent);
 
-    // 7. tools/call replacement_for
+    // 7. tools/call check_install
     send({
       jsonrpc: "2.0",
       id: 6,
+      method: "tools/call",
+      params: {
+        name: "check_install",
+        arguments: {
+          command: "npm install request@2.88.2 express@4.18.2",
+        },
+      },
+    });
+    const checkInstallResp = await waitForResponse(6);
+    assert.equal(checkInstallResp.id, 6);
+    assert.equal(checkInstallResp.result.isError, false);
+    const checkInstallResult = JSON.parse(checkInstallResp.result.content[0].text);
+    assert.equal(checkInstallResult.packages.length, 2);
+    assert.ok(checkInstallResp.result.structuredContent);
+
+    // 8. tools/call diff
+    send({
+      jsonrpc: "2.0",
+      id: 7,
+      method: "tools/call",
+      params: {
+        name: "diff",
+        arguments: {
+          from: "bundled",
+          to: "active",
+          format: "json",
+        },
+      },
+    });
+    const diffResp = await waitForResponse(7);
+    assert.equal(diffResp.id, 7);
+    assert.equal(diffResp.result.isError, false);
+    assert.ok(diffResp.result.structuredContent);
+
+    // 9. tools/call pick_version
+    send({
+      jsonrpc: "2.0",
+      id: 8,
+      method: "tools/call",
+      params: {
+        name: "pick_version",
+        arguments: {
+          purl: "node",
+          as_of: "2026-11-15",
+        },
+      },
+    });
+    const pickResp = await waitForResponse(8);
+    assert.equal(pickResp.id, 8);
+    assert.equal(pickResp.result.isError, false);
+    const pickResult = JSON.parse(pickResp.result.content[0].text);
+    assert.ok(pickResult.lines.length > 0);
+    assert.ok(pickResp.result.structuredContent);
+
+    // 10. tools/call replacement_for
+    send({
+      jsonrpc: "2.0",
+      id: 9,
       method: "tools/call",
       params: {
         name: "replacement_for",
@@ -156,37 +222,76 @@ describe("MCP Server End-to-End (real stdio pipes)", () => {
         },
       },
     });
-    const repResp = await waitForResponse(6);
-    assert.equal(repResp.id, 6);
+    const repResp = await waitForResponse(9);
+    assert.equal(repResp.id, 9);
     assert.equal(repResp.result.isError, false);
     const repResult = JSON.parse(repResp.result.content[0].text);
     assert.ok(repResult.replacement);
+    assert.ok(repResp.result.structuredContent);
 
-    // 8. resources/list
+    // 11. tools/call sources_of
     send({
       jsonrpc: "2.0",
-      id: 7,
+      id: 10,
+      method: "tools/call",
+      params: {
+        name: "sources_of",
+        arguments: {
+          ruleId: "npm.package.request.deprecated",
+        },
+      },
+    });
+    const sourcesResp = await waitForResponse(10);
+    assert.equal(sourcesResp.id, 10);
+    assert.equal(sourcesResp.result.isError, false);
+    const sourcesResult = JSON.parse(sourcesResp.result.content[0].text);
+    assert.equal(sourcesResult.ruleId, "npm.package.request.deprecated");
+    assert.ok(sourcesResp.result.structuredContent);
+
+    // 12. tools/call upcoming
+    send({
+      jsonrpc: "2.0",
+      id: 11,
+      method: "tools/call",
+      params: {
+        name: "upcoming",
+        arguments: {
+          as_of: "2026-01-01",
+        },
+      },
+    });
+    const upcomingResp = await waitForResponse(11);
+    assert.equal(upcomingResp.id, 11);
+    assert.equal(upcomingResp.result.isError, false);
+    const upcomingResult = JSON.parse(upcomingResp.result.content[0].text);
+    assert.ok(upcomingResult.count > 0);
+    assert.ok(upcomingResp.result.structuredContent);
+
+    // 13. resources/list
+    send({
+      jsonrpc: "2.0",
+      id: 12,
       method: "resources/list",
     });
-    const resListResp = await waitForResponse(7);
-    assert.equal(resListResp.id, 7);
+    const resListResp = await waitForResponse(12);
+    assert.equal(resListResp.id, 12);
     assert.ok(resListResp.result.resources.some((r: { uri: string }) => r.uri === "ebb://upcoming"));
 
-    // 9. resources/read
+    // 14. resources/read
     send({
       jsonrpc: "2.0",
-      id: 8,
+      id: 13,
       method: "resources/read",
       params: {
         uri: "ebb://upcoming",
       },
     });
-    const resReadResp = await waitForResponse(8);
-    assert.equal(resReadResp.id, 8);
+    const resReadResp = await waitForResponse(13);
+    assert.equal(resReadResp.id, 13);
     const upcomingData = JSON.parse(resReadResp.result.contents[0].text);
     assert.ok(upcomingData.count > 0);
 
-    // 10. Clean exit on EOF
+    // 15. Clean exit on EOF
     child.stdin.end();
     await new Promise<void>((resolve) => {
       child.on("exit", () => resolve());

@@ -6,7 +6,7 @@ export const replacementForTool: McpTool = {
   definition: {
     name: "replacement_for",
     description:
-      "Get the recommended replacement package or migration target for a deprecated or end-of-life component version.",
+      'Call when a component is deprecated or end-of-life to find recommended migration targets or alternatives. Example: {"purl":"pkg:npm/request","version":"2.88.2"}.',
     inputSchema: {
       type: "object",
       properties: {
@@ -21,6 +21,15 @@ export const replacementForTool: McpTool = {
         },
       },
       required: ["purl"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        purl: { type: "string" },
+        version: { type: "string" },
+        replacement: { type: ["string", "null"] },
+      },
+      required: ["purl", "version"],
     },
   },
   handler: (args: Record<string, unknown>): McpToolResult => {
@@ -54,21 +63,19 @@ export const replacementForTool: McpTool = {
 
     try {
       const replacement = replacementFor(purl, version);
+      const payload = {
+        purl,
+        version,
+        replacement,
+      };
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify(
-              {
-                purl,
-                version,
-                replacement,
-              },
-              null,
-              2,
-            ),
+            text: JSON.stringify(payload, null, 2),
           },
         ],
+        structuredContent: payload,
         isError: false,
       };
     } catch (err) {

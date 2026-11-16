@@ -50,6 +50,7 @@ export interface McpToolDefinition {
   name: string;
   description: string;
   inputSchema: McpToolInputSchema;
+  outputSchema?: Record<string, unknown>;
 }
 
 export interface McpTextContent {

@@ -122,50 +122,288 @@ gemini mcp add ebb -- npx -y @velella/ebb mcp
 <!-- /mcp-print-config:zed -->
 :::
 
+## Ask before you install
+
+Before running an install command, updating `package.json` / `requirements.txt`, or choosing a runtime version, coding agents should consult Ebb over MCP:
+
+1. **Before running a package install command:** Call `check_install` with the exact command (e.g. `npm install request@2.88.2` or `pip install flask`). Ebb parses the packages, extracts version constraints, and checks all of them against authoritative lifecycle rules without executing shell commands or reading disk.
+2. **Before installing or upgrading a specific package:** Call `check` with a PURL or product name and version. If the package is deprecated or past end-of-life, Ebb returns the deadline, authoritative evidence URLs, review dates, confidence tiers, and recommended replacement.
+3. **Before picking a runtime or major version:** Call `pick_version` (e.g. `{ "purl": "node" }`) to inspect active release lines and receive the recommended supported version.
+4. **Before planning maintenance or sprint cycles:** Call `upcoming` to see upcoming scheduled end-of-life events within a lookahead window (e.g. 90 days).
+
 ## Tools
 
 The server provides these tools over JSON-RPC 2.0:
 
+| Tool | Description |
+|---|---|
+| `check` | Call before installing or upgrading a package or runtime version. Checks against known end-of-life and deprecation dates. |
+| `check_all` | Call before installing or auditing multiple packages or dependencies in batch. Checks each against known end-of-life and deprecation dates. |
+| `check_install` | Call before running an install command. Parses package manager commands (npm, pnpm, yarn, bun, pip, cargo, go) and checks every package against lifecycle rules. |
+| `diff` | Call to compare two lifecycle data versions, dates, files, or active data and inspect added, changed, or removed rules. |
+| `pick_version` | Call before choosing a runtime or a major version. Returns known release lines, the recommended line, and whether coverage is complete. |
+| `replacement_for` | Call when a component is deprecated or end-of-life to find recommended migration targets or alternatives. |
+| `sources_of` | Call to inspect authoritative sources, archive snapshot URLs, health status, and review provenance for a lifecycle rule. |
+| `upcoming` | Call before planning upgrades to list scheduled deprecation and end-of-life deadlines within a time window. |
+
 ### `check`
-Evaluates a single component against active lifecycle rules.
+Call before installing or upgrading a package or runtime version. Checks against known end-of-life and deprecation dates.
+
 - **Parameters**:
-  - `purl` *(string, required)*: Package URL (e.g. `pkg:npm/left-pad@1.3.0` or `pkg:generic/nodejs@18.20.4`).
+  - `purl` *(string, required)*: Package URL (e.g. `pkg:npm/request@2.88.2`, `pkg:npm/request`) or bare product name (e.g. `node`).
   - `version` *(string, optional)*: Component version (if omitted, extracted from the PURL).
-  - `asOf` *(string, optional)*: Reference date `YYYY-MM-DD`.
-- **Returns**: Formatted text containing the verdict, rule identifier, effective date, authoritative sources, reviewer identity, and suggested replacement.
+  - `as_of` *(string, optional)*: Reference date `YYYY-MM-DD` for time-travel evaluation.
+- **Example call**:
+  ```json
+  {
+    "name": "check",
+    "arguments": {
+      "purl": "pkg:npm/request@2.88.2"
+    }
+  }
+  ```
+- **Example answer**:
+  ```json
+  {
+    "schemaVersion": 1,
+    "status": "deprecated",
+    "version": "2.88.2",
+    "dataVersion": "0.3.0",
+    "matches": [
+      {
+        "ruleId": "npm.package.request.deprecated",
+        "event": "deprecated",
+        "date": "2020-02-11",
+        "daysLeft": null,
+        "replacement": "undici",
+        "sources": [
+          { "url": "https://github.com/request/request/issues/3142" }
+        ],
+        "reviewedAt": "2026-11-14",
+        "confidence": "confirmed"
+      }
+    ],
+    "provenance": {
+      "sources": ["https://github.com/request/request/issues/3142"],
+      "reviewers": ["arminazimi"]
+    }
+  }
+  ```
 
 ### `check_all`
-Evaluates a batch of components in a single round-trip.
+Call before installing or auditing multiple packages or dependencies in batch. Checks each against known end-of-life and deprecation dates.
+
 - **Parameters**:
-  - `purls` *(array, required)*: List of PURL strings or `{ purl, version? }` objects.
-- **Returns**: Markdown or JSON report with a summary table, counts by status, and individual findings.
+  - `items` *(array, optional)*: Array of PURL strings or `{ purl, version? }` objects.
+  - `purls` *(array, optional)*: Alias for `items`.
+  - `as_of` *(string, optional)*: Reference date `YYYY-MM-DD`.
+- **Example call**:
+  ```json
+  {
+    "name": "check_all",
+    "arguments": {
+      "items": ["pkg:npm/request@2.88.2", { "purl": "pkg:npm/left-pad", "version": "1.3.0" }]
+    }
+  }
+  ```
+- **Example answer**:
+  ```json
+  {
+    "summary": { "total": 2, "byStatus": { "deprecated": 2 } },
+    "dataVersion": "0.3.0",
+    "results": [
+      { "status": "deprecated", "version": "2.88.2", "matches": [...] },
+      { "status": "deprecated", "version": "1.3.0", "matches": [...] }
+    ],
+    "provenance": { "sources": [...], "reviewers": [...] }
+  }
+  ```
+
+### `check_install`
+Call before running an install command. Parses package manager commands (npm, pnpm, yarn, bun, pip, cargo, go) and checks every package against lifecycle rules.
+
+- **Parameters**:
+  - `command` *(string, required)*: Raw shell install command string.
+  - `as_of` *(string, optional)*: Reference date `YYYY-MM-DD`.
+- **Example call**:
+  ```json
+  {
+    "name": "check_install",
+    "arguments": {
+      "command": "npm install request@2.88.2 express@4.18.2"
+    }
+  }
+  ```
+- **Example answer**:
+  ```json
+  {
+    "command": "npm install request@2.88.2 express@4.18.2",
+    "packages": [
+      { "purl": "pkg:npm/request", "version": "2.88.2" },
+      { "purl": "pkg:npm/express", "version": "4.18.2" }
+    ],
+    "summary": { "total": 2, "byStatus": { "deprecated": 1, "ok": 1 } },
+    "results": [...]
+  }
+  ```
+
+### `diff`
+Call to compare two lifecycle data versions, dates, files, or active data and inspect added, changed, or removed rules.
+
+- **Parameters**:
+  - `from` *(string, optional)*: Starting version, date, file path, `bundled`, or `active` (default `bundled`).
+  - `to` *(string, optional)*: Target version, date, file path, or `active` (default `active`).
+  - `ecosystem` *(string, optional)*: Ecosystem filter.
+  - `format` *(string, optional)*: `markdown` (default) or `json`.
+- **Example call**:
+  ```json
+  {
+    "name": "diff",
+    "arguments": {
+      "from": "bundled",
+      "to": "active",
+      "format": "json"
+    }
+  }
+  ```
+- **Example answer**:
+  ```json
+  {
+    "from": "bundled",
+    "to": "active",
+    "summary": { "added": 0, "changed": 0, "removed": 0, "renamed": 0 },
+    "added": [],
+    "changed": [],
+    "removed": [],
+    "renamed": []
+  }
+  ```
 
 ### `pick_version`
-Call this before choosing a runtime or a major version. It returns the release lines Ebb knows, the line it recommends, and whether that list is complete.
+Call before choosing a runtime or a major version. Returns known release lines, the recommended line, and whether coverage is complete.
+
 - **Parameters**:
-  - `purl` *(string, required)*: Package URL or product name (e.g. `node`, `pkg:generic/python`).
-  - `as_of` *(string, optional)*: Reference date `YYYY-MM-DD`. When set, the clock is not read.
-- **Returns**: JSON text with `lines`, `recommendation`, `complete`, `reason`, `notes`, and a text `summary`, plus the library result as `structuredContent` (no summary). A line is recommended only when the library recommends it. Worked calls: `{ "purl": "node", "as_of": "2026-11-15" }` recommends `26.x`; `{ "purl": "python", "as_of": "2026-11-15" }` recommends `3.15`; `{ "purl": "pkg:npm/request", "as_of": "2026-11-15" }` returns line `*` and no recommendation.
+  - `purl` *(string, required)*: Package URL or product name (e.g. `node`, `python`, `pkg:generic/nodejs`).
+  - `as_of` *(string, optional)*: Reference date `YYYY-MM-DD`. When set, the system clock is not read.
+- **Example call**:
+  ```json
+  {
+    "name": "pick_version",
+    "arguments": {
+      "purl": "node",
+      "as_of": "2026-11-15"
+    }
+  }
+  ```
+- **Example answer**:
+  ```json
+  {
+    "purl": "pkg:generic/nodejs",
+    "asOf": "2026-11-15",
+    "lines": [{ "id": "22.x" }, { "id": "24.x" }, { "id": "26.x" }],
+    "recommendation": { "lineId": "26.x" },
+    "complete": true,
+    "reason": "recommended active line"
+  }
+  ```
 
 ### `replacement_for`
-Returns the suggested modern alternative for a deprecated component.
+Call when a component is deprecated or end-of-life to find recommended migration targets or alternatives.
+
 - **Parameters**:
   - `purl` *(string, required)*: Package URL of the retired component.
   - `version` *(string, optional)*: Specific version.
-- **Returns**: Actionable alternative or `null`.
+- **Example call**:
+  ```json
+  {
+    "name": "replacement_for",
+    "arguments": {
+      "purl": "pkg:npm/request",
+      "version": "2.88.2"
+    }
+  }
+  ```
+- **Example answer**:
+  ```json
+  {
+    "purl": "pkg:npm/request",
+    "version": "2.88.2",
+    "replacement": "undici"
+  }
+  ```
 
 ### `sources_of`
-Looks up evidence sources and provenance for a lifecycle rule.
-- **Parameters**:
-  - `ruleId` *(string, required)*: Rule id (e.g. `npm.package.request.deprecated`).
-  - `asOf` *(string, optional)*: Reference date `YYYY-MM-DD`.
+Call to inspect authoritative sources, archive snapshot URLs, health status, and review provenance for a lifecycle rule.
 
-### `diff`
-Compares two lifecycle data versions or files.
 - **Parameters**:
-  - `from` / `to` *(string, optional)*: Version, date, file path, `bundled`, or `active`.
-  - `ecosystem` *(string, optional)*: Filter.
-  - `format` *(string, optional)*: `markdown` or `json`.
+  - `ruleId` *(string, required)*: Rule identifier (e.g. `npm.package.request.deprecated`).
+  - `as_of` *(string, optional)*: Reference date `YYYY-MM-DD`.
+- **Example call**:
+  ```json
+  {
+    "name": "sources_of",
+    "arguments": {
+      "ruleId": "npm.package.request.deprecated"
+    }
+  }
+  ```
+- **Example answer**:
+  ```json
+  {
+    "ruleId": "npm.package.request.deprecated",
+    "purl": "pkg:npm/request",
+    "ecosystem": "npm",
+    "name": "request",
+    "status": "deprecated",
+    "sources": [
+      {
+        "url": "https://github.com/request/request/issues/3142",
+        "archiveUrl": "https://web.archive.org/web/...",
+        "health": "ok"
+      }
+    ],
+    "reviewer": "arminazimi",
+    "reviewedAt": "2026-11-14"
+  }
+  ```
+
+### `upcoming`
+Call before planning upgrades to list scheduled deprecation and end-of-life deadlines within a time window.
+
+- **Parameters**:
+  - `within` *(string, optional)*: Lookahead window (e.g. `30d`, `6m`, `1y`, default `10y`).
+  - `ecosystem` *(string, optional)*: Ecosystem filter (e.g. `npm`, `ci-images`, `python`).
+  - `purl` *(string, optional)*: Package URL or product name filter.
+  - `as_of` *(string, optional)*: Reference date `YYYY-MM-DD`.
+- **Example call**:
+  ```json
+  {
+    "name": "upcoming",
+    "arguments": {
+      "within": "90d",
+      "ecosystem": "npm"
+    }
+  }
+  ```
+- **Example answer**:
+  ```json
+  {
+    "asOf": "2026-11-16",
+    "count": 3,
+    "events": [
+      {
+        "ruleId": "npm.package.example.scheduled",
+        "purl": "pkg:npm/example",
+        "event": "scheduled",
+        "deadline": "2026-12-31",
+        "daysLeft": 45,
+        "replacement": null,
+        "sources": [{ "url": "https://example.com/eol" }],
+        "reviewedAt": "2026-11-10"
+      }
+    ]
+  }
+  ```
 
 ---
 

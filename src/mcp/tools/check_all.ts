@@ -2,6 +2,7 @@ import { asOf, checkAll, type CheckAllItem } from "../../index.js";
 import { formatCheckAllResult } from "../format.js";
 import type { McpTool, McpToolResult } from "../types.js";
 import { extractPurlAndVersion } from "./check.js";
+import { isIsoDate } from "../../registry.js";
 
 export function normalizeBatchItems(rawList: unknown): CheckAllItem[] {
   if (!Array.isArray(rawList)) {
@@ -30,7 +31,7 @@ export const checkAllTool: McpTool = {
   definition: {
     name: "check_all",
     description:
-      "Check multiple package URLs (PURLs) or dependencies in batch against known end-of-life and deprecation dates.",
+      'Call before installing or auditing multiple packages or dependencies in batch. Checks each against known end-of-life and deprecation dates. Example: {"items":["pkg:npm/request@2.88.2","node@18.0.0"]}.',
     inputSchema: {
       type: "object",
       properties: {
@@ -74,11 +75,25 @@ export const checkAllTool: McpTool = {
           },
           description: "Alias for items.",
         },
-        asOf: {
+        as_of: {
           type: "string",
           description: "Optional reference date in YYYY-MM-DD format for time-travel lifecycle evaluation.",
         },
+        asOf: {
+          type: "string",
+          description: "Alias for as_of.",
+        },
       },
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        results: { type: "array" },
+        summary: { type: "object" },
+        provenance: { type: "object" },
+        dataVersion: { type: "string" },
+      },
+      required: ["results", "summary", "provenance"],
     },
   },
   handler: (args: Record<string, unknown>): McpToolResult => {
@@ -95,7 +110,20 @@ export const checkAllTool: McpTool = {
       };
     }
 
-    const asOfArg = typeof args.asOf === "string" ? args.asOf : undefined;
+    const asOfArg =
+      typeof args.as_of === "string" ? args.as_of.trim() : typeof args.asOf === "string" ? args.asOf.trim() : undefined;
+
+    if (asOfArg !== undefined && !isIsoDate(asOfArg)) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error: 'as_of' must be a valid date (YYYY-MM-DD), got "${asOfArg}".`,
+          },
+        ],
+        isError: true,
+      };
+    }
 
     try {
       const items = normalizeBatchItems(rawList);
@@ -109,6 +137,7 @@ export const checkAllTool: McpTool = {
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: result as unknown as Record<string, unknown>,
         isError: false,
       };
     } catch (err) {

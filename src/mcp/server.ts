@@ -52,25 +52,31 @@ export class McpServer {
         { upcomingResource },
         { checkTool },
         { checkAllTool },
+        { checkInstallTool },
         { diffTool },
         { replacementForTool },
         { sourcesTool },
         { pickVersionTool },
+        { upcomingTool },
       ] = await Promise.all([
         import("./resources/upcoming.js"),
         import("./tools/check.js"),
         import("./tools/check_all.js"),
+        import("./tools/check_install.js"),
         import("./tools/diff.js"),
         import("./tools/replacement.js"),
         import("./tools/sources.js"),
         import("./tools/pick_version.js"),
+        import("./tools/upcoming.js"),
       ]);
       this.registerTool(checkTool);
       this.registerTool(checkAllTool);
+      this.registerTool(checkInstallTool);
       this.registerTool(diffTool);
       this.registerTool(replacementForTool);
       this.registerTool(sourcesTool);
       this.registerTool(pickVersionTool);
+      this.registerTool(upcomingTool);
       this.registerResource(upcomingResource);
     })();
     await this.builtinsPromise;
