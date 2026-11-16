@@ -140,6 +140,14 @@ $ cosign verify-blob \
 
 Every data release also publishes `release-log.jsonl`, a tamper-evident log of all data releases so far, with its own keyless signature (`release-log.jsonl.sigstore.json`). Each line is one release: version, `contentDigest`, the SHA-256 of the bundle file, the build time, the hash of the previous line, and its own hash. Because every entry commits to the one before it, changing, removing, or reordering a past release changes every later hash.
 
+You can follow data releases in four ways:
+1. **[Changelog page](/data-changelog/)**: Full release notes with links to rule definitions.
+2. **[Atom feed](/data-changelog.atom)**: Real-time syndication feed.
+3. **CLI [`ebb release-log`](/cli#ebb-release-log-options)**: Inspect local release history and digests.
+4. **Static API [`/releases.json`](/static-api)**: Machine-readable release listing with change counts.
+
+During `updateData()`, downloaded release logs are verified before being accepted into cache. Any alteration, removal, or reordering of prior releases fails the update and leaves local data intact.
+
 The release workflow downloads the previous release's log, refuses one that does not verify, appends the new bundle, and requires the result to extend the old log before signing it.
 
 Check a log, and optionally that it extends an older copy you kept:

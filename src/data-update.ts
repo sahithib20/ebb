@@ -1,8 +1,9 @@
 import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import http from "node:http";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { BUNDLED_ECOSYSTEMS, checkRollbackGuard, DataBundleError } from "./data-bundle.js";
+import { extendsReleaseLog, ReleaseLogError, verifyReleaseLog } from "./data-release-log.js";
 import {
   ACTIVE_FILE,
   BUNDLE_FILE,
@@ -16,6 +17,7 @@ import type { DataSourceOptions, VerifiedDataBundle } from "./data-source.js";
 import { type EbbErrorCode, EbbError } from "./errors.js";
 
 export const DATA_UPDATE_SCHEMA_VERSION = "ebb.data-update.v1" as const;
+export { ReleaseLogError } from "./data-release-log.js";
 
 /** Where releases are listed. `EBB_DATA_URL` points this at a mirror or, in tests, a local server. */
 export const DEFAULT_RELEASES_URL = "https://api.github.com/repos/velella-sh/ebb/releases?per_page=30";
@@ -88,7 +90,12 @@ interface ReleaseAsset {
   browser_download_url: string;
 }
 /** The newest release the listing offers that carries a bundle and its signature. */
-type LatestRelease = { version: string; bundleUrl: string; signatureUrl: string };
+type LatestRelease = {
+  version: string;
+  bundleUrl: string;
+  signatureUrl: string;
+  releaseLogUrl?: string | undefined;
+};
 
 interface Release {
   tag_name: string;
@@ -257,8 +264,14 @@ export function latestDataRelease(
     const bundle = release.assets?.find((asset) => asset.name === `ebb-data-${version}.json`);
     const signature = release.assets?.find((asset) => asset.name === `ebb-data-${version}.json.sigstore.json`);
     if (!bundle || !signature) continue;
+    const releaseLog = release.assets?.find((asset) => asset.name === "release-log.jsonl");
     if (!best || compareBundleVersions(version, best.version) > 0) {
-      best = { version, bundleUrl: bundle.browser_download_url, signatureUrl: signature.browser_download_url };
+      best = {
+        version,
+        bundleUrl: bundle.browser_download_url,
+        signatureUrl: signature.browser_download_url,
+        releaseLogUrl: releaseLog?.browser_download_url,
+      };
     }
   }
   return best;
@@ -320,6 +333,7 @@ interface PendingUpdate {
   signer: DataUpdateResult["signer"];
   rules: DataUpdateResult["rules"];
   cache: string;
+  releaseLogText?: string | undefined;
 }
 
 function describeSource(info: { source: string; version: string }): { source: string; version: string } {
@@ -521,6 +535,18 @@ export async function update(options: DataUpdateOptions = {}): Promise<DataUpdat
       options,
     );
 
+    const localLogPath = join(dirname(bundlePath), "release-log.jsonl");
+    let fromReleaseLogText: string | undefined;
+    try {
+      fromReleaseLogText = await readFile(localLogPath, "utf8");
+      if (fromReleaseLogText.trim()) {
+        verifyReleaseLog(fromReleaseLogText);
+      }
+    } catch (err) {
+      if (err instanceof ReleaseLogError) throw err;
+      // file absence is fine for local bundle update
+    }
+
     return applyUpdate(
       {
         before,
@@ -530,6 +556,7 @@ export async function update(options: DataUpdateOptions = {}): Promise<DataUpdat
         signer: verified.signer,
         rules: await ruleChanges(before, verified.bundle.files),
         cache,
+        releaseLogText: fromReleaseLogText,
       },
       options,
     );
@@ -566,6 +593,33 @@ export async function update(options: DataUpdateOptions = {}): Promise<DataUpdat
     await download(latest.signatureUrl, MAXIMUM_SIGNATURE_BYTES, `the signature of ${latest.version}`, request),
   ).toString("utf8");
   const verified = verifyRelease(latest, bytes, signature, options);
+
+  let releaseLogText: string | undefined;
+  if (latest.releaseLogUrl) {
+    const logBytes = await download(
+      latest.releaseLogUrl,
+      MAXIMUM_BUNDLE_BYTES,
+      `the release log of ${latest.version}`,
+      request,
+    );
+    releaseLogText = Buffer.from(logBytes).toString("utf8");
+    verifyReleaseLog(releaseLogText);
+    const existingLogPath = join(cache, "data", "release-log.jsonl");
+    try {
+      const existingLog = await readFile(existingLogPath, "utf8");
+      if (existingLog.trim()) {
+        if (!extendsReleaseLog(existingLog, releaseLogText)) {
+          throw new ReleaseLogError(
+            "Downloaded release log does not extend local release log: a past release was changed or removed.",
+          );
+        }
+      }
+    } catch (err) {
+      if (err instanceof ReleaseLogError) throw err;
+      // non-existent local log is fine
+    }
+  }
+
   return applyUpdate(
     {
       before,
@@ -575,6 +629,7 @@ export async function update(options: DataUpdateOptions = {}): Promise<DataUpdat
       signer: verified.signer,
       rules: await ruleChanges(before, verified.bundle.files),
       cache,
+      releaseLogText,
     },
     options,
   );
@@ -713,6 +768,9 @@ async function applyUpdate(pending: PendingUpdate, options: DataUpdateOptions): 
 
   await stageBundle(directory, bytes, signature);
   await writeAtomically(join(cache, "data", ACTIVE_FILE), `${JSON.stringify({ version })}\n`);
+  if (pending.releaseLogText) {
+    await writeAtomically(join(cache, "data", "release-log.jsonl"), pending.releaseLogText);
+  }
   await prune(cache, version);
 
   const after = await resolveActiveData(options);

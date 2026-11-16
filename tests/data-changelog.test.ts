@@ -125,12 +125,21 @@ describe("data-changelog: section formatter", () => {
 
     // npm ecosystem group
     assert.match(section, /### npm/);
-    assert.match(section, /- \*\*Added\*\* `npm\.package\.left-pad\.deprecated`.*by @contributor2 in \[#360\]/);
-    assert.match(section, /- \*\*Changed\*\* `npm\.package\.request\.deprecated`.*by @arminazimi in \[#360\]/);
+    assert.match(
+      section,
+      /- \*\*Added\*\* \[`npm\.package\.left-pad\.deprecated`\]\(https:\/\/velella\.sh\/ebb\/api\/v1\/rules\/npm\.package\.left-pad\.deprecated\.json\).*by @contributor2 in \[#360\]/,
+    );
+    assert.match(
+      section,
+      /- \*\*Changed\*\* \[`npm\.package\.request\.deprecated`\]\(https:\/\/velella\.sh\/ebb\/api\/v1\/rules\/npm\.package\.request\.deprecated\.json\).*by @arminazimi in \[#360\]/,
+    );
 
     // nodejs ecosystem group
     assert.match(section, /### nodejs/);
-    assert.match(section, /- \*\*Changed\*\* `nodejs\.runtime\.eol-18`.*deadline extended by 30 days.*by @maintainer1/);
+    assert.match(
+      section,
+      /- \*\*Changed\*\* \[`nodejs\.runtime\.eol-18`\]\(https:\/\/velella\.sh\/ebb\/api\/v1\/rules\/nodejs\.runtime\.eol-18\.json\).*deadline extended by 30 days.*by @maintainer1/,
+    );
   });
 });
 
@@ -209,5 +218,108 @@ describe("data-changelog: CLI script execution", () => {
     } finally {
       await rm(tmp, { recursive: true, force: true });
     }
+  });
+});
+
+describe("data-changelog: rule linking (release-log-6)", () => {
+  it("links every rule ID in DATA-CHANGELOG.md to the static API rule file", async () => {
+    const content = await readFile(resolve("DATA-CHANGELOG.md"), "utf8");
+    const ruleItemRegex = /- \*\*(?:Added|Changed|Removed)\*\*\s+(`[^`]+`|\[`[^`]+`\]\([^)]+\))/g;
+    let match: RegExpExecArray | null;
+    let count = 0;
+    while ((match = ruleItemRegex.exec(content)) !== null) {
+      count++;
+      const item = match[1]!;
+      assert.match(
+        item,
+        /^\[`[a-zA-Z0-9_.-]+`\]\(https:\/\/velella\.sh\/ebb\/api\/v1\/rules\/[a-zA-Z0-9_.-]+\.json\)$/,
+        `Rule entry "${item}" must be a link to its static API rule file`,
+      );
+    }
+    assert.ok(count >= 8, "Should have verified multiple rule links in DATA-CHANGELOG.md");
+  });
+
+  it("links every rule ID in docs/data-changelog.md to the static API rule file", async () => {
+    const content = await readFile(resolve("docs/data-changelog.md"), "utf8");
+    const ruleItemRegex = /- \*\*(?:Added|Changed|Removed)\*\*\s+(`[^`]+`|\[`[^`]+`\]\([^)]+\))/g;
+    let match: RegExpExecArray | null;
+    let count = 0;
+    while ((match = ruleItemRegex.exec(content)) !== null) {
+      count++;
+      const item = match[1]!;
+      assert.match(
+        item,
+        /^\[`[a-zA-Z0-9_.-]+`\]\(https:\/\/velella\.sh\/ebb\/api\/v1\/rules\/[a-zA-Z0-9_.-]+\.json\)$/,
+        `Rule entry "${item}" in docs must be a link to its static API rule file`,
+      );
+    }
+    assert.ok(count >= 8, "Should have verified multiple rule links in docs/data-changelog.md");
+  });
+});
+
+describe("data-changelog: Atom feed validation (release-log-7)", () => {
+  function validateAtomXml(xml: string) {
+    // Required feed elements
+    assert.match(xml, /<feed\s+[^>]*xmlns="http:\/\/www\.w3\.org\/2005\/Atom"[^>]*>/);
+    assert.match(xml, /<title>[^<]+<\/title>/);
+    assert.match(xml, /<id>[^<]+<\/id>/);
+    assert.match(xml, /<updated>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z<\/updated>/);
+
+    // Extract entries
+    const entryMatches = xml.match(/<entry>[\s\S]*?<\/entry>/g) ?? [];
+    assert.ok(entryMatches.length > 0, "Feed must contain at least one entry");
+
+    const seenIds = new Set<string>();
+    const dates: number[] = [];
+
+    for (const entry of entryMatches) {
+      const titleMatch = entry.match(/<title>([^<]+)<\/title>/);
+      assert.ok(titleMatch, "Entry must have a title");
+
+      const idMatch = entry.match(/<id>([^<]+)<\/id>/);
+      assert.ok(idMatch, "Entry must have an id");
+      const entryId = idMatch[1]!;
+      assert.equal(seenIds.has(entryId), false, `Duplicate entry id found: ${entryId}`);
+      seenIds.add(entryId);
+
+      const updatedMatch = entry.match(/<updated>([^<]+)<\/updated>/);
+      assert.ok(updatedMatch, "Entry must have an updated timestamp");
+      const ts = Date.parse(updatedMatch[1]!);
+      assert.ok(!Number.isNaN(ts), `Invalid date format: ${updatedMatch[1]}`);
+      dates.push(ts);
+
+      // Entry must contain summary or content
+      const hasSummaryOrContent = /<summary[^>]*>[\s\S]*?<\/summary>|<content[^>]*>[\s\S]*?<\/content>/.test(entry);
+      assert.ok(hasSummaryOrContent, `Entry ${entryId} must have summary or content`);
+    }
+
+    // Dates in order: descending / non-increasing
+    for (let i = 1; i < dates.length; i++) {
+      assert.ok(dates[i - 1]! >= dates[i]!, `Dates are not in order: ${dates[i - 1]} vs ${dates[i]}`);
+    }
+  }
+
+  it("validates docs/data-changelog.atom against Atom XML rules", async () => {
+    const xml = await readFile(resolve("docs/data-changelog.atom"), "utf8");
+    validateAtomXml(xml);
+  });
+
+  it("validates generateAtomFeed output against Atom XML rules", () => {
+    const releases: ChangelogRelease[] = [
+      {
+        version: "0.4.0",
+        date: "2026-11-14",
+        summary: "Release 0.4.0",
+        content: "<p>0.4.0 content</p>",
+      },
+      {
+        version: "0.3.0",
+        date: "2026-11-13",
+        summary: "Release 0.3.0",
+        content: "<p>0.3.0 content</p>",
+      },
+    ];
+    const xml = generateAtomFeed(releases);
+    validateAtomXml(xml);
   });
 });

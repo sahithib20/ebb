@@ -313,6 +313,12 @@ ebb diff
 # Compare two versions
 ebb diff 2026.10.01 2026.10.16
 
+# Compare active data since a specific release version
+ebb diff --since 2026.10.16
+
+# Compare active data since a release version, downloading bundle if needed
+ebb diff --since 2026.10.01 --fetch
+
 # Compare bundle files
 ebb diff dist/bundle-v1.json dist/bundle-v2.json
 
@@ -336,6 +342,23 @@ ebb data-status --json
 
 # Set a custom threshold
 ebb data-status --max-age 14
+```
+
+### `ebb release-log [options]`
+
+List signed lifecycle data releases known to the local release log (`release-log.jsonl`), including version, release date, content digest, and hash-chain verification. Reads local files only without network requests.
+
+Options:
+- `--format <text|markdown|json>`: Output format (default: text).
+- `--json`: Shortcut for `--format json`.
+
+Examples:
+```bash
+# List known data releases
+ebb release-log
+
+# Output machine-readable JSON
+ebb release-log --json
 ```
 
 ### `ebb mcp`

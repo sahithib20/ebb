@@ -15,16 +15,16 @@ An Atom feed of these data updates is published at [`data-changelog.atom`](data-
 - **Total Active:** 782 rules
 
 ### npm
-- **Added** `npm.package.left-pad.deprecated` (`pkg:npm/left-pad`): Left-pad package unpublish & deprecation notice (deprecated, vers: `*`) by @arminazimi in [#360](https://github.com/velella-sh/ebb/pull/360)
-- **Added** `npm.package.node-sass.deprecated` (`pkg:npm/node-sass`): LibSass and Node Sass officially deprecated (deprecated, vers: `*`) by @arminazimi in [#360](https://github.com/velella-sh/ebb/pull/360)
-- **Changed** `npm.package.request.deprecated` (`pkg:npm/request`): Updated replacement recommendation and source citation by @arminazimi in [#360](https://github.com/velella-sh/ebb/pull/360)
+- **Added** [`npm.package.left-pad.deprecated`](https://velella.sh/ebb/api/v1/rules/npm.package.left-pad.deprecated.json) (`pkg:npm/left-pad`): Left-pad package unpublish & deprecation notice (deprecated, vers: `*`) by @arminazimi in [#360](https://github.com/velella-sh/ebb/pull/360)
+- **Added** [`npm.package.node-sass.deprecated`](https://velella.sh/ebb/api/v1/rules/npm.package.node-sass.deprecated.json) (`pkg:npm/node-sass`): LibSass and Node Sass officially deprecated (deprecated, vers: `*`) by @arminazimi in [#360](https://github.com/velella-sh/ebb/pull/360)
+- **Changed** [`npm.package.request.deprecated`](https://velella.sh/ebb/api/v1/rules/npm.package.request.deprecated.json) (`pkg:npm/request`): Updated replacement recommendation and source citation by @arminazimi in [#360](https://github.com/velella-sh/ebb/pull/360)
 
 ### nodejs
-- **Added** `nodejs.runtime.eol-24` (`pkg:generic/nodejs`): Node.js 24 LTS lifecycle schedule (scheduled, vers: `>=24.0.0|<25.0.0`, deadline: 2028-04-30) by @arminazimi in [#355](https://github.com/velella-sh/ebb/pull/355)
-- **Changed** `nodejs.runtime.eol-22` (`pkg:generic/nodejs`): Re-verified against official Node.js Release WG schedule by @arminazimi in [#356](https://github.com/velella-sh/ebb/pull/356)
+- **Added** [`nodejs.runtime.eol-24`](https://velella.sh/ebb/api/v1/rules/nodejs.runtime.eol-24.json) (`pkg:generic/nodejs`): Node.js 24 LTS lifecycle schedule (scheduled, vers: `>=24.0.0|<25.0.0`, deadline: 2028-04-30) by @arminazimi in [#355](https://github.com/velella-sh/ebb/pull/355)
+- **Changed** [`nodejs.runtime.eol-22`](https://velella.sh/ebb/api/v1/rules/nodejs.runtime.eol-22.json) (`pkg:generic/nodejs`): Re-verified against official Node.js Release WG schedule by @arminazimi in [#356](https://github.com/velella-sh/ebb/pull/356)
 
 ### python
-- **Added** `python.runtime.eol-3.13` (`pkg:generic/python`): Python 3.13 maintenance release schedule (scheduled, vers: `>=3.13.0|<3.14.0`, deadline: 2029-10-31) by @arminazimi in [#355](https://github.com/velella-sh/ebb/pull/355)
+- **Added** [`python.runtime.eol-3.13`](https://velella.sh/ebb/api/v1/rules/python.runtime.eol-3.13.json) (`pkg:generic/python`): Python 3.13 maintenance release schedule (scheduled, vers: `>=3.13.0|<3.14.0`, deadline: 2029-10-31) by @arminazimi in [#355](https://github.com/velella-sh/ebb/pull/355)
 
 ---
 
@@ -37,13 +37,13 @@ An Atom feed of these data updates is published at [`data-changelog.atom`](data-
 - **Total Active:** 752 rules
 
 ### cargo
-- **Added** `cargo.crate.lazy_static.deprecated` (`pkg:cargo/lazy_static`): Superseded by standard library OnceLock (deprecated, vers: `*`) by @arminazimi in [#340](https://github.com/velella-sh/ebb/pull/340)
+- **Added** [`cargo.crate.lazy_static.deprecated`](https://velella.sh/ebb/api/v1/rules/cargo.crate.lazy_static.deprecated.json) (`pkg:cargo/lazy_static`): Superseded by standard library OnceLock (deprecated, vers: `*`) by @arminazimi in [#340](https://github.com/velella-sh/ebb/pull/340)
 
 ### golang
-- **Added** `golang.package.io-ioutil.deprecated` (`pkg:golang/io/ioutil`): Deprecated in Go 1.16 in favor of io and os packages (deprecated, vers: `*`) by @arminazimi in [#342](https://github.com/velella-sh/ebb/pull/342)
+- **Added** [`golang.package.io-ioutil.deprecated`](https://velella.sh/ebb/api/v1/rules/golang.package.io-ioutil.deprecated.json) (`pkg:golang/io/ioutil`): Deprecated in Go 1.16 in favor of io and os packages (deprecated, vers: `*`) by @arminazimi in [#342](https://github.com/velella-sh/ebb/pull/342)
 
 ### maven
-- **Added** `maven.artifact.log4j-1.2.eol` (`pkg:maven/log4j/log4j`): Apache Log4j 1.x reached end of life (end-of-life, vers: `<=1.2.17`, deadline: 2015-08-05) by @arminazimi in [#345](https://github.com/velella-sh/ebb/pull/345)
+- **Added** [`maven.artifact.log4j-1.2.eol`](https://velella.sh/ebb/api/v1/rules/maven.artifact.log4j-1.2.eol.json) (`pkg:maven/log4j/log4j`): Apache Log4j 1.x reached end of life (end-of-life, vers: `<=1.2.17`, deadline: 2015-08-05) by @arminazimi in [#345](https://github.com/velella-sh/ebb/pull/345)
 
 ---
 

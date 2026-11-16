@@ -1,10 +1,14 @@
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
 import { purlToApiPath } from "../../src/api.js";
 import { confidenceOf } from "../../src/confidence.js";
+import { verifyReleaseLog } from "../../src/data-release-log.js";
+import { defaultCacheDirectory } from "../../src/data-source.js";
+import { compareBundleVersions } from "../../src/data-update.js";
 import { OFFING_HINT_TEXT } from "../../src/hint.js";
 import { supportedVersions } from "../../src/pick-version.js";
 import { parsePurl, purlIdentity } from "../../src/purl.js";
@@ -26,6 +30,8 @@ export interface GenerateStaticApiOptions {
   createdAt?: string | undefined;
   /** Path to the latest source check report. If omitted or not found, source status fields are left out. */
   reportPath?: string | undefined;
+  /** Explicit path to a data release log. If omitted, checks standard repository and cache paths. */
+  releaseLogPath?: string | undefined;
   /** Size budget for search-index gzip before splitting (bytes). Defaults to 25KB (25600 bytes). */
   searchBudget?: number | undefined;
 }
@@ -577,6 +583,77 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     recent: recentRules,
   };
   await writeFile(join(outDir, "recent.json"), JSON.stringify(sortKeys(recentDoc), null, 2), "utf8");
+
+  // 7b. Generate releases.json (Sub-issue 5)
+  const changelogPath = join(root, "DATA-CHANGELOG.md");
+  const changelogCounts: Record<string, { added: number; changed: number; removed: number }> = {};
+  if (existsSync(changelogPath)) {
+    try {
+      const changelogText = await readFile(changelogPath, "utf8");
+      const sectionRegex =
+        /##\s+\[([a-zA-Z0-9.-]+)\][\s\S]*?(?:- \*\*Added:\*\*\s+(\d+))?[\s\S]*?(?:- \*\*Changed:\*\*\s+(\d+))?[\s\S]*?(?:- \*\*Removed:\*\*\s+(\d+))?/g;
+      let m: RegExpExecArray | null;
+      while ((m = sectionRegex.exec(changelogText)) !== null) {
+        if (m[1]) {
+          changelogCounts[m[1]] = {
+            added: m[2] ? Number.parseInt(m[2], 10) : 0,
+            changed: m[3] ? Number.parseInt(m[3], 10) : 0,
+            removed: m[4] ? Number.parseInt(m[4], 10) : 0,
+          };
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const logCandidates = [
+    options.releaseLogPath,
+    join(root, "release-log.jsonl"),
+    join(root, "data", "release-log.jsonl"),
+    join(defaultCacheDirectory(), "data", "release-log.jsonl"),
+  ].filter((p): p is string => Boolean(p && existsSync(p)));
+
+  const releasesList: Array<{
+    version: string;
+    date: string;
+    digest: string;
+    counts: { added: number; changed: number; removed: number };
+    url: string;
+  }> = [];
+
+  if (logCandidates.length > 0) {
+    try {
+      const logText = await readFile(logCandidates[0]!, "utf8");
+      if (logText.trim()) {
+        const entries = verifyReleaseLog(logText);
+        for (const e of entries) {
+          const counts = changelogCounts[e.version] ?? { added: 0, changed: 0, removed: 0 };
+          releasesList.push({
+            version: e.version,
+            date: e.createdAt.slice(0, 10),
+            digest: e.contentDigest,
+            counts,
+            url: `https://github.com/velella-sh/ebb/releases/tag/data-v${e.version}`,
+          });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  releasesList.sort((a, b) => compareBundleVersions(b.version, a.version));
+
+  const releasesDoc = {
+    $schema: schemaUrl,
+    schemaVersion: API_SCHEMA_VERSION,
+    version,
+    generatedAt: createdAt,
+    count: releasesList.length,
+    releases: releasesList,
+  };
+  await writeFile(join(outDir, "releases.json"), JSON.stringify(sortKeys(releasesDoc), null, 2), "utf8");
 
   // 8. Generate search-index.json (prefix search index) with budget check and splitting
   const searchBudget = options.searchBudget ?? 25 * 1024;

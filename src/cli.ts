@@ -72,6 +72,7 @@ Usage:
   ebb update [options]                       Update lifecycle data safely and reversibly
   ebb diff [from] [to] [options]             Compare two data releases, versions, or files
   ebb data-status [options]                  Show active lifecycle data freshness and origin
+  ebb release-log [options]                  List signed data releases known to the local log
   ebb mcp                                    Start the Model Context Protocol stdio server
   ebb mcp --print-config <agent>             Print MCP config snippet for an agent
   ebb mcp --self-test                        Verify MCP data load with one known check
@@ -97,6 +98,8 @@ Options:
   --channel <stable|next>       Update channel: stable (default) or next
   --allow-downgrade             Allow updating to an older data version
   --data-version <version>      Specify a data version to download
+  --since <version>             Diff active data against a specific release log version
+  --fetch                       Download older release bundle when diffing with --since
   --color                       Force colored output
   --no-color                    Disable colored output (respects NO_COLOR env)
   --no-hint                     Deprecated (no-op)
@@ -353,6 +356,8 @@ export async function runCli(
         channel: { type: "string" },
         "allow-downgrade": { type: "boolean", default: false },
         "data-version": { type: "string" },
+        since: { type: "string" },
+        fetch: { type: "boolean", default: false },
         color: { type: "boolean", default: false },
         "no-color": { type: "boolean", default: false },
         "no-hint": { type: "boolean", default: false },
@@ -1090,12 +1095,18 @@ export async function runCli(
     }
 
     if (first === "diff") {
-      const fromArg = positionals[1];
-      const toArg = positionals[2];
+      const sinceArg = values.since as string | undefined;
+      const fetchFlag = Boolean(values.fetch);
+      let fromArg = positionals[1];
+      let toArg = positionals[2];
+      if (sinceArg) {
+        fromArg = sinceArg;
+        toArg = toArg ?? "active";
+      }
       const ecoArg = values.ecosystem as string | undefined;
 
       try {
-        const res = await diff(fromArg, toArg, { ecosystem: ecoArg });
+        const res = await diff(fromArg, toArg, { ecosystem: ecoArg, since: sinceArg, fetch: fetchFlag });
         if (format === "json") {
           io.stdout.write(`${JSON.stringify(res, null, 2)}\n`);
         } else if (format === "markdown") {
@@ -1160,6 +1171,11 @@ export async function runCli(
       }
       io.stdout.write(`${lines.join("\n")}\n`);
       return status.stale ? 1 : 0;
+    }
+
+    if (first === "release-log") {
+      const { runReleaseLog } = await import("./cli/release-log.js");
+      return runReleaseLog({ format }, io);
     }
 
     io.stderr.write(`Error: Unknown command "${first}". Run "ebb --help" for usage.\n`);

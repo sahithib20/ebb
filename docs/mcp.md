@@ -251,6 +251,7 @@ Call before running an install command. Parses package manager commands (npm, pn
 Call to compare two lifecycle data versions, dates, files, or active data and inspect added, changed, or removed rules.
 
 - **Parameters**:
+  - `since` *(string, optional)*: Data release version to compare against active data (e.g. `2026.10.16`).
   - `from` *(string, optional)*: Starting version, date, file path, `bundled`, or `active` (default `bundled`).
   - `to` *(string, optional)*: Target version, date, file path, or `active` (default `active`).
   - `ecosystem` *(string, optional)*: Ecosystem filter.
@@ -260,8 +261,7 @@ Call to compare two lifecycle data versions, dates, files, or active data and in
   {
     "name": "diff",
     "arguments": {
-      "from": "bundled",
-      "to": "active",
+      "since": "2026.10.16",
       "format": "json"
     }
   }
@@ -269,13 +269,20 @@ Call to compare two lifecycle data versions, dates, files, or active data and in
 - **Example answer**:
   ```json
   {
-    "from": "bundled",
+    "from": "cached version 2026.10.16",
     "to": "active",
-    "summary": { "added": 0, "changed": 0, "removed": 0, "renamed": 0 },
-    "added": [],
-    "changed": [],
+    "summary": { "added": 12, "changed": 3, "removed": 0, "renamed": 1 },
+    "counts": { "added": 12, "changed": 3, "removed": 0, "renamed": 1, "total": 782 },
+    "changedRuleIds": {
+      "added": ["npm.package.left-pad.deprecated"],
+      "changed": ["npm.package.request.deprecated"],
+      "removed": [],
+      "renamed": [{"from": "npm.old.rule", "to": "npm.new.rule"}]
+    },
+    "added": [...],
+    "changed": [...],
     "removed": [],
-    "renamed": []
+    "renamed": [...]
   }
   ```
 

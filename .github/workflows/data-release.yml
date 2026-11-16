@@ -140,6 +140,21 @@ jobs:
             --certificate-identity-regexp "${IDENTITY_PATTERN}" \
             out/release-log.jsonl
 
+      - name: Generate release notes and diff asset
+        run: |
+          PREVIOUS_BUNDLE=""
+          if [ -n "${PREVIOUS_TAG}" ]; then
+            gh release download "${PREVIOUS_TAG}" --pattern "ebb-data-*.json" --dir previous-data 2>/dev/null \
+              && PREVIOUS_BUNDLE=$(find previous-data -name "ebb-data-*.json" | grep -v "sigstore" | head -n 1) || true
+          fi
+          node dist/tools/data-release-notes.js \
+            ${PREVIOUS_BUNDLE:+--from "$PREVIOUS_BUNDLE"} \
+            --to "${BUNDLE}" \
+            --out out/release-notes.md \
+            --json-diff out/data-diff.json
+          echo "=== Generated Release Notes ==="
+          cat out/release-notes.md
+
       - name: Generate data changelog and Atom feed
         run: |
           PREVIOUS_BUNDLE=""
@@ -174,6 +189,6 @@ jobs:
           # release: that label is what the GitHub Marketplace listing and visitors read as the Action's version.
           gh release create "${GITHUB_REF_NAME}" out/* \
             --title "Lifecycle data ${VERSION}" \
-            --notes "Signed lifecycle data bundle ${VERSION}. Verify it by hand with cosign against the certificate identity pattern in docs/DATA.md, or let a consumer such as Offing verify it on download." \
+            --notes-file out/release-notes.md \
             --verify-tag \
             --latest=false

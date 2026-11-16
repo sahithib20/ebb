@@ -125,3 +125,11 @@ test("the release log is extended from the previous release, checked, signed, an
   );
   assert.match(commands, /sha256sum .*release-log\.jsonl/);
 });
+
+test("release-log-4: release workflow generates release notes and uses them as release body", () => {
+  assert.match(commands, /data-release-notes\.js/);
+  assert.match(commands, /--out out\/release-notes\.md/);
+  assert.match(commands, /--json-diff out\/data-diff\.json/);
+  assert.match(commands, /cat out\/release-notes\.md/);
+  assert.match(commands, /--notes-file out\/release-notes\.md/);
+});

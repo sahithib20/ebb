@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 
 import { BUNDLED_ECOSYSTEMS, type DataBundle } from "./data-bundle.js";
+import { verifyReleaseLog } from "./data-release-log.js";
 import {
   BUNDLE_FILE,
   cachedBundleDirectory,
@@ -88,6 +89,8 @@ export type DiffTarget =
 
 export interface DiffOptions extends DataSourceOptions {
   readonly ecosystem?: string | readonly string[] | undefined;
+  readonly since?: string | undefined;
+  readonly fetch?: boolean | undefined;
 }
 
 function extractRulesFromFiles(files: Record<string, Record<string, unknown>>): RegistryV2Rule[] {
@@ -253,6 +256,25 @@ async function resolveTarget(
       if (bundled.info.version === effective) {
         const rules = await extractAllRulesFromActiveData(bundled);
         return { description: `bundled (${effective})`, version: effective, rules };
+      }
+      if (options.fetch) {
+        const { update } = await import("./data-update.js");
+        await update({ version: effective, cacheDirectory: cache });
+        try {
+          const raw = await readFile(join(versionDir, BUNDLE_FILE));
+          let contentBytes: Uint8Array = raw;
+          if (raw.length >= 2 && raw[0] === 0x1f && raw[1] === 0x8b) {
+            contentBytes = gunzipSync(raw);
+          }
+          const parsed = JSON.parse(Buffer.from(contentBytes).toString("utf8")) as Record<string, unknown>;
+          if (parsed.files && typeof parsed.files === "object") {
+            const files = parsed.files as Record<string, Record<string, unknown>>;
+            const rules = extractRulesFromFiles(files);
+            return { description: `downloaded version ${effective}`, version: effective, rules };
+          }
+        } catch {
+          // fall through to error
+        }
       }
       throw new DiffError(`Data version "${effective}" was not found in cache (${versionDir}) or bundled releases.`);
     }
@@ -535,8 +557,33 @@ export function diffRules(
  * Compares two data versions, bundle files, dates, or active data and returns what changed.
  */
 export async function diff(from?: DiffTarget, to?: DiffTarget, options: DiffOptions = {}): Promise<DataDiffResult> {
-  const fromTarget = await resolveTarget(from, "bundled", options);
-  const toTarget = await resolveTarget(to, "active", options);
+  let effectiveFrom = from;
+  let effectiveTo = to;
+
+  if (options.since) {
+    effectiveFrom = options.since;
+    effectiveTo = to ?? "active";
+
+    const cache = options.cacheDirectory ?? defaultCacheDirectory();
+    const logPath = join(cache, "data", "release-log.jsonl");
+    if (!existsSync(logPath)) {
+      throw new DiffError(`Version "${options.since}" is not in the data release log (no local log found).`);
+    }
+    let logText: string;
+    try {
+      logText = await readFile(logPath, "utf8");
+    } catch (err) {
+      throw new DiffError(`Could not read release log: ${(err as Error).message}`);
+    }
+    const entries = verifyReleaseLog(logText);
+    const found = entries.some((e) => e.version === options.since);
+    if (!found) {
+      throw new DiffError(`Version "${options.since}" is not in the data release log.`);
+    }
+  }
+
+  const fromTarget = await resolveTarget(effectiveFrom, "bundled", options);
+  const toTarget = await resolveTarget(effectiveTo, "active", options);
 
   const result = diffRules(fromTarget.rules, toTarget.rules, {
     fromLabel: fromTarget.description,

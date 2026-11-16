@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { McpServer } from "../../src/mcp/index.js";
 import type { McpToolResult } from "../../src/mcp/types.js";
@@ -79,5 +82,66 @@ describe("MCP diff tool", () => {
     const toolResult = resp.result as McpToolResult;
     assert.equal(toolResult.isError, true);
     assert.ok(toolResult.content[0]?.text.includes("Error:"));
+  });
+
+  it("runs diff tool with since parameter and returns structured counts and changedRuleIds (release-log-9)", async () => {
+    const tmp = await mkdtemp(join(tmpdir(), "ebb-diff-since-"));
+    const oldDir = process.env.EBB_DATA_DIR;
+    process.env.EBB_DATA_DIR = tmp;
+    try {
+      const { appendReleaseLog } = await import("../../src/data-release-log.js");
+      const version = "2026.11.11";
+      const logContent = appendReleaseLog("", {
+        version,
+        contentDigest: `sha256:${"a".repeat(64)}`,
+        bundleSha256: `sha256:${"b".repeat(64)}`,
+        createdAt: "2026-11-11T12:00:00Z",
+      });
+      await mkdir(join(tmp, "data"), { recursive: true });
+      await writeFile(join(tmp, "data", "release-log.jsonl"), logContent, "utf8");
+
+      const versionDir = join(tmp, "data", version);
+      await mkdir(versionDir, { recursive: true });
+      const bundleData = {
+        manifest: { version, schemaVersion: "ebb.data-bundle.v2" },
+        files: {
+          "registry/npm.json": {
+            schemaVersion: "ebb.registry.v2",
+            ecosystem: "npm",
+            rules: [],
+          },
+        },
+      };
+      await writeFile(join(versionDir, "bundle.json"), JSON.stringify(bundleData), "utf8");
+
+      const resp = await server.handleMessage({
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: {
+          name: "diff",
+          arguments: {
+            since: version,
+          },
+        },
+      });
+
+      assert.ok(resp);
+      const toolResult = resp.result as McpToolResult;
+      assert.equal(toolResult.isError, false);
+      assert.ok(toolResult.structuredContent);
+      const sc = toolResult.structuredContent as {
+        counts?: { added: number; changed: number; removed: number };
+        changedRuleIds?: { added: string[]; changed: string[]; removed: string[] };
+      };
+      assert.ok(sc.counts, "structuredContent must include counts");
+      assert.ok(sc.changedRuleIds, "structuredContent must include changedRuleIds");
+      assert.equal(typeof sc.counts.added, "number");
+      assert.ok(Array.isArray(sc.changedRuleIds.added));
+    } finally {
+      if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+      else delete process.env.EBB_DATA_DIR;
+      await rm(tmp, { recursive: true, force: true });
+    }
   });
 });
