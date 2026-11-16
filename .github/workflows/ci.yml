@@ -80,6 +80,58 @@ jobs:
           npm run build --silent
           node --test dist/tests/mcp/packed.test.js
 
+  offline:
+    name: offline test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Set up Deno
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
+        with:
+          deno-version: v2.x
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: latest
+      - name: Cache legacy Node 18 binary for engine test
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "18"
+      - name: Record legacy Node path and restore Node 22
+        run: |
+          echo "EBB_OLD_NODE=$(which node)" >> "$GITHUB_ENV"
+      - name: Restore Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "22"
+      - name: Build
+        run: |
+          npm run build
+          npm run build:static-api
+      - name: Run test suite without network
+        run: |
+          # Create an isolated network namespace with only loopback interface (no route out)
+          sudo ip netns add offline
+          sudo ip -n offline link set lo up
+
+          # Verify that outbound network attempts fail immediately
+          if sudo ip netns exec offline curl -s -m 2 https://api.github.com >/dev/null 2>&1; then
+            echo "::error::Network namespace unexpectedly reached the internet"
+            exit 1
+          fi
+
+          # Run the test suite: only local loopback server requests are possible
+          sudo ip netns exec offline sudo -u "$USER" env "PATH=$PATH" "HOME=$HOME" "EBB_OLD_NODE=$EBB_OLD_NODE" npm test
+
   # Measures line coverage and publishes it for the README badge. It runs on main only, and holds the
   # only write permission in this workflow: it can push the `badges` branch and nothing else. The badge
   # is a shields.io endpoint badge reading coverage.json from that branch, so the number follows main.

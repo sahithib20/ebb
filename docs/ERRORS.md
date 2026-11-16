@@ -164,6 +164,56 @@ try {
 
 ---
 
+### `offline`
+
+**Thrown by:** `update` / static API client / CLI
+
+**Cause:** Ebb is configured to run in offline mode (`EBB_OFFLINE=1` environment variable or `--offline` CLI flag). Network requests are prohibited before any network attempt.
+
+**Fix:** Unset `EBB_OFFLINE` or remove `--offline`, or perform an air-gapped update from a local file using `ebb update --from <bundle>`.
+
+---
+
+### `no-network`
+
+**Thrown by:** `update`
+
+**Cause:** The network is unreachable, connection was refused, or timed out while attempting a remote data update.
+
+**Fix:** Check your internet connection or use `ebb update --from <bundle>` for air-gapped updates.
+
+---
+
+### `dns-failure`
+
+**Thrown by:** `update`
+
+**Cause:** DNS domain name resolution failed (e.g. `ENOTFOUND` or `EAI_AGAIN`) while contacting the update repository or mirror.
+
+**Fix:** Check your DNS configuration, verify the hostnames in `EBB_RELEASES_URL` or `EBB_DATA_URL`, or use a local mirror.
+
+---
+
+### `proxy-error`
+
+**Thrown by:** `update`
+
+**Cause:** Connection through an HTTP/HTTPS proxy failed or proxy authentication was required (e.g. HTTP 407).
+
+**Fix:** Verify your `HTTP_PROXY`, `HTTPS_PROXY`, or `ALL_PROXY` configuration and credentials.
+
+---
+
+### `rate-limited`
+
+**Thrown by:** `update`
+
+**Cause:** The remote update host rejected the request due to rate limiting (HTTP 429).
+
+**Fix:** Wait before retrying, configure an authentication token, or configure an internal mirror via `EBB_RELEASES_URL`.
+
+---
+
 ## All throws in `src/`
 
 | File | Line | Class | Code | Message (abbreviated) |

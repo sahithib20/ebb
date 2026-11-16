@@ -725,3 +725,325 @@ test("update() aborts cleanly on failed download midway leaving cache unchanged"
     server.close();
   }
 });
+
+test("EBB_OFFLINE=1 blocks update() before any network request", async () => {
+  const prev = process.env.EBB_OFFLINE;
+  try {
+    process.env.EBB_OFFLINE = "1";
+    let fetchCalled = false;
+    const failingFetch = (() => {
+      fetchCalled = true;
+      throw new Error("Network request was attempted!");
+    }) as unknown as typeof fetch;
+
+    await assert.rejects(
+      () => update({ fetch: failingFetch }),
+      (err: unknown) => {
+        assert(err instanceof DataUpdateError);
+        assert.equal(err.code, "offline");
+        assert.ok(err.suggestedStep);
+        return true;
+      },
+    );
+    assert.equal(fetchCalled, false, "fetch must not be called when offline");
+  } finally {
+    if (prev === undefined) delete process.env.EBB_OFFLINE;
+    else process.env.EBB_OFFLINE = prev;
+  }
+});
+
+test("update({ offline: true }) blocks network requests", async () => {
+  let fetchCalled = false;
+  const failingFetch = (() => {
+    fetchCalled = true;
+    throw new Error("Network request was attempted!");
+  }) as unknown as typeof fetch;
+
+  await assert.rejects(
+    () => update({ offline: true, fetch: failingFetch }),
+    (err: unknown) => {
+      assert(err instanceof DataUpdateError);
+      assert.equal(err.code, "offline");
+      return true;
+    },
+  );
+  assert.equal(fetchCalled, false);
+});
+
+test("update() classifies no-network failure and provides suggested next step with at most 1 retry", async () => {
+  let callCount = 0;
+  const failingFetch = (() => {
+    callCount++;
+    const err = new Error("connect ECONNREFUSED 127.0.0.1:443");
+    // @ts-expect-error test error code
+    err.code = "ECONNREFUSED";
+    throw err;
+  }) as unknown as typeof fetch;
+
+  const cache = await mkdtemp(join(workspace, "no-net-cache-"));
+  await assert.rejects(
+    () => update({ fetch: failingFetch, cacheDirectory: cache }),
+    (err: unknown) => {
+      assert(err instanceof DataUpdateError);
+      assert.equal(err.code, "no-network");
+      assert.ok(err.suggestedStep?.includes("Check your internet connection"));
+      assert.ok(err.message.includes("Suggested next step:"));
+      return true;
+    },
+  );
+  assert.equal(callCount, 2, "must retry at most once on network failure");
+  const active = await resolveActiveData({ cacheDirectory: cache });
+  assert.equal(active.info.source, "bundled");
+});
+
+test("update() classifies DNS failure and provides suggested next step", async () => {
+  let callCount = 0;
+  const failingFetch = (() => {
+    callCount++;
+    const err = new Error("getaddrinfo ENOTFOUND api.github.com");
+    // @ts-expect-error test error code
+    err.code = "ENOTFOUND";
+    throw err;
+  }) as unknown as typeof fetch;
+
+  const cache = await mkdtemp(join(workspace, "dns-cache-"));
+  await assert.rejects(
+    () => update({ fetch: failingFetch, cacheDirectory: cache }),
+    (err: unknown) => {
+      assert(err instanceof DataUpdateError);
+      assert.equal(err.code, "dns-failure");
+      assert.ok(err.suggestedStep?.includes("Check your DNS"));
+      return true;
+    },
+  );
+  assert.equal(callCount, 2);
+  const active = await resolveActiveData({ cacheDirectory: cache });
+  assert.equal(active.info.source, "bundled");
+});
+
+test("update() classifies proxy error and provides suggested next step", async () => {
+  const failingFetch = (() => {
+    const err = new Error("Proxy connection failed: ECONNRESET");
+    // @ts-expect-error test error code
+    err.code = "EPROXY";
+    throw err;
+  }) as unknown as typeof fetch;
+
+  const cache = await mkdtemp(join(workspace, "proxy-cache-"));
+  await assert.rejects(
+    () => update({ fetch: failingFetch, cacheDirectory: cache }),
+    (err: unknown) => {
+      assert(err instanceof DataUpdateError);
+      assert.equal(err.code, "proxy-error");
+      assert.ok(err.suggestedStep?.includes("HTTP_PROXY"));
+      return true;
+    },
+  );
+  const active = await resolveActiveData({ cacheDirectory: cache });
+  assert.equal(active.info.source, "bundled");
+});
+
+test("update() classifies rate limit (HTTP 429) and provides suggested next step", async () => {
+  const failingFetch = (() => {
+    return Promise.resolve(new Response("rate limited", { status: 429, statusText: "Too Many Requests" }));
+  }) as unknown as typeof fetch;
+
+  const cache = await mkdtemp(join(workspace, "rate-limit-cache-"));
+  await assert.rejects(
+    () => update({ fetch: failingFetch, cacheDirectory: cache }),
+    (err: unknown) => {
+      assert(err instanceof DataUpdateError);
+      assert.equal(err.code, "rate-limited");
+      assert.ok(err.suggestedStep?.includes("Wait before retrying"));
+      return true;
+    },
+  );
+  const active = await resolveActiveData({ cacheDirectory: cache });
+  assert.equal(active.info.source, "bundled");
+});
+
+test("update({ from: bundleFile }) installs local bundle with rollback copy", async () => {
+  const cache = await mkdtemp(join(workspace, "local-from-cache-"));
+  const localDir = await mkdtemp(join(workspace, "bundle-files-"));
+
+  const bundle = await buildDataBundle({
+    root: fixtureRepo,
+    createdAt: "2099-08-01T00:00:00Z",
+    minimumEbbVersion: "0.0.1",
+  });
+  const serialized = serializeDataBundle(bundle);
+  const bundlePath = join(localDir, `ebb-data-${bundle.manifest.version}.json`);
+  const sigPath = `${bundlePath}.sigstore.json`;
+  await writeFile(bundlePath, serialized);
+  await writeFile(sigPath, "{}");
+
+  const result = await update({
+    from: bundlePath,
+    cacheDirectory: cache,
+    verifySignature,
+  });
+
+  assert.equal(result.status, "updated");
+  assert.equal(result.to.version, bundle.manifest.version);
+  const active = await resolveActiveData({ cacheDirectory: cache, verifySignature });
+  assert.equal(active.info.version, bundle.manifest.version);
+  assert.equal(active.info.source, "cache");
+
+  // Verify rollback copy exists and works
+  const rollbackResult = await rollback({ cacheDirectory: cache, verifySignature });
+  assert.equal(rollbackResult.status, "rolled-back");
+  const afterRollback = await resolveActiveData({ cacheDirectory: cache, verifySignature });
+  assert.equal(afterRollback.info.source, "bundled");
+});
+
+test("update({ from: bundleFile }) works even when EBB_OFFLINE=1", async () => {
+  const prev = process.env.EBB_OFFLINE;
+  try {
+    process.env.EBB_OFFLINE = "1";
+    const cache = await mkdtemp(join(workspace, "local-offline-cache-"));
+    const localDir = await mkdtemp(join(workspace, "bundle-offline-files-"));
+
+    const bundle = await buildDataBundle({
+      root: fixtureRepo,
+      createdAt: "2099-08-02T00:00:00Z",
+      minimumEbbVersion: "0.0.1",
+    });
+    const serialized = serializeDataBundle(bundle);
+    const bundlePath = join(localDir, `ebb-data-${bundle.manifest.version}.json`);
+    const sigPath = `${bundlePath}.sigstore.json`;
+    await writeFile(bundlePath, serialized);
+    await writeFile(sigPath, "{}");
+
+    const result = await update({
+      from: bundlePath,
+      cacheDirectory: cache,
+      verifySignature,
+    });
+    assert.equal(result.status, "updated");
+    assert.equal(result.to.version, bundle.manifest.version);
+  } finally {
+    if (prev === undefined) delete process.env.EBB_OFFLINE;
+    else process.env.EBB_OFFLINE = prev;
+  }
+});
+
+test("update({ from: bundleFile }) rejects tampered bundle leaving cache untouched", async () => {
+  const cache = await mkdtemp(join(workspace, "tampered-from-cache-"));
+  const localDir = await mkdtemp(join(workspace, "tampered-files-"));
+
+  const bundlePath = join(localDir, "ebb-data-2099.08.03.json");
+  const sigPath = `${bundlePath}.sigstore.json`;
+  await writeFile(bundlePath, '{"manifest":{"version":"2099.08.03","contentDigest":"tampered"},"files":{}}');
+  await writeFile(sigPath, "{}");
+
+  await assert.rejects(
+    () =>
+      update({
+        from: bundlePath,
+        cacheDirectory: cache,
+        verifySignature,
+      }),
+    (err: unknown) => err instanceof DataUpdateError && /Refusing data bundle/.test(err.message),
+  );
+
+  const active = await resolveActiveData({ cacheDirectory: cache });
+  assert.equal(active.info.source, "bundled");
+});
+
+test("update({ from: bundleFile }) rejects bundle when signature file is missing", async () => {
+  const cache = await mkdtemp(join(workspace, "missing-sig-cache-"));
+  const localDir = await mkdtemp(join(workspace, "missing-sig-files-"));
+
+  const bundlePath = join(localDir, "ebb-data-2099.08.04.json");
+  await writeFile(bundlePath, '{"manifest":{"version":"2099.08.04"}}');
+
+  await assert.rejects(
+    () =>
+      update({
+        from: bundlePath,
+        cacheDirectory: cache,
+        verifySignature,
+      }),
+    (err: unknown) => err instanceof DataUpdateError && /Could not read signature file/.test(err.message),
+  );
+
+  const active = await resolveActiveData({ cacheDirectory: cache });
+  assert.equal(active.info.source, "bundled");
+});
+
+test("update() reads releases from EBB_RELEASES_URL mirror and rejects re-signed bundle", async () => {
+  const cache = await mkdtemp(join(workspace, "mirror-cache-"));
+  const bundle = await buildDataBundle({
+    root: fixtureRepo,
+    createdAt: "2099-09-01T00:00:00Z",
+    minimumEbbVersion: "0.0.1",
+  });
+  const serialized = serializeDataBundle(bundle);
+  const version = bundle.manifest.version;
+
+  let serveTamperedSig = false;
+
+  const server = http.createServer((req, res) => {
+    if (req.url === "/mirror/releases.json") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify([
+          {
+            tag_name: `data-v${version}`,
+            assets: [
+              { name: `ebb-data-${version}.json`, browser_download_url: `http://127.0.0.1:${port}/bundle.json` },
+              {
+                name: `ebb-data-${version}.json.sigstore.json`,
+                browser_download_url: `http://127.0.0.1:${port}/bundle.sigstore.json`,
+              },
+            ],
+          },
+        ]),
+      );
+    } else if (req.url === "/bundle.json") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(serialized);
+    } else if (req.url === "/bundle.sigstore.json") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(serveTamperedSig ? '{"re-signed":"unauthorized"}' : "{}");
+    } else {
+      res.writeHead(404).end();
+    }
+  });
+
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  const port = (server.address() as AddressInfo).port;
+
+  const prevEnv = process.env.EBB_RELEASES_URL;
+  try {
+    process.env.EBB_RELEASES_URL = `http://127.0.0.1:${port}/mirror/releases.json`;
+
+    // 1. Valid update from local mirror
+    const result = await update({
+      cacheDirectory: cache,
+      verifySignature,
+    });
+    assert.equal(result.status, "updated");
+    assert.equal(result.to.version, version);
+
+    // 2. Reject re-signed / untrusted bundle from mirror
+    serveTamperedSig = true;
+    const failingVerifySig = () => {
+      throw new DataSignatureError("Unauthorized signer: re-signed bundle is not trusted");
+    };
+
+    const cache2 = await mkdtemp(join(workspace, "mirror-untrusted-cache-"));
+    await assert.rejects(
+      () =>
+        update({
+          cacheDirectory: cache2,
+          verifySignature: failingVerifySig,
+        }),
+      (err: unknown) => err instanceof DataUpdateError && /Refusing data bundle/.test(err.message),
+    );
+  } finally {
+    if (prevEnv === undefined) delete process.env.EBB_RELEASES_URL;
+    else process.env.EBB_RELEASES_URL = prevEnv;
+    server.close();
+  }
+});

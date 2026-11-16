@@ -50,7 +50,7 @@ The library passes the official purl-spec suite: 586 of 586 tests ([fixtures](te
 - **LLMs and agents native.** Standard machine-readable documentation for models at [llms.txt](llms.txt) and [llms-full.txt](llms-full.txt), backed by an official MCP server and agent skills.
 - **Zero dependencies.** Pure ESM with zero runtime dependencies. Instant installs, zero supply-chain risk.
 - **Compact footprint.** ~268 KB packed tarball with a strict 500 KB budget enforced in CI ([docs/SIZE.md](docs/SIZE.md)).
-- **Offline by default.** The rules ship inside the package. Newer rules arrive as signed data bundles, verified with Sigstore before use.
+- **Offline by default.** The rules ship inside the package, tested to make zero network requests; see the [Offline Guide](docs/offline.md).
 
 ## Quick start
 

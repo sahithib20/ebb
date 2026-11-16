@@ -230,6 +230,10 @@ Every item needs both `purl` and `version`. Even when a PURL from CycloneDX or S
 | `"rule-not-found"` | No registered lifecycle rule with the requested id exists (`EbbError`). |
 | `"internal"` | Unexpected internal error encountered while processing the item (`EbbError`). |
 | `"data-unavailable"` | Configured data bundle could not be loaded (`EbbError`). |
-| `"data-unavailable"` | Configured data bundle could not be loaded (`EbbError`). |
 | `"data-update-failed"` | Active data source failed verification or loading (`EbbError`). |
+| `"offline"` | Ebb is configured in offline mode (`EBB_OFFLINE=1`). |
+| `"no-network"` | Outbound network attempt failed due to unreachable network connection. |
+| `"dns-failure"` | DNS resolution failed during network operation. |
+| `"proxy-error"` | Proxy connection or authentication failed. |
+| `"rate-limited"` | Remote rate limit (HTTP 429) was encountered. |
 | `"check-failed"` | Fallback when checking an item throws any other error. |

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
 const repoRoot = resolve(process.cwd());
 const cliBin = resolve(repoRoot, "dist/src/cli.js");
@@ -89,6 +89,16 @@ describe("Examples Suite (Epic 18)", () => {
   });
 
   describe("examples/static-api", () => {
+    before(() => {
+      const target = resolve(repoRoot, "dist/site/api/v1/npm/left-pad.json");
+      if (!existsSync(target)) {
+        execFileSync(process.execPath, [resolve(repoRoot, "dist/tools/static-api/index.js")], {
+          cwd: repoRoot,
+          stdio: "ignore",
+        });
+      }
+    });
+
     it("runs fetch-rule.ts with modern fetch helper", () => {
       const stdout = runNodeScript("examples/static-api/fetch-rule.ts", ["pkg:npm/left-pad"]);
       assert.ok(stdout.includes("Mapped API Path: npm/left-pad.json"));

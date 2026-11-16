@@ -6,6 +6,7 @@
 import { type PackageUrl, parsePurl } from "./purl.js";
 import type { Rule } from "./rules-for.js";
 import { versContains } from "./vers.js";
+import { EbbError } from "./errors.js";
 
 export const DEFAULT_STATIC_API_BASE_URL = "https://velella.sh/ebb/api/v1";
 
@@ -162,6 +163,10 @@ export function purlToApiPath(purl: string | PackageUrl): string {
  * Returns null if the resource returns HTTP 404 (typed "not found" result).
  */
 async function fetchWithRetry(url: string, options?: FetchRuleOptions): Promise<Response | null> {
+  if (process.env.EBB_OFFLINE === "1") {
+    throw new EbbError("offline", "Static API client cannot make network requests when EBB_OFFLINE=1 is set.");
+  }
+
   const fetchFn = options?.fetch ?? globalThis.fetch;
   if (typeof fetchFn !== "function") {
     throw new Error("No global fetch available. Pass a custom fetch implementation in options.fetch.");

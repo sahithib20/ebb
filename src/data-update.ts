@@ -13,7 +13,7 @@ import {
   verifyDataBundle,
 } from "./data-source.js";
 import type { DataSourceOptions, VerifiedDataBundle } from "./data-source.js";
-import { EbbError } from "./errors.js";
+import { type EbbErrorCode, EbbError } from "./errors.js";
 
 export const DATA_UPDATE_SCHEMA_VERSION = "ebb.data-update.v1" as const;
 
@@ -30,9 +30,13 @@ const KEEP_VERSIONS = 3;
 const TAG_PATTERN = /^data-v(\d{4}\.\d{2}\.\d{2}(?:\.\d+)?(?:-[a-zA-Z0-9.]+)?)$/;
 
 export class DataUpdateError extends EbbError {
-  constructor(message: string) {
-    super("data-update-failed", message);
+  readonly suggestedStep?: string | undefined;
+
+  constructor(message: string, code: EbbErrorCode = "data-update-failed", suggestedStep?: string | undefined) {
+    const fullMessage = suggestedStep ? `${message} Suggested next step: ${suggestedStep}` : message;
+    super(code, fullMessage);
     this.name = "DataUpdateError";
+    this.suggestedStep = suggestedStep;
   }
 }
 
@@ -71,6 +75,12 @@ export interface DataUpdateOptions extends DataSourceOptions {
   /** Check if an update is available without downloading or applying it. */
   check?: boolean | undefined;
   fetch?: typeof fetch | undefined;
+  /** Update from a local bundle file instead of downloading from the network. */
+  from?: string | undefined;
+  /** Explicit path to the bundle signature file (used with `from`). Defaults to `<from>.sigstore.json`. */
+  signature?: string | undefined;
+  /** Run in offline mode; blocks network requests. */
+  offline?: boolean | undefined;
 }
 
 interface ReleaseAsset {
@@ -120,19 +130,105 @@ function assertSafeUrl(url: string, what: string): URL {
   return parsed;
 }
 
-async function download(url: string, limit: number, what: string, request: typeof fetch): Promise<Uint8Array> {
-  assertSafeUrl(url, what);
-  let response: Response;
-  try {
-    response = await request(url, {
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: { "user-agent": "ebb-data-update", accept: "application/octet-stream, application/json" },
-    });
-  } catch (error) {
+function classifyAndThrowNetworkError(error: unknown, what: string): never {
+  const err = (error ?? {}) as {
+    message?: string;
+    code?: string;
+    cause?: { code?: string; message?: string };
+  };
+  const code = (err.code ?? err.cause?.code ?? "").toUpperCase();
+  const rawDetails = (err.message ?? "") + (err.cause?.message ? ` (${err.cause.message})` : "");
+  const msg = `${err.message ?? ""} ${err.cause?.message ?? ""}`.toLowerCase();
+
+  // Rate limited
+  if (msg.includes("429") || msg.includes("rate limit")) {
     throw new DataUpdateError(
-      `Could not download ${what}: ${(error as Error).message}${(error as { cause?: Error }).cause ? ` (${(error as { cause: Error }).cause.message})` : ""}`,
+      `Could not download ${what}: HTTP 429 rate limit exceeded. ${rawDetails}`,
+      "rate-limited",
+      "Wait before retrying, configure a GitHub token, or use a custom mirror with EBB_RELEASES_URL.",
     );
   }
+
+  // DNS failure
+  if (
+    code === "ENOTFOUND" ||
+    code === "EAI_AGAIN" ||
+    msg.includes("getaddrinfo") ||
+    msg.includes("enotfound") ||
+    msg.includes("eai_again") ||
+    msg.includes("dns")
+  ) {
+    throw new DataUpdateError(
+      `Could not download ${what}: DNS resolution failed (${code || "ENOTFOUND"}). ${rawDetails}`,
+      "dns-failure",
+      "Check your DNS settings, verify the hostname in EBB_RELEASES_URL or EBB_DATA_URL, or use a local mirror.",
+    );
+  }
+
+  // Proxy error
+  if (
+    (code === "ECONNRESET" && msg.includes("proxy")) ||
+    code === "EPROXY" ||
+    msg.includes("proxy") ||
+    msg.includes("407")
+  ) {
+    throw new DataUpdateError(
+      `Could not download ${what}: Proxy error encountered. ${rawDetails}`,
+      "proxy-error",
+      "Verify your HTTP_PROXY, HTTPS_PROXY, or ALL_PROXY configuration and credentials.",
+    );
+  }
+
+  // No network (connection refused, network unreachable, timeout, or general network error)
+  throw new DataUpdateError(
+    `Could not download ${what}: Network is unreachable or connection failed (${code || "no-network"}). ${rawDetails}`,
+    "no-network",
+    "Check your internet connection or use 'ebb update --from <bundle>' for air-gapped updates.",
+  );
+}
+
+async function download(url: string, limit: number, what: string, request: typeof fetch): Promise<Uint8Array> {
+  assertSafeUrl(url, what);
+  let response: Response | undefined;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      response = await request(url, {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        headers: { "user-agent": "ebb-data-update", accept: "application/octet-stream, application/json" },
+      });
+      if (response.status === 429) {
+        throw new DataUpdateError(
+          `Could not download ${what}: HTTP 429 rate limit exceeded.`,
+          "rate-limited",
+          "Wait before retrying, configure a GitHub token, or use a custom mirror with EBB_RELEASES_URL.",
+        );
+      }
+      if (response.status === 407) {
+        throw new DataUpdateError(
+          `Could not download ${what}: HTTP 407 Proxy Authentication Required.`,
+          "proxy-error",
+          "Verify your HTTP_PROXY, HTTPS_PROXY, or ALL_PROXY configuration and credentials.",
+        );
+      }
+      if (response.status >= 500 && attempt === 0) {
+        continue;
+      }
+      break;
+    } catch (error) {
+      if (error instanceof DataUpdateError) throw error;
+      lastError = error;
+      if (attempt === 0) {
+        continue;
+      }
+    }
+  }
+
+  if (!response) {
+    classifyAndThrowNetworkError(lastError, what);
+  }
+
   if (!response.ok) throw new DataUpdateError(`Could not download ${what}: HTTP ${response.status}.`);
   const declared = Number(response.headers.get("content-length") ?? 0);
   if (declared > limit) throw new DataUpdateError(`${what} is larger than the ${limit}-byte limit.`);
@@ -368,13 +464,76 @@ export async function update(options: DataUpdateOptions = {}): Promise<DataUpdat
   const request = options.fetch ?? fetch;
   if (!options.fetch && typeof http.setGlobalProxyFromEnv === "function") http.setGlobalProxyFromEnv();
   const cache = options.cacheDirectory ?? defaultCacheDirectory();
-  const releasesUrl = options.releasesUrl ?? process.env.EBB_DATA_URL ?? DEFAULT_RELEASES_URL;
+  const releasesUrl =
+    options.releasesUrl ?? process.env.EBB_RELEASES_URL ?? process.env.EBB_DATA_URL ?? DEFAULT_RELEASES_URL;
+
+  const isOffline = process.env.EBB_OFFLINE === "1" || options.offline === true;
+  if (isOffline && !options.from) {
+    throw new DataUpdateError(
+      "Cannot update data: Ebb is running in offline mode (EBB_OFFLINE=1). Network requests are disabled.",
+      "offline",
+      "Unset EBB_OFFLINE or remove the --offline flag, or update from a local file using --from <bundle>.",
+    );
+  }
 
   if (options.version !== undefined && !/^\d{4}\.\d{2}\.\d{2}(?:\.\d+)?(?:-[a-zA-Z0-9.]+)?$/.test(options.version)) {
     throw new DataUpdateError(`"${options.version}" is not a data version. Use a version such as 2026.10.01.`);
   }
   const { pinnedVersion: _ignored, ...sourceOptions } = options;
   const before = await resolveActiveData(sourceOptions);
+
+  if (options.from) {
+    const bundlePath = options.from;
+    let bytes: Uint8Array;
+    try {
+      bytes = await readFile(bundlePath);
+    } catch (err) {
+      throw new DataUpdateError(`Could not read bundle file at "${bundlePath}": ${(err as Error).message}`);
+    }
+
+    const signaturePath = options.signature ?? `${bundlePath}.sigstore.json`;
+    let signature: string;
+    try {
+      signature = await readFile(signaturePath, "utf8");
+    } catch (err) {
+      throw new DataUpdateError(
+        `Could not read signature file at "${signaturePath}": ${(err as Error).message}. Signature file must be present alongside the bundle.`,
+      );
+    }
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(Buffer.from(bytes).toString("utf8"));
+    } catch {
+      throw new DataUpdateError(`The bundle file at "${bundlePath}" is not valid JSON.`);
+    }
+
+    const manifest = (parsed.manifest ?? {}) as { version?: string };
+    if (!manifest.version || !/^\d{4}\.\d{2}\.\d{2}(?:\.\d+)?(?:-[a-zA-Z0-9.]+)?$/.test(manifest.version)) {
+      throw new DataUpdateError(`The bundle at "${bundlePath}" does not specify a valid version in its manifest.`);
+    }
+    const version = manifest.version;
+
+    const verified = verifyRelease(
+      { version, bundleUrl: bundlePath, signatureUrl: signaturePath },
+      bytes,
+      signature,
+      options,
+    );
+
+    return applyUpdate(
+      {
+        before,
+        bytes,
+        signature,
+        bundle: verified.bundle,
+        signer: verified.signer,
+        rules: await ruleChanges(before, verified.bundle.files),
+        cache,
+      },
+      options,
+    );
+  }
 
   if (options.check) {
     const latest = await findLatestRelease(releasesUrl, options.version, request, options.channel ?? "stable");

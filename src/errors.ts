@@ -9,6 +9,11 @@ export const EBB_ERROR_CODES = [
   "package-file-not-found",
   "rule-not-found",
   "internal",
+  "offline",
+  "no-network",
+  "dns-failure",
+  "proxy-error",
+  "rate-limited",
 ] as const;
 export type EbbErrorCode = (typeof EBB_ERROR_CODES)[number];
 
