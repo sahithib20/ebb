@@ -96,6 +96,13 @@ export const ENDPOINTS: EndpointSpec[] = [
     schemaRef: "#/components/schemas/searchIndexDocument",
   },
   {
+    path: "/releases.json",
+    summary: "Release log history",
+    description: "History of signed data releases with version, date, digest, and change counts",
+    example: "/releases.json",
+    schemaRef: "#/components/schemas/releasesDocument",
+  },
+  {
     path: "/openapi.json",
     summary: "OpenAPI description",
     description: "OpenAPI 3.1 specification describing the static API",

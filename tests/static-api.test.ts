@@ -202,6 +202,14 @@ test("static API generation produces valid files matching JSON schema and size b
     assert.equal(metaDoc.schemaVersions.result, 1);
     assert.equal(metaDoc.generatedAt, undefined, "meta.json must not include a build timestamp");
 
+    // Validate releases.json (Sub-issue 5 / #520)
+    const releasesRaw = await readFile(join(tempDir, "releases.json"), "utf8");
+    const releasesDoc = JSON.parse(releasesRaw);
+    assert.equal(validate(releasesDoc), true, `releases.json validation failed: ${JSON.stringify(validate.errors)}`);
+    assert.equal(releasesDoc.schemaVersion, "ebb.api.v1");
+    assert.equal(typeof releasesDoc.count, "number");
+    assert.ok(Array.isArray(releasesDoc.releases));
+
     // Validate single rule file in /rules/<rule-id>.json (Sub-issue 3 / #478)
     const ruleFileRaw = await readFile(join(tempDir, "rules/npm.package.request.deprecated.json"), "utf8");
     const ruleDoc = JSON.parse(ruleFileRaw);
@@ -217,6 +225,7 @@ test("static API generation produces valid files matching JSON schema and size b
     const openApiDoc = JSON.parse(openApiRaw);
     assert.equal(openApiDoc.openapi, "3.1.0");
     assert.ok(openApiDoc.paths["/meta.json"]);
+    assert.ok(openApiDoc.paths["/releases.json"]);
     assert.ok(openApiDoc.paths["/rules/{rule-id}.json"]);
     assert.ok(openApiDoc.paths["/{type}/{name}.json"]);
 
@@ -763,4 +772,46 @@ test("EBB_OFFLINE=1 blocks static API client requests with offline code", async 
     if (prev === undefined) delete process.env.EBB_OFFLINE;
     else process.env.EBB_OFFLINE = prev;
   }
+});
+
+test("static-api: generates /releases.json from release log sorted newest first (release-log-5)", async () => {
+  const tmp = await mkdtemp(join(tmpdir(), "ebb-static-api-rel-"));
+  const { appendReleaseLog } = await import("../src/data-release-log.js");
+  const log1 = appendReleaseLog("", {
+    version: "2026.10.16",
+    contentDigest: `sha256:${"1".repeat(64)}`,
+    bundleSha256: `sha256:${"2".repeat(64)}`,
+    createdAt: "2026-10-16T00:00:00Z",
+  });
+  const log2 = appendReleaseLog(log1, {
+    version: "2026.11.11",
+    contentDigest: `sha256:${"3".repeat(64)}`,
+    bundleSha256: `sha256:${"4".repeat(64)}`,
+    createdAt: "2026-11-11T00:00:00Z",
+  });
+  const logPath = join(tmp, "release-log.jsonl");
+  await writeFile(logPath, log2, "utf8");
+
+  const outDir = join(tmp, "api-out");
+  await generateStaticApi({ outDir, releaseLogPath: logPath });
+
+  const raw = await readFile(join(outDir, "releases.json"), "utf8");
+  const doc = JSON.parse(raw);
+
+  const schemaRaw = await readFile("schemas/static-api.v1.schema.json", "utf8");
+  const schema = JSON.parse(schemaRaw) as object;
+  const regSchema = JSON.parse(await readFile("schemas/registry.v2.schema.json", "utf8")) as object;
+  const ajv = new Ajv2020({ allErrors: true });
+  ajv.addSchema(regSchema, "registry.v2.schema.json");
+  const validate = ajv.compile(schema);
+  assert.equal(validate(doc), true, `releases.json validation failed: ${JSON.stringify(validate.errors)}`);
+
+  assert.equal(doc.count, 2);
+  assert.equal(doc.releases.length, 2);
+  // Newest first
+  assert.equal(doc.releases[0].version, "2026.11.11");
+  assert.equal(doc.releases[1].version, "2026.10.16");
+  assert.equal(doc.releases[0].url, "https://github.com/velella-sh/ebb/releases/tag/data-v2026.11.11");
+  assert.ok(doc.releases[0].counts);
+  await rm(tmp, { recursive: true, force: true });
 });

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { promisify } from "node:util";
 import { extractPurlAndVersion, parseCheckAllInput, runCli } from "../src/cli.js";
@@ -317,6 +319,55 @@ describe("CLI - runCli commands", () => {
     assert.ok(parsed.summary);
   });
 
+  it("runs diff command with --since and handles known and unknown versions (release-log-8)", async () => {
+    const tmp = await mkdtemp(join(tmpdir(), "ebb-cli-diff-since-"));
+    const oldDir = process.env.EBB_DATA_DIR;
+    process.env.EBB_DATA_DIR = tmp;
+    try {
+      const { appendReleaseLog } = await import("../src/data-release-log.js");
+      const version = "2026.11.11";
+      const logContent = appendReleaseLog("", {
+        version,
+        contentDigest: `sha256:${"a".repeat(64)}`,
+        bundleSha256: `sha256:${"b".repeat(64)}`,
+        createdAt: "2026-11-11T12:00:00Z",
+      });
+      await mkdir(join(tmp, "data"), { recursive: true });
+      await writeFile(join(tmp, "data", "release-log.jsonl"), logContent, "utf8");
+
+      // Stage bundle
+      const versionDir = join(tmp, "data", version);
+      await mkdir(versionDir, { recursive: true });
+      const bundleData = {
+        manifest: { version, schemaVersion: "ebb.data-bundle.v2" },
+        files: {
+          "registry/npm.json": {
+            schemaVersion: "ebb.registry.v2",
+            ecosystem: "npm",
+            rules: [],
+          },
+        },
+      };
+      await writeFile(join(versionDir, "bundle.json"), JSON.stringify(bundleData), "utf8");
+
+      // Known version
+      const mockOk = createMockIo();
+      const codeOk = await runCli(["diff", "--since", version], mockOk.io);
+      assert.equal(codeOk, 0);
+      assert.match(mockOk.stdout, /Summary:/);
+
+      // Unknown version fails with exit code 2
+      const mockErr = createMockIo();
+      const codeErr = await runCli(["diff", "--since", "9999.99.99"], mockErr.io);
+      assert.equal(codeErr, 2);
+      assert.match(mockErr.stderr, /Error: Diff failed: Version "9999\.99\.99" is not in the data release log\./);
+    } finally {
+      if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+      else delete process.env.EBB_DATA_DIR;
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("runs update command with --rollback on bundled data and exits with error code 1", async () => {
     const mock = createMockIo();
     const code = await runCli(["update", "--rollback"], mock.io);
@@ -550,5 +601,67 @@ describe("CLI --offline flag (offline-3)", () => {
     const code = await runCli(["update", "--offline"], mock.io);
     assert.equal(code, 1);
     assert.equal(mock.stderr, "Ebb is running in offline mode; network request stopped.\n");
+  });
+});
+
+describe("CLI release-log (release-log-1)", () => {
+  it("says so when no log is present in text and JSON mode", async () => {
+    const tmp = await mkdtemp(join(tmpdir(), "ebb-cli-rel-log-none-"));
+    const oldDir = process.env.EBB_DATA_DIR;
+    process.env.EBB_DATA_DIR = tmp;
+    try {
+      const mockText = createMockIo();
+      const codeText = await runCli(["release-log"], mockText.io);
+      assert.equal(codeText, 0);
+      assert.match(mockText.stdout, /No local data release log found/);
+
+      const mockJson = createMockIo();
+      const codeJson = await runCli(["release-log", "--json"], mockJson.io);
+      assert.equal(codeJson, 0);
+      const parsed = JSON.parse(mockJson.stdout);
+      assert.equal(parsed.schemaVersion, "ebb.data-release-log.v1");
+      assert.deepEqual(parsed.releases, []);
+    } finally {
+      if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+      else delete process.env.EBB_DATA_DIR;
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("lists entries in text and JSON mode when log is present", async () => {
+    const tmp = await mkdtemp(join(tmpdir(), "ebb-cli-rel-log-present-"));
+    const oldDir = process.env.EBB_DATA_DIR;
+    process.env.EBB_DATA_DIR = tmp;
+    try {
+      const { appendReleaseLog } = await import("../src/data-release-log.js");
+      const logContent = appendReleaseLog("", {
+        version: "2026.11.11",
+        contentDigest: `sha256:${"a".repeat(64)}`,
+        bundleSha256: `sha256:${"b".repeat(64)}`,
+        createdAt: "2026-11-11T12:00:00Z",
+      });
+      await mkdir(join(tmp, "data"), { recursive: true });
+      await writeFile(join(tmp, "data", "release-log.jsonl"), logContent, "utf8");
+
+      const mockText = createMockIo();
+      const codeText = await runCli(["release-log"], mockText.io);
+      assert.equal(codeText, 0);
+      assert.match(mockText.stdout, /2026\.11\.11/);
+      assert.match(mockText.stdout, /2026-11-11/);
+      assert.match(mockText.stdout, /sha256:a{64}/);
+
+      const mockJson = createMockIo();
+      const codeJson = await runCli(["release-log", "--json"], mockJson.io);
+      assert.equal(codeJson, 0);
+      const parsed = JSON.parse(mockJson.stdout);
+      assert.equal(parsed.schemaVersion, "ebb.data-release-log.v1");
+      assert.equal(parsed.count, 1);
+      assert.equal(parsed.releases[0].version, "2026.11.11");
+      assert.equal(parsed.releases[0].contentDigest, `sha256:${"a".repeat(64)}`);
+    } finally {
+      if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+      else delete process.env.EBB_DATA_DIR;
+      await rm(tmp, { recursive: true, force: true });
+    }
   });
 });

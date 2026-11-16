@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
@@ -1045,5 +1046,86 @@ test("update() reads releases from EBB_RELEASES_URL mirror and rejects re-signed
     if (prevEnv === undefined) delete process.env.EBB_RELEASES_URL;
     else process.env.EBB_RELEASES_URL = prevEnv;
     server.close();
+  }
+});
+
+test("release-log-2: rejects update when release-log is tampered and leaves cache untouched", async () => {
+  const { appendReleaseLog, ReleaseLogError } = await import("../src/data-release-log.js");
+  const bundle = await buildDataBundle({
+    root: fixtureRepo,
+    createdAt: "2099-09-01T00:00:00Z",
+    minimumEbbVersion: "0.0.1",
+  });
+  const serialized = serializeDataBundle(bundle);
+  const version = bundle.manifest.version;
+
+  const log1 = appendReleaseLog("", {
+    version: "2026.10.16",
+    contentDigest: `sha256:${"1".repeat(64)}`,
+    bundleSha256: `sha256:${"2".repeat(64)}`,
+    createdAt: "2026-10-16T00:00:00Z",
+  });
+  const validLog = appendReleaseLog(log1, {
+    version: "2026.11.11",
+    contentDigest: bundle.manifest.contentDigest,
+    bundleSha256: `sha256:${"3".repeat(64)}`,
+    createdAt: "2026-11-11T00:00:00Z",
+  });
+
+  const lines = validLog.trim().split("\n");
+  assert.equal(lines.length, 2);
+
+  // 1. Change one entry (modify contentDigest in entry 1)
+  const entry0Parsed = JSON.parse(lines[0]!);
+  entry0Parsed.contentDigest = `sha256:${"f".repeat(64)}`;
+  const tamperedChangedLog = `${JSON.stringify(entry0Parsed)}\n${lines[1]}\n`;
+
+  // 2. Remove one entry (remove entry 1, so entry 2's previous does not match genesis)
+  const tamperedRemovedLog = `${lines[1]}\n`;
+
+  // 3. Reorder two entries (swap entry 1 and entry 2)
+  const tamperedReorderedLog = `${lines[1]}\n${lines[0]}\n`;
+
+  const baseUrl = "https://example.com";
+  const releasesListing = [
+    {
+      tag_name: `data-v${version}`,
+      draft: false,
+      assets: [
+        { name: `ebb-data-${version}.json`, browser_download_url: `${baseUrl}/bundle.json` },
+        { name: `ebb-data-${version}.json.sigstore.json`, browser_download_url: `${baseUrl}/sig.json` },
+        { name: "release-log.jsonl", browser_download_url: `${baseUrl}/release-log.jsonl` },
+      ],
+    },
+  ];
+
+  for (const [scenario, tamperedLog] of [
+    ["change one entry", tamperedChangedLog],
+    ["remove one entry", tamperedRemovedLog],
+    ["reorder two", tamperedReorderedLog],
+  ] as const) {
+    const cache = await mkdtemp(join(workspace, `tampered-cache-${scenario.replace(/\s+/g, "-")}-`));
+    const routes: Record<string, () => Response> = {
+      [`${baseUrl}/releases.json`]: () => new Response(JSON.stringify(releasesListing)),
+      [`${baseUrl}/bundle.json`]: () => new Response(serialized),
+      [`${baseUrl}/sig.json`]: () => new Response("{}"),
+      [`${baseUrl}/release-log.jsonl`]: () => new Response(tamperedLog),
+    };
+
+    await assert.rejects(
+      () =>
+        update({
+          releasesUrl: `${baseUrl}/releases.json`,
+          cacheDirectory: cache,
+          verifySignature,
+          fetch: mockFetch(routes),
+        }),
+      (err: unknown) => err instanceof ReleaseLogError,
+      `Expected ${scenario} to fail with ReleaseLogError`,
+    );
+
+    // Verify cache remains untouched
+    const files = existsSync(join(cache, "data")) ? await readdir(join(cache, "data")) : [];
+    assert.deepEqual(files, [], `Cache must remain untouched on ${scenario}`);
   }
 });

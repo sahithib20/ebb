@@ -17,6 +17,7 @@ export interface ChangelogFormatOptions {
   date?: string | undefined;
   pullRequest?: string | number | undefined;
   contributor?: string | undefined;
+  baseUrl?: string | undefined;
 }
 
 export interface ChangelogRelease {
@@ -55,12 +56,29 @@ function prMarkdown(pr?: string | number): string {
   return ` in [#${num}](https://github.com/velella-sh/ebb/pull/${num})`;
 }
 
+export function ruleLink(ruleId: string, baseUrl = "https://velella.sh/ebb/api/v1"): string {
+  return `[\`${ruleId}\`](${baseUrl}/rules/${encodeURIComponent(ruleId)}.json)`;
+}
+
+export function linkRuleIdsInMarkdown(content: string, baseUrl = "https://velella.sh/ebb/api/v1"): string {
+  return content
+    .replace(
+      /(- \*\*(?:Added|Changed|Removed)\*\*\s+)`([a-zA-Z0-9_.-]+)`(?!\()/g,
+      (_, prefix, ruleId) => `${prefix}${ruleLink(ruleId, baseUrl)}`,
+    )
+    .replace(
+      /(- \*\*Renamed\*\*\s+)`([a-zA-Z0-9_.-]+)`\s+→\s+`([a-zA-Z0-9_.-]+)`/g,
+      (_, prefix, fromId, toId) => `${prefix}${ruleLink(fromId, baseUrl)} → ${ruleLink(toId, baseUrl)}`,
+    );
+}
+
 /**
  * Formats a clean Markdown changelog section for a release from a DataDiffResult.
  */
 export function formatChangelogSection(diffResult: DataDiffResult, options: ChangelogFormatOptions): string {
   const version = options.version;
   const date = options.date ?? new Date().toISOString().slice(0, 10);
+  const baseUrl = options.baseUrl ?? "https://velella.sh/ebb/api/v1";
   const lines: string[] = [];
 
   lines.push(`## [${version}] - ${date}\n`);
@@ -94,7 +112,7 @@ export function formatChangelogSection(diffResult: DataDiffResult, options: Chan
       const prStr = prMarkdown(options.pullRequest);
       const deadlineStr = rule.deadline ? `, deadline: ${rule.deadline}` : "";
       lines.push(
-        `- **Added** \`${rule.id}\` (\`${rule.purl}\`): ${rule.title} (${rule.event}, vers: \`${rule.vers}\`${deadlineStr}) by @${credit}${prStr}`,
+        `- **Added** ${ruleLink(rule.id, baseUrl)} (\`${rule.purl}\`): ${rule.title} (${rule.event}, vers: \`${rule.vers}\`${deadlineStr}) by @${credit}${prStr}`,
       );
     }
 
@@ -104,7 +122,9 @@ export function formatChangelogSection(diffResult: DataDiffResult, options: Chan
       const credit = ruleContributor(ch.toRule, options.contributor);
       const prStr = prMarkdown(options.pullRequest);
       const changeSummaries = ch.changes.map((c) => c.description ?? `${c.field} updated`).join("; ");
-      lines.push(`- **Changed** \`${ch.id}\` (\`${ch.purl}\`): ${ch.title} — ${changeSummaries} by @${credit}${prStr}`);
+      lines.push(
+        `- **Changed** ${ruleLink(ch.id, baseUrl)} (\`${ch.purl}\`): ${ch.title} — ${changeSummaries} by @${credit}${prStr}`,
+      );
     }
 
     // Renamed rules in this ecosystem
@@ -112,7 +132,9 @@ export function formatChangelogSection(diffResult: DataDiffResult, options: Chan
     for (const ren of renamed) {
       const credit = ruleContributor(ren.toRule, options.contributor);
       const prStr = prMarkdown(options.pullRequest);
-      lines.push(`- **Renamed** \`${ren.fromId}\` → \`${ren.toId}\` (\`${ren.purl}\`) by @${credit}${prStr}`);
+      lines.push(
+        `- **Renamed** ${ruleLink(ren.fromId, baseUrl)} → ${ruleLink(ren.toId, baseUrl)} (\`${ren.purl}\`) by @${credit}${prStr}`,
+      );
     }
 
     // Removed rules in this ecosystem
@@ -120,7 +142,7 @@ export function formatChangelogSection(diffResult: DataDiffResult, options: Chan
     for (const rule of removed) {
       const credit = ruleContributor(rule, options.contributor);
       const prStr = prMarkdown(options.pullRequest);
-      lines.push(`- **Removed** \`${rule.id}\` (\`${rule.purl}\`): ${rule.title} by @${credit}${prStr}`);
+      lines.push(`- **Removed** ${ruleLink(rule.id, baseUrl)} (\`${rule.purl}\`): ${rule.title} by @${credit}${prStr}`);
     }
 
     lines.push("");
@@ -192,12 +214,33 @@ export function prependChangelogEntry(existingMarkdown: string, newEntryMarkdown
   return `${header}${newEntryMarkdown}\n\n${rest.trim()}\n`;
 }
 
+export async function regenerateChangelogs(options: { baseUrl?: string } = {}): Promise<void> {
+  const baseUrl = options.baseUrl ?? "https://velella.sh/ebb/api/v1";
+  const files = ["DATA-CHANGELOG.md", "docs/data-changelog.md"];
+  for (const file of files) {
+    const filePath = resolve(file);
+    try {
+      const content = await readFile(filePath, "utf8");
+      const updated = linkRuleIdsInMarkdown(content, baseUrl);
+      await writeFile(filePath, updated, "utf8");
+      process.stdout.write(`Linked rule IDs in ${file}\n`);
+    } catch {
+      // ignore
+    }
+  }
+}
+
 function option(argv: string[], name: string): string | undefined {
   const index = argv.indexOf(name);
   return index >= 0 ? argv[index + 1] : undefined;
 }
 
 export async function main(argv: string[]): Promise<void> {
+  if (argv.includes("--regenerate")) {
+    await regenerateChangelogs();
+    return;
+  }
+
   const fromTarget = option(argv, "--from") ?? "bundled";
   const toTarget = option(argv, "--to") ?? "active";
   const version = option(argv, "--version") ?? "0.4.0";
@@ -205,6 +248,7 @@ export async function main(argv: string[]): Promise<void> {
   const pr = option(argv, "--pr");
   const contributor = option(argv, "--contributor");
   const outMd = resolve(option(argv, "--out-md") ?? "DATA-CHANGELOG.md");
+  const outDoc = option(argv, "--out-doc") ? resolve(option(argv, "--out-doc")!) : undefined;
   const outFeed = resolve(option(argv, "--out-feed") ?? "docs/data-changelog.atom");
 
   const diffResult = await diff(fromTarget, toTarget);
@@ -227,6 +271,19 @@ export async function main(argv: string[]): Promise<void> {
   await mkdir(dirname(outMd), { recursive: true });
   await writeFile(outMd, updatedMd, "utf8");
   process.stdout.write(`Updated ${outMd} with data release [${version}]\n`);
+
+  if (outDoc) {
+    let existingDoc = "";
+    try {
+      existingDoc = await readFile(outDoc, "utf8");
+    } catch {
+      // ignore
+    }
+    const updatedDoc = prependChangelogEntry(existingDoc, section);
+    await mkdir(dirname(outDoc), { recursive: true });
+    await writeFile(outDoc, updatedDoc, "utf8");
+    process.stdout.write(`Updated ${outDoc} with data release [${version}]\n`);
+  }
 
   // Write Atom feed
   const releaseEntry: ChangelogRelease = {

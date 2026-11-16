@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
@@ -296,4 +296,67 @@ test("diff() resolves file paths (JSON and gzip), dates, and bundled data", asyn
     () => diff("non-existent-version-12345", "bundled"),
     (err: unknown) => err instanceof DiffError && /was not found in cache/.test(err.message),
   );
+});
+
+test("diff --since <version> compares version against active data and fails clearly on unknown version (release-log-8)", async () => {
+  const { appendReleaseLog } = await import("../src/data-release-log.js");
+  const cache = await mkdtemp(join(tmpdir(), "ebb-diff-since-"));
+  try {
+    const version = "2026.11.11";
+    const logContent = appendReleaseLog("", {
+      version,
+      contentDigest: `sha256:${"a".repeat(64)}`,
+      bundleSha256: `sha256:${"b".repeat(64)}`,
+      createdAt: "2026-11-11T12:00:00Z",
+    });
+    await mkdir(join(cache, "data"), { recursive: true });
+    await writeFile(join(cache, "data", "release-log.jsonl"), logContent, "utf8");
+
+    // Stage bundle in cache for that version
+    const versionDir = join(cache, "data", version);
+    await mkdir(versionDir, { recursive: true });
+    const bundleData = {
+      manifest: { version, schemaVersion: "ebb.data-bundle.v2" },
+      files: {
+        "registry/npm.json": {
+          schemaVersion: "ebb.registry.v2",
+          ecosystem: "npm",
+          rules: [baseRule1],
+        },
+      },
+    };
+    await writeFile(join(versionDir, "bundle.json"), JSON.stringify(bundleData), "utf8");
+
+    // 1. Known version in release log
+    const result = await diff(undefined, undefined, { since: version, cacheDirectory: cache });
+    assert.ok(result.from.description.includes(version));
+    assert.ok(result.to.description.includes("active"));
+    assert.ok(result.summary);
+
+    const formatted = formatDiffText(result, { color: false });
+    // Verifies summary counts printed first
+    const lines = formatted.split("\n");
+    assert.match(lines[0]!, /ebb diff:/);
+    assert.match(lines[1]!, /^Summary: \+\d+ added/);
+
+    // 2. Unknown version not in release log
+    await assert.rejects(
+      () => diff(undefined, undefined, { since: "9999.99.99", cacheDirectory: cache }),
+      (err: unknown) =>
+        err instanceof DiffError && /Version "9999\.99\.99" is not in the data release log\./.test(err.message),
+    );
+
+    // 3. No local log present
+    const emptyCache = await mkdtemp(join(tmpdir(), "ebb-diff-empty-"));
+    try {
+      await assert.rejects(
+        () => diff(undefined, undefined, { since: version, cacheDirectory: emptyCache }),
+        (err: unknown) => err instanceof DiffError && /no local log found/.test(err.message),
+      );
+    } finally {
+      await rm(emptyCache, { recursive: true, force: true });
+    }
+  } finally {
+    await rm(cache, { recursive: true, force: true });
+  }
 });
