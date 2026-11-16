@@ -17,6 +17,10 @@ main:
         url: /pick-version/
       - title: Importers
         url: /importers/
+      - title: Trust and verification
+        url: /trust/
+      - title: Comparing sources
+        url: /compare/
       - title: Data bundles and trust
         url: /data/
       - title: Data freshness

@@ -142,6 +142,12 @@ describe("Examples Suite (Epic 18)", () => {
         "examples/workers/vercel/api/check.ts",
         "examples/deno/README.md",
         "examples/bun/README.md",
+        "docs/demo/terminal.tape",
+        "docs/demo/README.md",
+        "docs/demo/terminal.svg",
+        "docs/demo/agent.md",
+        "docs/demo/agent-session/without-ebb.jsonl",
+        "docs/demo/agent-session/with-ebb.jsonl",
       ];
 
       for (const rel of expectedPaths) {
