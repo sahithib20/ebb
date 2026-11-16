@@ -132,7 +132,10 @@ export interface GenerateOpenApiOptions {
 
 export async function generateOpenApi(options?: GenerateOpenApiOptions): Promise<Record<string, unknown>> {
   const root = resolve(options?.root ?? ".");
-  const baseUrl = (options?.baseUrl ?? "https://velella.sh/ebb/api/v1").replace(/\/+$/, "");
+  let baseUrl = options?.baseUrl ?? "https://velella.sh/ebb/api/v1";
+  while (baseUrl.endsWith("/")) {
+    baseUrl = baseUrl.slice(0, -1);
+  }
   let version = options?.version;
   if (!version) {
     try {

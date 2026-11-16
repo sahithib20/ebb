@@ -66,7 +66,10 @@ export function sortKeys<T>(value: T): T {
 export async function generateStaticApi(options: GenerateStaticApiOptions): Promise<GenerateStaticApiResult> {
   const root = resolve(options.root ?? ".");
   const outDir = resolve(options.outDir);
-  const baseUrl = (options.baseUrl ?? "https://velella.sh/ebb/api/v1").replace(/\/+$/, "");
+  let baseUrl = options.baseUrl ?? "https://velella.sh/ebb/api/v1";
+  while (baseUrl.endsWith("/")) {
+    baseUrl = baseUrl.slice(0, -1);
+  }
 
   // Read package.json version
   const pkgJsonPath = join(root, "package.json");

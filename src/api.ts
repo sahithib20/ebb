@@ -209,13 +209,21 @@ async function fetchWithRetry(url: string, options?: FetchRuleOptions): Promise<
   return response;
 }
 
+function cleanBaseUrl(url?: string): string {
+  let u = url ?? DEFAULT_STATIC_API_BASE_URL;
+  while (u.endsWith("/")) {
+    u = u.slice(0, -1);
+  }
+  return u;
+}
+
 /**
  * Fetches the metadata document from `/api/v1/meta.json`.
  * Clients should call this first to check data version and component/rule counts.
  * Returns null if not found (404).
  */
 export async function fetchMeta(options?: FetchRuleOptions): Promise<ApiMetaDocument | null> {
-  let baseUrl = (options?.baseUrl ?? DEFAULT_STATIC_API_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = cleanBaseUrl(options?.baseUrl);
   const url = `${baseUrl}/meta.json`;
   const response = await fetchWithRetry(url, options);
   if (!response) {
@@ -229,7 +237,7 @@ export async function fetchMeta(options?: FetchRuleOptions): Promise<ApiMetaDocu
  * Returns null if not found (404).
  */
 export async function fetchUpcoming(options?: FetchRuleOptions): Promise<ApiUpcomingDocument | null> {
-  let baseUrl = (options?.baseUrl ?? DEFAULT_STATIC_API_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = cleanBaseUrl(options?.baseUrl);
   const url = `${baseUrl}/upcoming.json`;
   const response = await fetchWithRetry(url, options);
   if (!response) {
@@ -243,7 +251,7 @@ export async function fetchUpcoming(options?: FetchRuleOptions): Promise<ApiUpco
  * Returns null if not found (404).
  */
 export async function fetchSingleRule(ruleId: string, options?: FetchRuleOptions): Promise<ApiRuleDocument | null> {
-  let baseUrl = (options?.baseUrl ?? DEFAULT_STATIC_API_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = cleanBaseUrl(options?.baseUrl);
   const url = `${baseUrl}/rules/${encodeURIComponent(ruleId)}.json`;
   const response = await fetchWithRetry(url, options);
   if (!response) {
@@ -257,7 +265,7 @@ export async function fetchSingleRule(ruleId: string, options?: FetchRuleOptions
  * Returns null if the component is not found (404).
  */
 export async function fetchComponent(purl: string, options?: FetchRuleOptions): Promise<ApiComponentDocument | null> {
-  let baseUrl = (options?.baseUrl ?? DEFAULT_STATIC_API_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = cleanBaseUrl(options?.baseUrl);
   const relPath = purlToApiPath(purl);
   const url = `${baseUrl}/${relPath}`;
 

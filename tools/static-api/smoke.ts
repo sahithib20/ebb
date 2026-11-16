@@ -24,7 +24,10 @@ export async function runSmokeTest(options: SmokeTestOptions): Promise<void> {
   ajv.addSchema(regSchema, "registry.v2.schema.json");
   const validate = ajv.compile(schema);
 
-  const cleanBase = options.baseUrl.replace(/\/+$/, "");
+  let cleanBase = options.baseUrl;
+  while (cleanBase.endsWith("/")) {
+    cleanBase = cleanBase.slice(0, -1);
+  }
   const targetUrls = [
     `${cleanBase}/meta.json`,
     `${cleanBase}/npm/request.json`,
