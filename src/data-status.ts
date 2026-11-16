@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { DataInfo } from "./domain.js";
 import { defaultCacheDirectory, getActiveDataSync } from "./data-source.js";
 import type { ActiveData } from "./data-source.js";
@@ -36,6 +38,14 @@ export interface DataStatus {
   signer: { identity: string; issuer: string } | null;
   cacheDirectory: string;
   warnings: string[];
+  /** Where the active data originated: package or cache. */
+  origin?: "package" | "cache" | undefined;
+  /** The filesystem path to the cache directory. */
+  cachePath?: string | undefined;
+  /** Whether a rollback copy exists in the cache directory. */
+  hasRollback?: boolean | undefined;
+  /** The version of the rollback copy if one exists. */
+  rollbackVersion?: string | null | undefined;
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -85,6 +95,40 @@ export function dataStatusFrom(
     );
   }
 
+  // Determine origin: "package" for bundled data, "cache" for cached/downloaded data
+  const origin: "package" | "cache" = info.source === "bundled" ? "package" : "cache";
+
+  // Check for rollback copy
+  let hasRollback = false;
+  let rollbackVersion: string | null = null;
+  try {
+    const previousPath = join(cacheDirectory, "data", "previous.json");
+    if (existsSync(previousPath)) {
+      const raw = readFileSync(previousPath, "utf8");
+      const parsed = JSON.parse(raw) as { version?: string };
+      if (typeof parsed.version === "string" && parsed.version.length > 0) {
+        hasRollback = true;
+        rollbackVersion = parsed.version;
+      }
+    } else {
+      // Check if earlier versions exist in data/
+      const dataDir = join(cacheDirectory, "data");
+      if (existsSync(dataDir)) {
+        const entries = readdirSync(dataDir, { withFileTypes: true })
+          .filter((entry) => entry.isDirectory() && /^\d{4}\.\d{2}\.\d{2}/.test(entry.name))
+          .map((entry) => entry.name)
+          .filter((v) => (info.source === "cache" ? v !== info.version : true));
+        if (entries.length > 0) {
+          hasRollback = true;
+          entries.sort();
+          rollbackVersion = entries[entries.length - 1] ?? null;
+        }
+      }
+    }
+  } catch {
+    // If directory unreadable or error, rollback not available
+  }
+
   return {
     schemaVersion: DATA_STATUS_SCHEMA_VERSION,
     source: info.source,
@@ -98,6 +142,10 @@ export function dataStatusFrom(
     stale,
     signer: info.signer,
     cacheDirectory,
+    origin,
+    cachePath: cacheDirectory,
+    hasRollback,
+    rollbackVersion,
     warnings,
   };
 }

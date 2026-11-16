@@ -142,6 +142,15 @@ describe("error codes reachable", () => {
     coveredCodes.add(err.code);
   });
 
+  it("cache-read-only is reachable", () => {
+    const err = catchEbb(() => {
+      throw new DataUpdateError("cache directory is read-only", "cache-read-only");
+    });
+    assert.equal(err.code, "cache-read-only");
+    assert(err instanceof EbbError);
+    coveredCodes.add(err.code);
+  });
+
   it("every code in EBB_ERROR_CODES is covered", () => {
     for (const code of EBB_ERROR_CODES) {
       assert.ok(coveredCodes.has(code), `Code "${code}" must have a reachability test`);

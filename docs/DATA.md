@@ -46,9 +46,50 @@ Downloads honor `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` (Node.js 22.21 or ne
 
 A pin selects exactly bundle `X` from the cache, or `bundled` for the data shipped with the package. Unlike the automatic choice, a pin that cannot be met throws a `DataPinError` instead of quietly using something else; its `missing` flag says the bundle is not in the cache yet, so the caller can tell the user to download it. A pinned bundle is verified like any other and is used whatever its age.
 
-### Where the data is stored
+### Where the data is stored and cache layout
 
-`EBB_DATA_DIR` if set, otherwise `~/Library/Caches/ebb` (macOS), `$XDG_CACHE_HOME/ebb` or `~/.cache/ebb` (Linux), or `%LOCALAPPDATA%\ebb\Cache` (Windows). Inside, `data/<version>/` holds `bundle.json` and its signature `bundle.json.sigstore.json`, and `data/active.json` names the active version. Deleting the directory returns Ebb to the bundled data.
+The cache directory is resolved per platform (`src/cache-paths.ts`):
+- **macOS**: `~/Library/Caches/ebb`
+- **Linux / other**: `$XDG_CACHE_HOME/ebb` or `~/.cache/ebb`
+- **Windows**: `%LOCALAPPDATA%\ebb\Cache` (or `%USERPROFILE%\AppData\Local\ebb\Cache`)
+
+The `EBB_DATA_DIR` environment variable overrides this path entirely on any platform.
+
+#### Directory layout
+
+Within the cache directory, lifecycle data is stored in the `data/` subdirectory:
+
+```text
+<cache-dir>/
+└── data/
+    ├── active.json                    # Points to the currently active version: {"version": "..."}
+    ├── previous.json                  # Records previous active version for rollback: {"version": "..."}
+    ├── release-log.jsonl              # Local append-only chain of verified releases
+    ├── releases-etag.txt              # ETag from the last releases query for conditional HTTP requests
+    ├── .lock                          # Concurrency lock during data updates
+    └── <version>/                     # Versioned directory for each bundle (e.g. 2026.11.11/)
+        ├── bundle.json                # Complete lifecycle data bundle (rules, registries, shas)
+        └── bundle.json.sigstore.json  # Sigstore keyless signature bundle
+```
+
+#### What `update` and `rollback` write
+
+- **`update`** (`src/data-update.ts`):
+  1. Acquires a file lock (`data/.lock`) to prevent concurrent updates from racing or corrupting the cache.
+  2. Stages the downloaded bundle and signature atomically in `<cache-dir>/data/<version>/` via a temporary staging directory (`<version>.<pid>.new`).
+  3. Preserves the currently active version in `data/previous.json` before switching.
+  4. Atomically writes the new active version pointer to `data/active.json`.
+  5. Updates the local `data/release-log.jsonl` if the release supplies a verified log.
+  6. Stores the HTTP `ETag` in `data/releases-etag.txt` to avoid redundant downloads on subsequent checks.
+  7. Prunes older cached versions, retaining the 3 most recent bundles.
+  8. Releases the lock.
+- **`rollback`** (`src/data-update.ts`):
+  1. Acquires the file lock.
+  2. Reads `data/previous.json` (or inspects `data/` for the most recent earlier cached version).
+  3. Points `data/active.json` to the previous version and removes `data/previous.json`. If no earlier cached version exists, removes both `data/active.json` and `data/previous.json` so Ebb falls back to bundled data shipped with the package.
+  4. Releases the lock.
+
+Deleting the cache directory or clearing it with `ebb cache clear` returns Ebb to using the bundled data.
 
 ## What is in a bundle
 

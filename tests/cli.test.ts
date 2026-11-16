@@ -664,4 +664,233 @@ describe("CLI release-log (release-log-1)", () => {
       await rm(tmp, { recursive: true, force: true });
     }
   });
+
+  describe("cache CLI commands (cache-2, cache-6)", () => {
+    it("ebb cache path prints directory without creating it (cache-2)", async () => {
+      const nonExistentPath = join(tmpdir(), `ebb-cache-path-test-${Date.now()}`);
+      const oldDir = process.env.EBB_DATA_DIR;
+      process.env.EBB_DATA_DIR = nonExistentPath;
+      try {
+        const mock = createMockIo();
+        const code = await runCli(["cache", "path"], mock.io);
+        assert.equal(code, 0);
+        assert.equal(mock.stdout.trim(), nonExistentPath);
+        // Verify directory was NOT created
+        const { existsSync } = await import("node:fs");
+        assert.equal(existsSync(nonExistentPath), false, "directory must not be created just to print its path");
+      } finally {
+        if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+        else delete process.env.EBB_DATA_DIR;
+      }
+    });
+
+    it("ebb cache info reports empty cache in text and JSON (cache-2)", async () => {
+      const tmp = await mkdtemp(join(tmpdir(), "ebb-cache-info-empty-"));
+      const oldDir = process.env.EBB_DATA_DIR;
+      process.env.EBB_DATA_DIR = tmp;
+      try {
+        // Text mode
+        const mockText = createMockIo();
+        const codeText = await runCli(["cache", "info"], mockText.io);
+        assert.equal(codeText, 0);
+        assert.match(mockText.stdout, /Cache is empty/);
+
+        // JSON mode
+        const mockJson = createMockIo();
+        const codeJson = await runCli(["cache", "info", "--json"], mockJson.io);
+        assert.equal(codeJson, 0);
+        const parsed = JSON.parse(mockJson.stdout);
+        assert.equal(parsed.empty, true);
+        assert.equal(parsed.cacheDirectory, tmp);
+      } finally {
+        if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+        else delete process.env.EBB_DATA_DIR;
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("ebb cache info reports active version, file sizes, and fetch date on filled cache (cache-2)", async () => {
+      const tmp = await mkdtemp(join(tmpdir(), "ebb-cache-info-filled-"));
+      const oldDir = process.env.EBB_DATA_DIR;
+      process.env.EBB_DATA_DIR = tmp;
+      try {
+        const version = "2026.11.11";
+        const versionDir = join(tmp, "data", version);
+        await mkdir(versionDir, { recursive: true });
+        await writeFile(join(tmp, "data", "active.json"), JSON.stringify({ version }) + "\n");
+        const bundleContent = JSON.stringify({
+          manifest: { version, createdAt: "2026-11-11T12:00:00Z" },
+          files: {},
+        });
+        await writeFile(join(versionDir, "bundle.json"), bundleContent);
+        await writeFile(join(versionDir, "bundle.json.sigstore.json"), '{"mock":"sig"}');
+
+        // Text mode
+        const mockText = createMockIo();
+        const codeText = await runCli(["cache", "info"], mockText.io);
+        assert.equal(codeText, 0);
+        assert.match(mockText.stdout, /Active version:\s+2026\.11\.11/);
+        assert.match(mockText.stdout, /Date created:\s+2026-11-11T12:00:00Z/);
+        assert.match(mockText.stdout, /Files:/);
+        assert.match(mockText.stdout, /Total size:/);
+
+        // JSON mode
+        const mockJson = createMockIo();
+        const codeJson = await runCli(["cache", "info", "--json"], mockJson.io);
+        assert.equal(codeJson, 0);
+        const parsed = JSON.parse(mockJson.stdout);
+        assert.equal(parsed.empty, false);
+        assert.equal(parsed.version, "2026.11.11");
+        assert.equal(parsed.createdAt, "2026-11-11T12:00:00Z");
+        assert.ok(typeof parsed.fetchedAt === "string");
+        assert.ok(parsed.totalSize > 0);
+        assert.ok(Array.isArray(parsed.files));
+        assert.ok(parsed.files.length >= 3);
+      } finally {
+        if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+        else delete process.env.EBB_DATA_DIR;
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("ebb cache clear removes cached data and rollback copy, printing what was removed (cache-6)", async () => {
+      const tmp = await mkdtemp(join(tmpdir(), "ebb-cache-clear-test-"));
+      const oldDir = process.env.EBB_DATA_DIR;
+      process.env.EBB_DATA_DIR = tmp;
+      try {
+        const version = "2026.11.11";
+        const versionDir = join(tmp, "data", version);
+        await mkdir(versionDir, { recursive: true });
+        await writeFile(join(tmp, "data", "active.json"), JSON.stringify({ version }) + "\n");
+        await writeFile(join(tmp, "data", "previous.json"), JSON.stringify({ version: "2026.10.01" }) + "\n");
+        await writeFile(join(versionDir, "bundle.json"), "{}");
+
+        const mock = createMockIo();
+        const code = await runCli(["cache", "clear"], mock.io);
+        assert.equal(code, 0);
+        assert.match(mock.stdout, /Cleared cache in/);
+        assert.match(mock.stdout, /cached data for 2026\.11\.11/);
+        assert.match(mock.stdout, /rollback copy/);
+
+        const { existsSync } = await import("node:fs");
+        assert.equal(existsSync(join(tmp, "data")), false, "data directory should be removed");
+      } finally {
+        if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+        else delete process.env.EBB_DATA_DIR;
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("ebb cache clear refuses when EBB_DATA_DIR does not look like an Ebb cache (cache-6)", async () => {
+      const nonEbbTmp = await mkdtemp(join(tmpdir(), "random-user-dir-"));
+      const oldDir = process.env.EBB_DATA_DIR;
+      process.env.EBB_DATA_DIR = nonEbbTmp;
+      try {
+        const mock = createMockIo();
+        const code = await runCli(["cache", "clear"], mock.io);
+        assert.equal(code, 2);
+        assert.match(mock.stderr, /Refusing to clear cache/);
+        assert.match(mock.stderr, /does not look like an Ebb cache directory/);
+      } finally {
+        if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+        else delete process.env.EBB_DATA_DIR;
+        await rm(nonEbbTmp, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("ebb update --if-older-than (cache-9)", () => {
+    it("skips network when cached data is newer than the window, and checks when older (cache-9)", async () => {
+      const tmp = await mkdtemp(join(tmpdir(), "ebb-cli-older-than-"));
+      const oldDir = process.env.EBB_DATA_DIR;
+      process.env.EBB_DATA_DIR = tmp;
+      const { configureActiveData } = await import("../src/data-source.js");
+      const { buildDataBundle } = await import("../src/data-bundle.js");
+      configureActiveData({
+        verifySignature: () => ({ identity: "ci@example.com", issuer: "https://token.actions.githubusercontent.com" }),
+      });
+      try {
+        const todayIso = new Date().toISOString().slice(0, 19) + "Z";
+        const bundle = await buildDataBundle({
+          root: resolve("."),
+          createdAt: todayIso,
+          minimumEbbVersion: "0.2.0",
+          ecosystem: "npm",
+        });
+        const version = bundle.manifest.version;
+        const versionDir = join(tmp, "data", version);
+        await mkdir(versionDir, { recursive: true });
+        await writeFile(join(tmp, "data", "active.json"), JSON.stringify({ version }) + "\n");
+        await writeFile(join(versionDir, "bundle.json"), JSON.stringify(bundle));
+        await writeFile(join(versionDir, "bundle.json.sigstore.json"), "{}");
+
+        // When data is brand new (0d old), --if-older-than 7d must skip
+        const mockSkip = createMockIo();
+        const codeSkip = await runCli(["update", "--if-older-than", "7d"], mockSkip.io);
+        assert.equal(codeSkip, 0);
+        assert.match(mockSkip.stdout, /Skipped update check: cached data is newer than 7d/);
+
+        // In JSON mode
+        const mockJson = createMockIo();
+        const codeJson = await runCli(["update", "--if-older-than", "7d", "--json"], mockJson.io);
+        assert.equal(codeJson, 0);
+        const parsed = JSON.parse(mockJson.stdout);
+        assert.equal(parsed.status, "up-to-date");
+        assert.equal(parsed.skipped, true);
+      } finally {
+        configureActiveData({});
+        if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+        else delete process.env.EBB_DATA_DIR;
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("checks when cached data is older than the window (cache-9)", async () => {
+      const tmp = await mkdtemp(join(tmpdir(), "ebb-cli-older-than-check-"));
+      const oldDir = process.env.EBB_DATA_DIR;
+      process.env.EBB_DATA_DIR = tmp;
+      const { configureActiveData } = await import("../src/data-source.js");
+      const { buildDataBundle } = await import("../src/data-bundle.js");
+      configureActiveData({
+        verifySignature: () => ({ identity: "ci@example.com", issuer: "https://token.actions.githubusercontent.com" }),
+      });
+      try {
+        const oldIso = new Date(Date.now() - 10 * 86400000).toISOString().slice(0, 19) + "Z";
+        const bundle = await buildDataBundle({
+          root: resolve("."),
+          createdAt: oldIso,
+          minimumEbbVersion: "0.2.0",
+          ecosystem: "npm",
+        });
+        const version = bundle.manifest.version;
+        const versionDir = join(tmp, "data", version);
+        await mkdir(versionDir, { recursive: true });
+        await writeFile(join(tmp, "data", "active.json"), JSON.stringify({ version }) + "\n");
+        await writeFile(join(versionDir, "bundle.json"), JSON.stringify(bundle));
+        await writeFile(join(versionDir, "bundle.json.sigstore.json"), "{}");
+
+        // Write a new bundle file to update --from
+        const newIso = new Date().toISOString().slice(0, 19) + "Z";
+        const newBundle = await buildDataBundle({
+          root: resolve("."),
+          createdAt: newIso,
+          minimumEbbVersion: "0.2.0",
+          ecosystem: "npm",
+        });
+        const newBundlePath = join(tmp, "new-bundle.json");
+        await writeFile(newBundlePath, JSON.stringify(newBundle));
+        await writeFile(`${newBundlePath}.sigstore.json`, "{}");
+
+        const mockCheck = createMockIo();
+        const codeCheck = await runCli(["update", "--from", newBundlePath, "--if-older-than", "1d"], mockCheck.io);
+        assert.equal(codeCheck, 0);
+        assert.match(mockCheck.stdout, /Checked and updated data successfully/);
+      } finally {
+        configureActiveData({});
+        if (oldDir !== undefined) process.env.EBB_DATA_DIR = oldDir;
+        else delete process.env.EBB_DATA_DIR;
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
+  });
 });

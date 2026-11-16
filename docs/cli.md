@@ -295,6 +295,9 @@ ebb update --rollback
 # Pin a specific data version
 ebb update 2026.10.15
 
+# Check and update only if cached data is older than window
+ebb update --if-older-than 7d
+
 # Use the pre-release channel
 ebb update --channel next
 
@@ -329,15 +332,35 @@ ebb diff 2026.10.01 2026.10.16 --format markdown
 ebb diff --ecosystem npm --json
 ```
 
+### `ebb cache <path|info|clear>`
+
+Inspects, queries, or clears Ebb's downloaded lifecycle data cache.
+
+- **`ebb cache path`**: Prints the filesystem path to the cache directory without creating it.
+- **`ebb cache info`**: Shows the active data version, cached file sizes, and fetch date in text or JSON format. Reports when the cache is empty.
+- **`ebb cache clear`**: Removes downloaded data bundles and the rollback copy, reporting what was deleted. Refuses to run if `EBB_DATA_DIR` points outside a directory that looks like an Ebb cache directory.
+
+```bash
+# Print cache directory location without creating it
+ebb cache path
+
+# Inspect cached files, sizes, and active version
+ebb cache info
+ebb cache info --json
+
+# Clear downloaded cache and rollback copies
+ebb cache clear
+```
+
 ### `ebb data-status`
 
-Display active lifecycle data freshness, source origin, review date, and evidence age in calendar days. Flags stale data exceeding the 30-day (or configured) threshold.
+Display active lifecycle data freshness, source origin (`package` or `cache`), cache path, rollback copy availability, review date, and evidence age in calendar days. Flags stale data exceeding the 30-day (or configured) threshold.
 
 ```bash
 # Print human-readable status
 ebb data-status
 
-# Output as JSON
+# Output as JSON (includes origin, cachePath, and hasRollback fields)
 ebb data-status --json
 
 # Set a custom threshold

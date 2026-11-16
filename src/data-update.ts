@@ -1,7 +1,8 @@
-import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { access, constants, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import http from "node:http";
 import { dirname, join } from "node:path";
 
+import { withCacheLock } from "./cache-lock.js";
 import { BUNDLED_ECOSYSTEMS, checkRollbackGuard, DataBundleError } from "./data-bundle.js";
 import { extendsReleaseLog, ReleaseLogError, verifyReleaseLog } from "./data-release-log.js";
 import {
@@ -15,14 +16,17 @@ import {
 } from "./data-source.js";
 import type { DataSourceOptions, VerifiedDataBundle } from "./data-source.js";
 import { type EbbErrorCode, EbbError } from "./errors.js";
+import { parseWithinWindow } from "./upcoming.js";
 
 export const DATA_UPDATE_SCHEMA_VERSION = "ebb.data-update.v1" as const;
 export { ReleaseLogError } from "./data-release-log.js";
+export { CacheLockError, cacheLockPath } from "./cache-lock.js";
 
 /** Where releases are listed. `EBB_DATA_URL` points this at a mirror or, in tests, a local server. */
 export const DEFAULT_RELEASES_URL = "https://api.github.com/repos/velella-sh/ebb/releases?per_page=30";
 
 export const PREVIOUS_FILE = "previous.json";
+export const RELEASES_ETAG_FILE = "releases-etag.txt";
 
 const MAXIMUM_BUNDLE_BYTES = 20 * 1024 * 1024;
 const MAXIMUM_SIGNATURE_BYTES = 1024 * 1024;
@@ -61,6 +65,8 @@ export interface DataUpdateResult {
     delta: number;
   };
   cacheDirectory: string;
+  /** True when update was skipped due to --if-older-than window. */
+  skipped?: boolean | undefined;
 }
 
 export interface DataUpdateOptions extends DataSourceOptions {
@@ -83,6 +89,10 @@ export interface DataUpdateOptions extends DataSourceOptions {
   signature?: string | undefined;
   /** Run in offline mode; blocks network requests. */
   offline?: boolean | undefined;
+  /** Skip checking network when cached data is newer than this window (e.g. "30d", "1w"). */
+  ifOlderThan?: string | number | undefined;
+  /** Maximum wait time in milliseconds to acquire the cache lock. */
+  lockTimeoutMs?: number | undefined;
 }
 
 interface ReleaseAsset {
@@ -194,7 +204,19 @@ function classifyAndThrowNetworkError(error: unknown, what: string): never {
   );
 }
 
-async function download(url: string, limit: number, what: string, request: typeof fetch): Promise<Uint8Array> {
+interface DownloadResult {
+  bytes: Uint8Array;
+  status: number;
+  headers: Headers;
+}
+
+async function download(
+  url: string,
+  limit: number,
+  what: string,
+  request: typeof fetch,
+  extraHeaders?: Record<string, string>,
+): Promise<DownloadResult> {
   assertSafeUrl(url, what);
   let response: Response | undefined;
   let lastError: unknown;
@@ -203,7 +225,11 @@ async function download(url: string, limit: number, what: string, request: typeo
     try {
       response = await request(url, {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        headers: { "user-agent": "ebb-data-update", accept: "application/octet-stream, application/json" },
+        headers: {
+          "user-agent": "ebb-data-update",
+          accept: "application/octet-stream, application/json",
+          ...extraHeaders,
+        },
       });
       if (response.status === 429) {
         throw new DataUpdateError(
@@ -218,6 +244,9 @@ async function download(url: string, limit: number, what: string, request: typeo
           "proxy-error",
           "Verify your HTTP_PROXY, HTTPS_PROXY, or ALL_PROXY configuration and credentials.",
         );
+      }
+      if (response.status === 304) {
+        return { bytes: new Uint8Array(), status: 304, headers: response.headers };
       }
       if (response.status >= 500 && attempt === 0) {
         continue;
@@ -246,7 +275,7 @@ async function download(url: string, limit: number, what: string, request: typeo
     if (received > limit) throw new DataUpdateError(`${what} is larger than the ${limit}-byte limit.`);
     chunks.push(chunk);
   }
-  return Buffer.concat(chunks);
+  return { bytes: Buffer.concat(chunks), status: response.status, headers: response.headers };
 }
 
 /** The newest `data-v…` release that has both a bundle and its signature. */
@@ -302,10 +331,42 @@ function computeRuleDeltaSummary(rules: DataUpdateResult["rules"]): {
   return { totalBefore, totalAfter, delta: totalAfter - totalBefore };
 }
 
-async function writeAtomically(path: string, content: string | Uint8Array): Promise<void> {
-  const temporary = `${path}.${process.pid}.tmp`;
-  await writeFile(temporary, content);
-  await rename(temporary, path);
+export async function writeAtomically(path: string, content: string | Uint8Array): Promise<void> {
+  const temporary = `${path}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+  try {
+    await writeFile(temporary, content);
+    await rename(temporary, path);
+  } catch (error) {
+    try {
+      await rm(temporary, { force: true });
+    } catch {
+      // ignore
+    }
+    throw error;
+  }
+}
+
+async function assertCacheWritable(cache: string): Promise<void> {
+  let target = join(cache, "data");
+  while (target && target !== dirname(target)) {
+    try {
+      await access(target, constants.W_OK);
+      return;
+    } catch (err: unknown) {
+      const error = err as NodeJS.ErrnoException;
+      if (error?.code === "ENOENT") {
+        target = dirname(target);
+        continue;
+      }
+      if (error?.code === "EACCES" || error?.code === "EROFS" || error?.code === "EPERM") {
+        throw new DataUpdateError(
+          `Cache directory "${cache}" is read-only. Cannot write updates to this directory.`,
+          "cache-read-only",
+        );
+      }
+      throw error;
+    }
+  }
 }
 
 async function prune(cache: string, keep: string): Promise<void> {
@@ -334,6 +395,7 @@ interface PendingUpdate {
   rules: DataUpdateResult["rules"];
   cache: string;
   releaseLogText?: string | undefined;
+  releasesEtag?: string | undefined;
 }
 
 function describeSource(info: { source: string; version: string }): { source: string; version: string } {
@@ -353,17 +415,44 @@ async function extractRegistryFiles(data: ActiveData): Promise<Record<string, Re
   return result;
 }
 
+/** Replaces the bundle directory with the verified files, all at once: a half-written bundle is never left behind. */
+async function stageBundle(directory: string, bytes: Uint8Array, signature: string): Promise<void> {
+  const staging = `${directory}.${process.pid}.${Date.now()}.new`;
+  await rm(staging, { recursive: true, force: true });
+  await mkdir(staging, { recursive: true });
+  try {
+    await writeFile(join(staging, BUNDLE_FILE), bytes);
+    await writeFile(join(staging, SIGNATURE_FILE), signature);
+    await rm(directory, { recursive: true, force: true });
+    await rename(staging, directory);
+  } catch (error) {
+    try {
+      await rm(staging, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+    throw error;
+  }
+}
+
+type FindReleaseResult = { release: LatestRelease; etag?: string | undefined } | { notModified: true };
+
 /** The newest release the listing offers (or the exact one asked for); its absence is an error. */
 async function findLatestRelease(
   releasesUrl: string,
   version: string | undefined,
   request: typeof fetch,
   channel: "stable" | "next" = "stable",
-): Promise<LatestRelease> {
-  const listing = await download(releasesUrl, MAXIMUM_LISTING_BYTES, "the release list", request);
+  etag?: string | undefined,
+): Promise<FindReleaseResult> {
+  const headers = etag ? { "if-none-match": etag } : undefined;
+  const dl = await download(releasesUrl, MAXIMUM_LISTING_BYTES, "the release list", request, headers);
+  if (dl.status === 304) {
+    return { notModified: true };
+  }
   let releases: Release[];
   try {
-    const parsed: unknown = JSON.parse(Buffer.from(listing).toString("utf8"));
+    const parsed: unknown = JSON.parse(Buffer.from(dl.bytes).toString("utf8"));
     if (!Array.isArray(parsed)) throw new DataUpdateError("The release list is not valid JSON.");
     releases = parsed as Release[];
   } catch (err) {
@@ -375,7 +464,8 @@ async function findLatestRelease(
     throw new DataUpdateError(
       version ? `No signed data release ${version} was found.` : "No signed data release was found.",
     );
-  return latest;
+  const newEtag = dl.headers.get("etag") ?? undefined;
+  return { release: latest, etag: newEtag };
 }
 
 /** Checks the signature and the signed version. Any failure refuses the whole download. */
@@ -458,15 +548,122 @@ function assertNotRollback(
   }
 }
 
-/** Replaces the bundle directory with the verified files, all at once: a half-written bundle is never left behind. */
-async function stageBundle(directory: string, bytes: Uint8Array, signature: string): Promise<void> {
-  const staging = `${directory}.${process.pid}.new`;
-  await rm(staging, { recursive: true, force: true });
-  await mkdir(staging, { recursive: true });
-  await writeFile(join(staging, BUNDLE_FILE), bytes);
-  await writeFile(join(staging, SIGNATURE_FILE), signature);
-  await rm(directory, { recursive: true, force: true });
-  await rename(staging, directory);
+/** Decides what the verified bundle changes on disk, and reports it. Nothing is written when it is already current. */
+async function applyUpdate(pending: PendingUpdate, options: DataUpdateOptions): Promise<DataUpdateResult> {
+  const { bytes, signature, bundle, signer, rules, cache, releasesEtag, releaseLogText } = pending;
+  await assertCacheWritable(cache);
+
+  try {
+    return await withCacheLock(
+      cache,
+      async () => {
+        const currentBefore = await resolveActiveData(options);
+        const current = currentBefore.info;
+        const version = bundle.manifest.version;
+        const directory = cachedBundleDirectory(cache, version);
+        const summary = computeRuleDeltaSummary(rules);
+
+        if (current.source === "cache" && current.contentDigest === bundle.manifest.contentDigest) {
+          if (releasesEtag) {
+            try {
+              await writeAtomically(join(cache, "data", RELEASES_ETAG_FILE), `${releasesEtag}\n`);
+            } catch {
+              // ignore
+            }
+          }
+          return upToDateResult(current, rules, cache, {
+            createdAt: current.createdAt,
+            contentDigest: current.contentDigest,
+            signer: current.signer,
+          });
+        }
+        if (options.version !== undefined) {
+          await stageBundle(directory, bytes, signature);
+          if (releasesEtag) {
+            try {
+              await writeAtomically(join(cache, "data", RELEASES_ETAG_FILE), `${releasesEtag}\n`);
+            } catch {
+              // ignore
+            }
+          }
+          return {
+            schemaVersion: DATA_UPDATE_SCHEMA_VERSION,
+            status: "downloaded",
+            from: describeSource(current),
+            to: { source: "pinned", version },
+            createdAt: bundle.manifest.createdAt,
+            contentDigest: bundle.manifest.contentDigest,
+            signer,
+            rules,
+            summary,
+            cacheDirectory: cache,
+          };
+        }
+        // The installed release already carries data at least this new, and a download that is not newer is never used.
+        if (current.source === "bundled" && bundle.manifest.createdAt.slice(0, 10) <= current.reviewedThrough) {
+          if (releasesEtag) {
+            try {
+              await writeAtomically(join(cache, "data", RELEASES_ETAG_FILE), `${releasesEtag}\n`);
+            } catch {
+              // ignore
+            }
+          }
+          return upToDateResult(current, rules, cache, { createdAt: null, contentDigest: null, signer: null });
+        }
+        assertNotRollback(current, bundle.manifest, options.allowDowngrade);
+
+        // Preserve previous active version before switching
+        if (current.source === "cache" && current.version !== version) {
+          try {
+            await writeAtomically(
+              join(cache, "data", PREVIOUS_FILE),
+              `${JSON.stringify({ version: current.version })}\n`,
+            );
+          } catch {
+            // directory might not be created yet, will be staged below
+          }
+        }
+
+        await stageBundle(directory, bytes, signature);
+        await writeAtomically(join(cache, "data", ACTIVE_FILE), `${JSON.stringify({ version })}\n`);
+        if (releaseLogText) {
+          await writeAtomically(join(cache, "data", "release-log.jsonl"), releaseLogText);
+        }
+        if (releasesEtag) {
+          try {
+            await writeAtomically(join(cache, "data", RELEASES_ETAG_FILE), `${releasesEtag}\n`);
+          } catch {
+            // ignore
+          }
+        }
+        await prune(cache, version);
+
+        const after = await resolveActiveData(options);
+        return {
+          schemaVersion: DATA_UPDATE_SCHEMA_VERSION,
+          status: "updated",
+          from: describeSource(current),
+          to: describeSource(after.info),
+          createdAt: after.info.createdAt,
+          contentDigest: after.info.contentDigest,
+          signer: after.info.signer ?? signer,
+          rules,
+          summary,
+          cacheDirectory: cache,
+        };
+      },
+      { timeoutMs: options.lockTimeoutMs },
+    );
+  } catch (err: unknown) {
+    const error = err as NodeJS.ErrnoException;
+    if (error?.code === "EACCES" || error?.code === "EROFS" || error?.code === "EPERM") {
+      throw new DataUpdateError(
+        `Cache directory "${cache}" is read-only. Cannot write updates to this directory.`,
+        "cache-read-only",
+      );
+    }
+    throw err;
+  }
 }
 
 /**
@@ -495,6 +692,27 @@ export async function update(options: DataUpdateOptions = {}): Promise<DataUpdat
   }
   const { pinnedVersion: _ignored, ...sourceOptions } = options;
   const before = await resolveActiveData(sourceOptions);
+
+  if (options.ifOlderThan !== undefined) {
+    const now = new Date();
+    const parsedWindow = parseWithinWindow(options.ifOlderThan, now.toISOString().slice(0, 10));
+    if (before.info.source === "cache") {
+      const since = Date.parse(before.info.createdAt ?? `${before.info.reviewedThrough}T00:00:00Z`);
+      const ageDays = Number.isNaN(since)
+        ? 0
+        : Math.max(0, Math.floor((now.getTime() - since) / (24 * 60 * 60 * 1000)));
+      if (ageDays <= parsedWindow.days) {
+        const rules = await ruleChanges(before, {});
+        const result = upToDateResult(before.info, rules, cache, {
+          createdAt: before.info.createdAt,
+          contentDigest: before.info.contentDigest,
+          signer: before.info.signer,
+        });
+        result.skipped = true;
+        return result;
+      }
+    }
+  }
 
   if (options.from) {
     const bundlePath = options.from;
@@ -562,8 +780,32 @@ export async function update(options: DataUpdateOptions = {}): Promise<DataUpdat
     );
   }
 
+  const etagPath = join(cache, "data", RELEASES_ETAG_FILE);
+  let cachedEtag: string | undefined;
+  try {
+    const raw = await readFile(etagPath, "utf8");
+    if (raw.trim()) cachedEtag = raw.trim();
+  } catch {
+    // no cached etag
+  }
+
   if (options.check) {
-    const latest = await findLatestRelease(releasesUrl, options.version, request, options.channel ?? "stable");
+    const latestResult = await findLatestRelease(
+      releasesUrl,
+      options.version,
+      request,
+      options.channel ?? "stable",
+      cachedEtag,
+    );
+    if ("notModified" in latestResult) {
+      const rules = await ruleChanges(before, {});
+      return upToDateResult(before.info, rules, cache, {
+        createdAt: before.info.createdAt,
+        contentDigest: before.info.contentDigest,
+        signer: before.info.signer,
+      });
+    }
+    const latest = latestResult.release;
     const rules = await ruleChanges(before, {});
     const isNewer = compareBundleVersions(latest.version, before.info.version) > 0;
     if (!isNewer || (before.info.source === "bundled" && latest.version <= before.info.reviewedThrough)) {
@@ -587,22 +829,44 @@ export async function update(options: DataUpdateOptions = {}): Promise<DataUpdat
     };
   }
 
-  const latest = await findLatestRelease(releasesUrl, options.version, request, options.channel ?? "stable");
-  const bytes = await download(latest.bundleUrl, MAXIMUM_BUNDLE_BYTES, `data bundle ${latest.version}`, request);
-  const signature = Buffer.from(
-    await download(latest.signatureUrl, MAXIMUM_SIGNATURE_BYTES, `the signature of ${latest.version}`, request),
-  ).toString("utf8");
+  const latestResult = await findLatestRelease(
+    releasesUrl,
+    options.version,
+    request,
+    options.channel ?? "stable",
+    cachedEtag,
+  );
+
+  if ("notModified" in latestResult) {
+    const rules = await ruleChanges(before, {});
+    return upToDateResult(before.info, rules, cache, {
+      createdAt: before.info.createdAt,
+      contentDigest: before.info.contentDigest,
+      signer: before.info.signer,
+    });
+  }
+
+  const latest = latestResult.release;
+  const bundleDl = await download(latest.bundleUrl, MAXIMUM_BUNDLE_BYTES, `data bundle ${latest.version}`, request);
+  const bytes = bundleDl.bytes;
+  const sigDl = await download(
+    latest.signatureUrl,
+    MAXIMUM_SIGNATURE_BYTES,
+    `the signature of ${latest.version}`,
+    request,
+  );
+  const signature = Buffer.from(sigDl.bytes).toString("utf8");
   const verified = verifyRelease(latest, bytes, signature, options);
 
   let releaseLogText: string | undefined;
   if (latest.releaseLogUrl) {
-    const logBytes = await download(
+    const logDl = await download(
       latest.releaseLogUrl,
       MAXIMUM_BUNDLE_BYTES,
       `the release log of ${latest.version}`,
       request,
     );
-    releaseLogText = Buffer.from(logBytes).toString("utf8");
+    releaseLogText = Buffer.from(logDl.bytes).toString("utf8");
     verifyReleaseLog(releaseLogText);
     const existingLogPath = join(cache, "data", "release-log.jsonl");
     try {
@@ -630,6 +894,7 @@ export async function update(options: DataUpdateOptions = {}): Promise<DataUpdat
       rules: await ruleChanges(before, verified.bundle.files),
       cache,
       releaseLogText,
+      releasesEtag: latestResult.etag,
     },
     options,
   );
@@ -650,140 +915,92 @@ export interface DataRollbackOptions extends DataSourceOptions {
  */
 export async function rollback(options: DataRollbackOptions = {}): Promise<DataUpdateResult> {
   const cache = options.cacheDirectory ?? defaultCacheDirectory();
-  const current = await resolveActiveData(options);
+  await assertCacheWritable(cache);
 
-  if (current.info.source !== "cache") {
-    throw new DataUpdateError(
-      `Cannot roll back: active data is ${current.info.source} (${current.info.version}), not a downloaded update.`,
-    );
-  }
-
-  let previousVersion: string | null = null;
-  const previousFilePath = join(cache, "data", PREVIOUS_FILE);
   try {
-    const raw = await readFile(previousFilePath, "utf8");
-    const parsed = JSON.parse(raw) as { version?: string };
-    if (typeof parsed.version === "string") {
-      previousVersion = parsed.version;
+    return await withCacheLock(
+      cache,
+      async () => {
+        const current = await resolveActiveData(options);
+
+        if (current.info.source !== "cache") {
+          throw new DataUpdateError(
+            `Cannot roll back: active data is ${current.info.source} (${current.info.version}), not a downloaded update.`,
+          );
+        }
+
+        let previousVersion: string | null = null;
+        const previousFilePath = join(cache, "data", PREVIOUS_FILE);
+        try {
+          const raw = await readFile(previousFilePath, "utf8");
+          const parsed = JSON.parse(raw) as { version?: string };
+          if (typeof parsed.version === "string") {
+            previousVersion = parsed.version;
+          }
+        } catch {
+          // previous.json does not exist
+        }
+
+        if (!previousVersion) {
+          try {
+            const entries = (await readdir(join(cache, "data"), { withFileTypes: true }))
+              .filter((entry) => entry.isDirectory() && /^\d{4}\.\d{2}\.\d{2}/.test(entry.name))
+              .map((entry) => entry.name)
+              .filter((name) => compareBundleVersions(name, current.info.version) < 0)
+              .sort(compareBundleVersions);
+            if (entries.length > 0) {
+              previousVersion = entries[entries.length - 1]!;
+            }
+          } catch {
+            // directory error
+          }
+        }
+
+        const activeFilePath = join(cache, "data", ACTIVE_FILE);
+
+        if (previousVersion) {
+          await writeAtomically(activeFilePath, `${JSON.stringify({ version: previousVersion })}\n`);
+          try {
+            await rm(previousFilePath, { force: true });
+          } catch {
+            // ignore
+          }
+        } else {
+          try {
+            await rm(activeFilePath, { force: true });
+            await rm(previousFilePath, { force: true });
+          } catch {
+            // ignore
+          }
+        }
+
+        const after = await resolveActiveData(options);
+        const rules = await ruleChanges(current, await extractRegistryFiles(after));
+        const summary = computeRuleDeltaSummary(rules);
+
+        return {
+          schemaVersion: DATA_UPDATE_SCHEMA_VERSION,
+          status: "rolled-back",
+          from: describeSource(current.info),
+          to: describeSource(after.info),
+          createdAt: after.info.createdAt,
+          contentDigest: after.info.contentDigest,
+          signer: after.info.signer,
+          rules,
+          summary,
+          cacheDirectory: cache,
+        };
+      },
+      { timeoutMs: (options as DataUpdateOptions).lockTimeoutMs },
+    );
+  } catch (err: unknown) {
+    const error = err as NodeJS.ErrnoException;
+    if (error?.code === "EACCES" || error?.code === "EROFS" || error?.code === "EPERM") {
+      throw new DataUpdateError(
+        `Cache directory "${cache}" is read-only. Cannot write updates to this directory.`,
+        "cache-read-only",
+      );
     }
-  } catch {
-    // previous.json does not exist
+    throw err;
   }
-
-  if (!previousVersion) {
-    try {
-      const entries = (await readdir(join(cache, "data"), { withFileTypes: true }))
-        .filter((entry) => entry.isDirectory() && /^\d{4}\.\d{2}\.\d{2}/.test(entry.name))
-        .map((entry) => entry.name)
-        .filter((name) => compareBundleVersions(name, current.info.version) < 0)
-        .sort(compareBundleVersions);
-      if (entries.length > 0) {
-        previousVersion = entries[entries.length - 1]!;
-      }
-    } catch {
-      // directory error
-    }
-  }
-
-  const activeFilePath = join(cache, "data", ACTIVE_FILE);
-
-  if (previousVersion) {
-    await writeAtomically(activeFilePath, `${JSON.stringify({ version: previousVersion })}\n`);
-    try {
-      await rm(previousFilePath, { force: true });
-    } catch {
-      // ignore
-    }
-  } else {
-    try {
-      await rm(activeFilePath, { force: true });
-      await rm(previousFilePath, { force: true });
-    } catch {
-      // ignore
-    }
-  }
-
-  const after = await resolveActiveData(options);
-  const rules = await ruleChanges(current, await extractRegistryFiles(after));
-  const summary = computeRuleDeltaSummary(rules);
-
-  return {
-    schemaVersion: DATA_UPDATE_SCHEMA_VERSION,
-    status: "rolled-back",
-    from: describeSource(current.info),
-    to: describeSource(after.info),
-    createdAt: after.info.createdAt,
-    contentDigest: after.info.contentDigest,
-    signer: after.info.signer,
-    rules,
-    summary,
-    cacheDirectory: cache,
-  };
-}
-
-/** Decides what the verified bundle changes on disk, and reports it. Nothing is written when it is already current. */
-async function applyUpdate(pending: PendingUpdate, options: DataUpdateOptions): Promise<DataUpdateResult> {
-  const { before, bytes, signature, bundle, signer, rules, cache } = pending;
-  const current = before.info;
-  const version = bundle.manifest.version;
-  const directory = cachedBundleDirectory(cache, version);
-  const summary = computeRuleDeltaSummary(rules);
-
-  if (current.source === "cache" && current.contentDigest === bundle.manifest.contentDigest) {
-    return upToDateResult(current, rules, cache, {
-      createdAt: current.createdAt,
-      contentDigest: current.contentDigest,
-      signer: current.signer,
-    });
-  }
-  if (options.version !== undefined) {
-    await stageBundle(directory, bytes, signature);
-    return {
-      schemaVersion: DATA_UPDATE_SCHEMA_VERSION,
-      status: "downloaded",
-      from: describeSource(current),
-      to: { source: "pinned", version },
-      createdAt: bundle.manifest.createdAt,
-      contentDigest: bundle.manifest.contentDigest,
-      signer,
-      rules,
-      summary,
-      cacheDirectory: cache,
-    };
-  }
-  // The installed release already carries data at least this new, and a download that is not newer is never used.
-  if (current.source === "bundled" && bundle.manifest.createdAt.slice(0, 10) <= current.reviewedThrough) {
-    return upToDateResult(current, rules, cache, { createdAt: null, contentDigest: null, signer: null });
-  }
-  assertNotRollback(current, bundle.manifest, options.allowDowngrade);
-
-  // Preserve previous active version before switching
-  if (current.source === "cache" && current.version !== version) {
-    try {
-      await writeAtomically(join(cache, "data", PREVIOUS_FILE), `${JSON.stringify({ version: current.version })}\n`);
-    } catch {
-      // directory might not be created yet, will be staged below
-    }
-  }
-
-  await stageBundle(directory, bytes, signature);
-  await writeAtomically(join(cache, "data", ACTIVE_FILE), `${JSON.stringify({ version })}\n`);
-  if (pending.releaseLogText) {
-    await writeAtomically(join(cache, "data", "release-log.jsonl"), pending.releaseLogText);
-  }
-  await prune(cache, version);
-
-  const after = await resolveActiveData(options);
-  return {
-    schemaVersion: DATA_UPDATE_SCHEMA_VERSION,
-    status: "updated",
-    from: describeSource(current),
-    to: describeSource(after.info),
-    createdAt: after.info.createdAt,
-    contentDigest: after.info.contentDigest,
-    signer: after.info.signer ?? signer,
-    rules,
-    summary,
-    cacheDirectory: cache,
-  };
 }

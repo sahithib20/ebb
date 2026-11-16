@@ -214,6 +214,16 @@ try {
 
 ---
 
+### `cache-read-only`
+
+**Thrown by:** `update`
+
+**Cause:** The target cache directory cannot be written (filesystem is read-only or lacks write permission). Reading existing data from this cache continues to work.
+
+**Fix:** Ensure the cache directory has write permissions, or set `EBB_DATA_DIR` to a writable location.
+
+---
+
 ## All throws in `src/`
 
 | File | Line | Class | Code | Message (abbreviated) |
@@ -227,6 +237,7 @@ try {
 | `src/vers/schemes.ts` | 15 | `VersError` | `invalid-version` | `Invalid intdot version "…"` |
 | `src/data-bundle.ts` | multiple | `DataBundleError` | `invalid-data-version` | Various bundle errors |
 | `src/data-update.ts` | multiple | `DataUpdateError` | `data-update-failed` | Various download/verify errors |
+| `src/data-update.ts` | multiple | `DataUpdateError` | `cache-read-only` | `Cache directory "…" is read-only.` |
 | `src/data-source.ts` | multiple | `DataPinError` | `data-unavailable` | Various source errors |
 | `src/result.ts` | 92 | `EbbError` | `invalid-date` | `"…" is not a date (YYYY-MM-DD).` |
 | `src/forecast.ts` | 113 | `EbbError` | `invalid-date` | `"…" is not a date (YYYY-MM-DD).` |

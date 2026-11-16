@@ -72,6 +72,7 @@ Usage:
   ebb verify <file> [options]                Verify a data bundle or artifact signature
   ebb update [options]                       Update lifecycle data safely and reversibly
   ebb diff [from] [to] [options]             Compare two data releases, versions, or files
+  ebb cache <path|info|clear> [options]      Inspect or clear the lifecycle data cache
   ebb data-status [options]                  Show active lifecycle data freshness and origin
   ebb release-log [options]                  List signed data releases known to the local log
   ebb mcp                                    Start the Model Context Protocol stdio server
@@ -96,6 +97,7 @@ Options:
   --signature <file>            Explicit signature file path (default: <file>.sigstore.json)
   --check                       Check for data updates without downloading
   --rollback                    Roll back to previous cached data version or bundled
+  --if-older-than <span|days>   Skip update check if cached data is newer than window
   --channel <stable|next>       Update channel: stable (default) or next
   --allow-downgrade             Allow updating to an older data version
   --data-version <version>      Specify a data version to download
@@ -354,6 +356,7 @@ export async function runCli(
         "min-confidence": { type: "string" },
         check: { type: "boolean", default: false },
         rollback: { type: "boolean", default: false },
+        "if-older-than": { type: "string" },
         channel: { type: "string" },
         "allow-downgrade": { type: "boolean", default: false },
         "data-version": { type: "string" },
@@ -379,7 +382,7 @@ export async function runCli(
   }
 
   const { values, positionals } = parsed;
-
+  const prevOffline = process.env.EBB_OFFLINE;
   if (values.offline) {
     process.env.EBB_OFFLINE = "1";
   }
@@ -1050,6 +1053,7 @@ export async function runCli(
 
         const fromPath = values.from as string | undefined;
         const signaturePath = values.signature as string | undefined;
+        const ifOlderThan = values["if-older-than"] as string | undefined;
 
         const updateOpts: Parameters<typeof update>[0] = {
           check: checkFlag,
@@ -1058,6 +1062,7 @@ export async function runCli(
           from: fromPath,
           signature: signaturePath,
           offline: Boolean(values.offline),
+          ifOlderThan,
         };
         if (targetVersion) {
           updateOpts.version = targetVersion;
@@ -1067,8 +1072,11 @@ export async function runCli(
         if (format === "json") {
           io.stdout.write(`${JSON.stringify(res, null, 2)}\n`);
         } else {
-          if (res.status === "up-to-date") {
-            io.stdout.write(`Data is already up to date (${res.to.version}, ${res.to.source}).\n`);
+          if (res.skipped) {
+            io.stdout.write(`Skipped update check: cached data is newer than ${ifOlderThan}.\n`);
+          } else if (res.status === "up-to-date") {
+            const checkPrefix = ifOlderThan ? "Checked for updates: " : "";
+            io.stdout.write(`${checkPrefix}Data is already up to date (${res.to.version}, ${res.to.source}).\n`);
           } else if (res.status === "update-available") {
             io.stdout.write(
               `Data update available: ${res.from.version} → ${res.to.version}.\nRun "ebb update" to download and apply.\n`,
@@ -1079,8 +1087,11 @@ export async function runCli(
             const deltaStr = res.summary
               ? ` (${res.summary.delta >= 0 ? `+${res.summary.delta}` : res.summary.delta} rules)`
               : "";
+            const updatePrefix = ifOlderThan
+              ? "✓ Checked and updated data successfully:"
+              : "✓ Updated data successfully:";
             io.stdout.write(
-              `✓ Updated data successfully:\n  Active: ${res.to.version} (${res.to.source})${deltaStr}\n  Previous: ${res.from.version} (${res.from.source})\n  Digest: ${res.contentDigest ?? "n/a"}\n  Signer: ${res.signer?.identity ?? "n/a"}\n`,
+              `${updatePrefix}\n  Active: ${res.to.version} (${res.to.source})${deltaStr}\n  Previous: ${res.from.version} (${res.from.source})\n  Digest: ${res.contentDigest ?? "n/a"}\n  Signer: ${res.signer?.identity ?? "n/a"}\n`,
             );
           }
         }
@@ -1143,9 +1154,17 @@ export async function runCli(
       }
 
       if (format === "markdown") {
+        const rollbackText = status.hasRollback
+          ? status.rollbackVersion
+            ? `Yes (\`${status.rollbackVersion}\`)`
+            : "Yes"
+          : "No";
         const mdLines: string[] = [
           "### Ebb Lifecycle Data Status\n",
           `- **Source:** \`${status.source}\` (\`${status.version}\`)`,
+          `- **Origin:** \`${status.origin ?? (status.source === "bundled" ? "package" : "cache")}\``,
+          `- **Cache Path:** \`${status.cachePath ?? status.cacheDirectory}\``,
+          `- **Rollback Available:** ${rollbackText}`,
           `- **Reviewed Through:** \`${status.reviewedThrough}\``,
           `- **Age:** ${status.ageDays} days`,
           `- **Stale Threshold:** ${status.staleAfterDays} days`,
@@ -1161,9 +1180,17 @@ export async function runCli(
         return status.stale ? 1 : 0;
       }
 
+      const rollbackDesc = status.hasRollback
+        ? status.rollbackVersion
+          ? `yes (${status.rollbackVersion})`
+          : "yes"
+        : "no";
       const lines: string[] = [
         `Lifecycle data status:`,
         `  Source:           ${status.source} (${status.version})`,
+        `  Origin:           ${status.origin ?? (status.source === "bundled" ? "package" : "cache")}`,
+        `  Cache path:       ${status.cachePath ?? status.cacheDirectory}`,
+        `  Rollback copy:    ${rollbackDesc}`,
         `  Reviewed through: ${status.reviewedThrough}`,
         `  Data age:         ${status.ageDays} days`,
         `  Freshness limit:  ${status.staleAfterDays} days`,
@@ -1177,6 +1204,12 @@ export async function runCli(
       }
       io.stdout.write(`${lines.join("\n")}\n`);
       return status.stale ? 1 : 0;
+    }
+
+    if (first === "cache") {
+      const { runCache } = await import("./cli/cache.js");
+      const sub = positionals[1];
+      return runCache({ subcommand: sub, format }, io);
     }
 
     if (first === "release-log") {
@@ -1201,6 +1234,11 @@ export async function runCli(
     const message = err instanceof Error ? err.message : String(err);
     io.stderr.write(`Error: ${message}\n`);
     return 2;
+  } finally {
+    if (values.offline) {
+      if (prevOffline === undefined) delete process.env.EBB_OFFLINE;
+      else process.env.EBB_OFFLINE = prevOffline;
+    }
   }
 }
 
