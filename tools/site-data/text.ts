@@ -6,9 +6,8 @@
 
 export function sanitizePlainText(text: string): string {
   return text
-    .replace(/<[^>]*>/g, "") // strip HTML tags
-    .replace(/[*_~`#|]/g, "") // strip markdown emphasis / backticks / headers / tables
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // replace markdown links [text](url) with text
+    .replace(/[<>*_~`#|]/g, "") // strip angle brackets and markdown formatting characters
     .replace(/[[\]]/g, "") // strip any stray square brackets
     .replace(/\s+/g, " ") // normalize whitespace
     .trim();
