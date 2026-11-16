@@ -3,40 +3,51 @@ title: Ebb documentation
 description: Ebb is an open dataset of software lifecycle rules, with a small TypeScript library for reading it.
 layout: home
 hero:
-  eyebrow: v0.2.0 · end-of-life data
+  eyebrow: Open software lifecycle data
   title: Nothing ships forever. Everything ebbs.
-  lead: Ebb is an open dataset of software lifecycle rules. It records what is deprecated, unsupported, end-of-life, or removed, since when, and what to move to, each with its evidence.
+  lead: The open almanac of software end-of-life: what is deprecated, unsupported, or removed, and what to move to.
 actions:
   - label: Quickstart (5 min)
     url: quickstart/
     primary: true
   - label: Try the CLI
     url: cli/
-  - label: Data & Trust
-    url: data/
+  - label: Trust & Verification
+    url: trust/
 sections:
-  - title: Getting Started & Guides
+  - title: Three Ways In
     url: quickstart/
-    description: Add to the registry, run the zero-dependency CLI, draft rules from sources, and consume signed data.
-    icon: "M5 4h10l4 4v12H5zM14 4v5h5M9 13h6M9 17h6"
+    description: Consume Ebb as a zero-dependency TypeScript library, an offline CLI tool, or an AI agent guardrail.
+    icon: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
     links:
-      - title: 5-Minute Quickstart
+      - title: 1. Library (TypeScript / JS)
         url: quickstart/
-        meta: guide
-      - title: Command Line (CLI)
+        meta: library
+      - title: 2. Command Line (CLI)
         url: cli/
-        meta: guide
-      - title: Writing a rule
-        url: rules/
-        meta: guide
-      - title: Importers
-        url: importers/
-        meta: guide
-      - title: Data bundles and trust
-        url: data/
-        meta: guide
+        meta: cli
+      - title: 3. AI Agents (MCP & Skills)
+        url: mcp/
+        meta: agent
+      - title: Agent Skills
+        url: skills/
+        meta: agent
+  - title: Static API & Calendar
+    url: static-api/
+    description: Query lifecycle data over zero-maintenance static endpoints or subscribe to release deadlines in your calendar.
+    icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+    links:
       - title: Static JSON API
         url: static-api/
+        meta: api
+      - title: Lifecycle Calendar
+        url: calendar/
+        meta: calendar
+      - title: Upcoming Deadlines
+        url: upcoming/
+        meta: reference
+      - title: Data Freshness
+        url: freshness/
         meta: guide
   - title: Multi-Runtime Support
     url: browser/
@@ -55,18 +66,24 @@ sections:
       - title: Bun
         url: bun/
         meta: runtime
-  - title: Coding Agents
-    url: skills/
-    description: Give Claude Code, Cursor, Codex, and other AI agents authoritative lifecycle knowledge.
-    icon: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+  - title: Trust & Standards
+    url: trust/
+    description: Authoritative evidence, cryptographic signing, open PURL/VERS standards, and honest comparisons.
+    icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
     links:
-      - title: Agent Skill
-        url: skills/
-        meta: agent
-      - title: MCP Server
-        url: mcp/
-        meta: agent
-  - title: Reference & Types
+      - title: Trust & Verification
+        url: trust/
+        meta: trust
+      - title: Comparing Sources
+        url: compare/
+        meta: compare
+      - title: Writing a rule
+        url: rules/
+        meta: guide
+      - title: Data bundles and trust
+        url: data/
+        meta: guide
+  - title: Reference & Architecture
     url: result-model/
     description: Structured schemas, batch inspection, native VERS comparison, and TypeScript definitions.
     icon: "M4 5h7a3 3 0 0 1 3 3v11a2 2 0 0 0-2-2H4zM20 5h-6a3 3 0 0 0-3 3v11a2 2 0 0 1 2-2h7z"
@@ -83,33 +100,11 @@ sections:
       - title: VERS version ranges
         url: vers/
         meta: reference
-      - title: API stability
-        url: api-stability/
-        meta: reference
-      - title: TypeScript types
-        url: types/
-        meta: reference
-      - title: Migrating to 0.2.0
-        url: migration-0.2/
-        meta: reference
-  - title: Decisions & Architecture
-    url: decisions/0004-registry-v2/
-    description: The reasoning behind the registry format, importers, scheduled end-of-life, and data bundles.
-    icon: "M4 7h9M17 7h3M4 17h3M11 17h9M13 4v6M7 14v6"
-    links:
-      - title: Registry v2
+      - title: Decision Records
         url: decisions/0004-registry-v2/
         meta: decision
-      - title: Lifecycle importers
-        url: decisions/0005-lifecycle-importers/
-        meta: decision
-      - title: Data bundle
-        url: decisions/0006-data-bundle/
-        meta: decision
-      - title: Scheduled end-of-life
-        url: decisions/0010-scheduled-end-of-life/
-        meta: decision
-      - title: Incomplete purls
-        url: decisions/0011-check-incomplete-purls/
-        meta: decision
 ---
+
+<p align="center">
+  <img src="demo/terminal.svg" alt="Ebb terminal demo showing check, replacement, upcoming, and versions commands" width="860">
+</p>

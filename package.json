@@ -150,6 +150,7 @@
     "check": "npm run format:check && npm test",
     "bench": "npm run build --silent && node --input-type=module -e \"import { runAllBenchmarks } from './bench/run.ts'; runAllBenchmarks();\" && node dist/tools/mcp-start-ci-check.js",
     "check:sources": "npm run build --silent && node dist/tools/check-sources.js",
+    "check:links": "npm run build --silent && node dist/tools/markdown.js --check-internal",
     "archive:sources": "npm run build --silent && node dist/tools/archive-sources.js",
     "refresh:cli-time-golden": "npm run build --silent && node dist/tools/refresh-cli-time-golden.js",
     "size": "npm run build --silent && node dist/tools/size.js",

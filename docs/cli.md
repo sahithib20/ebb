@@ -389,13 +389,13 @@ ebb release-log --json
 Starts the Model Context Protocol (MCP) server over standard input/output (stdio), providing tools and resources for AI coding agents. See [MCP Server](mcp.md).
 
 Options:
-- `--print-config <agent>`: Print MCP configuration snippet for an agent (`claude-desktop`, `cursor`, `cline`, `windsurf`).
+- `--print-config <agent>`: Print MCP configuration snippet for an agent (`claude-code`, `cursor`, `codex`, `gemini`, `vscode`, `windsurf`, `zed`).
 - `--self-test`: Verify MCP data loading and tool execution offline.
 
 Examples:
 ```bash
-# Print configuration for Claude Desktop
-ebb mcp --print-config claude-desktop
+# Print configuration for Claude Code
+ebb mcp --print-config claude-code
 
 # Run MCP self-test
 ebb mcp --self-test

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 520" width="860" height="520">
+  <defs>
+    <style>
+      .window-bg { fill: #1e1e2e; rx: 10px; }
+      .title-bar { fill: #181825; }
+      .btn-red { fill: #f38ba8; }
+      .btn-yellow { fill: #f9e2af; }
+      .btn-green { fill: #a6e3a1; }
+      .title-text { fill: #cdd6f4; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 500; }
+      .term-text { font-family: "JetBrains Mono", Menlo, Monaco, "Courier New", monospace; font-size: 13px; line-height: 1.45; }
+      .prompt { fill: #a6e3a1; font-weight: bold; }
+      .cmd { fill: #cdd6f4; font-weight: 600; }
+      .err { fill: #f38ba8; font-weight: bold; }
+      .warn { fill: #fab387; }
+      .muted { fill: #6c7086; }
+      .rule { fill: #89b4fa; }
+      .ok { fill: #a6e3a1; }
+      .rec { fill: #f9e2af; font-weight: bold; }
+      .link { fill: #74c7ec; text-decoration: underline; }
+    </style>
+  </defs>
+
+  <!-- Window chrome -->
+  <rect class="window-bg" width="860" height="520"/>
+  <rect class="title-bar" width="860" height="38" rx="10"/>
+  <rect class="title-bar" y="28" width="860" height="10"/>
+
+  <!-- Window controls -->
+  <circle class="btn-red" cx="24" cy="19" r="6"/>
+  <circle class="btn-yellow" cx="44" cy="19" r="6"/>
+  <circle class="btn-green" cx="64" cy="19" r="6"/>
+  <text class="title-text" x="430" y="24" text-anchor="middle">terminal — ebb demo</text>
+
+  <!-- Terminal content -->
+  <g class="term-text" transform="translate(24, 62)">
+    <!-- Command 1: check -->
+    <text y="0"><tspan class="prompt">$</tspan> <tspan class="cmd">ebb check pkg:npm/request@2.88.2</tspan></text>
+    <text y="20"><tspan class="err">✖ pkg:npm/request@2.88.2: deprecated</tspan></text>
+    <text y="38" fill="#bac2de">  Rule: <tspan class="rule">npm.package.request.deprecated</tspan> (confidence: confirmed)</text>
+    <text y="56" fill="#bac2de">  Event: deprecated (2020-02-11)</text>
+    <text y="74" fill="#bac2de">  Replacement: <tspan class="rec">Native fetch or a maintained HTTP client</tspan></text>
+    <text y="92" class="muted">  Source: https://www.npmjs.com/package/request</text>
+
+    <!-- Command 2: replacement -->
+    <text y="128"><tspan class="prompt">$</tspan> <tspan class="cmd">ebb replacement pkg:npm/request@2.88.2</tspan></text>
+    <text y="148" class="rec">Native fetch or a maintained HTTP client</text>
+    <text y="166" fill="#bac2de">  - undici: pkg:npm/undici [alternative] - Modern HTTP/1.1 client for Node.js</text>
+    <text y="184" fill="#bac2de">  - axios: pkg:npm/axios [alternative] - Promise-based HTTP client</text>
+
+    <!-- Command 3: upcoming -->
+    <text y="220"><tspan class="prompt">$</tspan> <tspan class="cmd">ebb upcoming --within 180d --ecosystem nodejs --as-of 2026-11-15</tspan></text>
+    <text y="240" fill="#bac2de">Upcoming deadlines within 180d (as of 2026-11-15): 1 event</text>
+    <text y="258" class="warn">- 2027-04-30 (166d left) pkg:generic/nodejs</text>
+    <text y="276" fill="#bac2de">  Rule: <tspan class="rule">nodejs.runtime.eol-22</tspan> (scheduled-end-of-life)</text>
+    <text y="294" fill="#bac2de">  Replacement: Node.js 24 LTS or later</text>
+
+    <!-- Command 4: versions -->
+    <text y="330"><tspan class="prompt">$</tspan> <tspan class="cmd">ebb versions node --as-of 2026-11-15</tspan></text>
+    <text y="350" fill="#bac2de">pkg:generic/nodejs as of 2026-11-15 (complete: yes)</text>
+    <text y="368" class="muted">20.x  ended   2026-04-30  nodejs.runtime.eol-20</text>
+    <text y="386" fill="#bac2de">22.x  ending  2027-04-30  nodejs.runtime.eol-22</text>
+    <text y="404" fill="#bac2de">24.x  ending  2028-04-30  nodejs.runtime.eol-24</text>
+    <text y="422" class="ok">26.x  ending  2029-04-30  nodejs.runtime.eol-26 <tspan class="rec">[recommended]</tspan></text>
+  </g>
+</svg>
