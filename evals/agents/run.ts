@@ -1,128 +1,189 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runClaudeCode } from "./runners/claude-code.js";
-import { runCodex } from "./runners/codex.js";
-import { type EvalRunScore, type EvalTask, computeScore } from "./score.js";
+import { generateMarkdownReport } from "./report.js";
+import {
+  type AgentRunner,
+  type RunnerMode,
+  createTempRunDir,
+  simulatedClaudeRunner,
+  simulatedCodexRunner,
+} from "./runner.js";
+import { createRealClaudeCodeRunner, isClaudeCodeAvailable } from "./runners/claude-code-real.js";
+import { createRealCodexRunner, isCodexAvailable } from "./runners/codex-real.js";
+import {
+  type EvalRunScore,
+  type EvalTask,
+  type PickEvaluation,
+  computeScore,
+  scoreRunFiles,
+} from "./score.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const tasksPath = join(__dirname, "../../../evals/agents/tasks.json");
 const resultsPath = join(__dirname, "../../../evals/agents/results.json");
 const reportPath = join(__dirname, "../../../evals/agents/REPORT.md");
 
+export interface ModeSummary {
+  agent: string;
+  mode: RunnerMode;
+  runnerKind: "simulated" | "real";
+  model: string;
+  agentVersion: string;
+  repetitions: number;
+  runs: EvalRunScore[];
+  meanDeprecationRatePct: number;
+  minDeprecationRatePct: number;
+  maxDeprecationRatePct: number;
+  range: [number, number];
+}
+
 export interface FullBenchmarkResults {
   timestamp: string;
   totalTasks: number;
-  runs: EvalRunScore[];
+  repetitions: number;
+  summary: ModeSummary[];
   headlineSummary: {
+    baselineMeanRatePct: number;
     baselineDeprecationRatePct: number;
+    withEbbMeanRatePct: number;
     withEbbDeprecationRatePct: number;
     reductionPercentagePoints: number;
+    baselineRange: [number, number];
+    withEbbRange: [number, number];
   };
+  runs: EvalRunScore[];
 }
 
-export function runAgentEvaluations(): FullBenchmarkResults {
+export interface RunOptions {
+  repetitions?: number;
+  real?: boolean;
+}
+
+export function runAgentEvaluations(options: RunOptions = {}): FullBenchmarkResults {
+  const repetitions = options.repetitions ?? 3;
+  const useReal = options.real ?? false;
+
   const tasksRaw = readFileSync(tasksPath, "utf-8");
   const tasks: EvalTask[] = JSON.parse(tasksRaw);
 
-  const claudeBaseline = computeScore("Claude Code", "baseline", runClaudeCode(tasks, { mode: "baseline" }));
-  const claudeMcp = computeScore("Claude Code", "mcp", runClaudeCode(tasks, { mode: "mcp" }));
-  const claudeSkill = computeScore("Claude Code", "skill", runClaudeCode(tasks, { mode: "skill" }));
+  // Select runners based on availability and requested mode
+  let claudeRunner: AgentRunner = simulatedClaudeRunner;
+  let codexRunner: AgentRunner = simulatedCodexRunner;
 
-  const codexBaseline = computeScore("Codex / Cursor", "baseline", runCodex(tasks, { mode: "baseline" }));
-  const codexWithEbb = computeScore("Codex / Cursor", "mcp", runCodex(tasks, { mode: "mcp" }));
+  if (useReal) {
+    if (isClaudeCodeAvailable()) {
+      claudeRunner = createRealClaudeCodeRunner();
+    } else {
+      console.warn("[agent-evals] Claude Code CLI or API key unavailable; using simulated runner.");
+    }
 
-  const runs = [claudeBaseline, claudeMcp, claudeSkill, codexBaseline, codexWithEbb];
+    if (isCodexAvailable()) {
+      codexRunner = createRealCodexRunner();
+    } else {
+      console.warn("[agent-evals] Codex CLI or API key unavailable; using simulated runner.");
+    }
+  }
+
+  const configurations: Array<{ runner: AgentRunner; mode: RunnerMode }> = [
+    { runner: claudeRunner, mode: "baseline" },
+    { runner: claudeRunner, mode: "mcp" },
+    { runner: claudeRunner, mode: "skill" },
+    { runner: codexRunner, mode: "baseline" },
+    { runner: codexRunner, mode: "mcp" },
+  ];
+
+  const summary: ModeSummary[] = [];
+
+  for (const { runner, mode } of configurations) {
+    const modeRuns: EvalRunScore[] = [];
+
+    for (let r = 0; r < repetitions; r++) {
+      const picks: PickEvaluation[] = [];
+
+      for (const task of tasks) {
+        const tempDir = createTempRunDir();
+        const runResult = runner.run(task, mode, tempDir);
+        const pickEval = scoreRunFiles(task, runResult.files, runResult.date);
+        picks.push(pickEval);
+      }
+
+      const score = computeScore(runner.name, mode, picks);
+      modeRuns.push(score);
+    }
+
+    const rates = modeRuns.map((r) => r.deprecationRatePct);
+    const meanRate = Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 10) / 10;
+    const minRate = Math.min(...rates);
+    const maxRate = Math.max(...rates);
+
+    summary.push({
+      agent: runner.name,
+      mode,
+      runnerKind: runner.kind,
+      model: runner.model,
+      agentVersion: runner.agentVersion,
+      repetitions,
+      runs: modeRuns,
+      meanDeprecationRatePct: meanRate,
+      minDeprecationRatePct: minRate,
+      maxDeprecationRatePct: maxRate,
+      range: [minRate, maxRate],
+    });
+  }
+
+  const claudeBaselineSummary = summary.find((s) => s.agent === "Claude Code" && s.mode === "baseline")!;
+  const claudeSkillSummary = summary.find((s) => s.agent === "Claude Code" && s.mode === "skill")!;
 
   const headlineSummary = {
-    baselineDeprecationRatePct: claudeBaseline.deprecationRatePct,
-    withEbbDeprecationRatePct: claudeSkill.deprecationRatePct,
-    reductionPercentagePoints: claudeBaseline.deprecationRatePct - claudeSkill.deprecationRatePct,
+    baselineMeanRatePct: claudeBaselineSummary.meanDeprecationRatePct,
+    baselineDeprecationRatePct: claudeBaselineSummary.meanDeprecationRatePct,
+    withEbbMeanRatePct: claudeSkillSummary.meanDeprecationRatePct,
+    withEbbDeprecationRatePct: claudeSkillSummary.meanDeprecationRatePct,
+    reductionPercentagePoints:
+      Math.round((claudeBaselineSummary.meanDeprecationRatePct - claudeSkillSummary.meanDeprecationRatePct) * 10) / 10,
+    baselineRange: claudeBaselineSummary.range,
+    withEbbRange: claudeSkillSummary.range,
   };
+
+  // Provide representative run array for backward compatibility
+  const runs: EvalRunScore[] = summary
+    .map((s) => s.runs[0])
+    .filter((run): run is EvalRunScore => run !== undefined);
 
   const results: FullBenchmarkResults = {
     timestamp: new Date().toISOString(),
     totalTasks: tasks.length,
-    runs,
+    repetitions,
+    summary,
     headlineSummary,
+    runs,
   };
 
   writeFileSync(resultsPath, JSON.stringify(results, null, 2), "utf-8");
 
-  // Generate REPORT.md
+  // Generate REPORT.md strictly from results.json data
   const reportMarkdown = generateMarkdownReport(results, tasks);
   writeFileSync(reportPath, reportMarkdown, "utf-8");
 
   return results;
 }
 
-function generateMarkdownReport(results: FullBenchmarkResults, tasks: EvalTask[]): string {
-  const ecosystemBreakdown = new Map<string, number>();
-  for (const t of tasks) {
-    ecosystemBreakdown.set(t.ecosystem, (ecosystemBreakdown.get(t.ecosystem) || 0) + 1);
-  }
-
-  const lines: string[] = [
-    "# Ebb Agent Evaluations Report",
-    "",
-    "> Benchmark evaluating AI coding agents on dependency and runtime selection tasks with and without Ebb lifecycle checks.",
-    "",
-    "## Headline Results",
-    "",
-    `- **Total benchmark tasks:** ${results.totalTasks}`,
-    `- **Deprecated/EOL picks without Ebb (Baseline):** ${results.headlineSummary.baselineDeprecationRatePct}%`,
-    `- **Deprecated/EOL picks with Ebb (MCP / Skill):** ${results.headlineSummary.withEbbDeprecationRatePct}%`,
-    `- **Deprecation rate reduction:** **-${results.headlineSummary.reductionPercentagePoints} percentage points** (100% reduction in deprecated picks)`,
-    "",
-    "## Benchmark Matrix",
-    "",
-    "| Agent | Mode | Total Tasks | Deprecated / EOL | Supported | Deprecation Rate |",
-    "|:---|:---|:---:|:---:|:---:|:---:|",
-  ];
-
-  for (const run of results.runs) {
-    lines.push(
-      `| ${run.agent} | \`${run.mode}\` | ${run.totalTasks} | ${run.deprecatedOrEolCount} | ${run.supportedCount} | **${run.deprecationRatePct}%** |`,
-    );
-  }
-
-  lines.push(
-    "",
-    "## Task Distribution by Ecosystem",
-    "",
-    "| Ecosystem | Tasks Count | Share |",
-    "|:---|:---:|:---:|",
-  );
-
-  for (const [eco, count] of ecosystemBreakdown.entries()) {
-    const pct = Math.round((count / tasks.length) * 100);
-    lines.push(`| \`${eco}\` | ${count} | ${pct}% |`);
-  }
-
-  lines.push(
-    "",
-    "## Methodology",
-    "",
-    "1. **Task Selection**: 100 realistic prompts across NPM, PyPI, GitHub Actions, Container base images, Databases, and generic runtimes where developers ask an assistant to recommend or configure a dependency.",
-    "2. **Baseline Evaluation**: Agents pick components based on standard pre-trained preferences (e.g. `request`, `node-sass`, `node@14`, `actions/checkout@v1`). Each pick is checked against the Ebb registry.",
-    "3. **Ebb-Assisted Evaluation**: The agent operates with the Ebb MCP server (`check`, `replacement_for`) or the `check-before-add` agent skill. Deprecations are caught and replaced with supported alternatives.",
-    "4. **Score Definition**: The primary score is **Deprecation Rate (%)** = `(deprecated_or_eol_picks / total_tasks) * 100`.",
-    "",
-    "## Reproducibility",
-    "",
-    "This benchmark can be re-run reproducibly using:",
-    "```bash",
-    "npm run eval:agents",
-    "```",
-  );
-
-  return lines.join("\n");
-}
-
 if (process.argv[1] && process.argv[1].endsWith("run.js")) {
-  const res = runAgentEvaluations();
-  console.log(`[agent-evals] Evaluated ${res.totalTasks} tasks.`);
-  console.log(`[agent-evals] Baseline Deprecation Rate: ${res.headlineSummary.baselineDeprecationRatePct}%`);
-  console.log(`[agent-evals] With Ebb Deprecation Rate: ${res.headlineSummary.withEbbDeprecationRatePct}%`);
+  const real = process.argv.includes("--real");
+  const repArgIndex = process.argv.indexOf("--repetitions");
+  const repetitions =
+    repArgIndex !== -1 && process.argv[repArgIndex + 1]
+      ? Number.parseInt(process.argv[repArgIndex + 1] as string, 10)
+      : 3;
+
+  const res = runAgentEvaluations({ real, repetitions });
+  console.log(`[agent-evals] Evaluated ${res.totalTasks} tasks with ${res.repetitions} repetitions.`);
+  console.log(
+    `[agent-evals] Baseline Deprecation Rate: ${res.headlineSummary.baselineMeanRatePct}% (range: ${res.headlineSummary.baselineRange.join("% - ")}%)`,
+  );
+  console.log(
+    `[agent-evals] With Ebb Deprecation Rate: ${res.headlineSummary.withEbbMeanRatePct}% (range: ${res.headlineSummary.withEbbRange.join("% - ")}%)`,
+  );
   console.log("[agent-evals] Report written to evals/agents/REPORT.md");
 }

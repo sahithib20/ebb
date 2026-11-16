@@ -57,3 +57,9 @@ The skill prompts agents to return compact, actionable verdicts:
 [ebb] pkg:npm/left-pad@1.3.0: deprecated
   Use native String.prototype.padStart() instead
 :::
+
+---
+
+## Benchmark Evaluations
+
+To inspect empirical benchmark results measuring agent accuracy with and without the Ebb skill, see [Agent Evaluations](agent-evals.md).

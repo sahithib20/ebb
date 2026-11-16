@@ -46,7 +46,7 @@ The library passes the official purl-spec suite: 586 of 586 tests ([fixtures](te
 - **Broad coverage.** 752 rules across 25 ecosystems: language runtimes, npm, PyPI, Maven, NuGet, Cargo, Go, containers, Kubernetes APIs, GitHub Actions, Terraform, and more.
 - **Standard identifiers.** purl and VERS throughout, with no ecosystem-specific lookup tables to learn.
 - **Actionable.** Rules carry a replacement and migration guidance: the constraints to keep, the steps to take, and how to verify the change.
-- **Measured impact on AI agents.** Eliminates deprecated dependency picks entirely (dropping from 38% down to 0% across 100 benchmark tasks; see [evals/agents/REPORT.md](evals/agents/REPORT.md)).
+- **Impact on AI agents.** Eliminates deprecated dependency picks across 100 benchmark tasks (dropping from 38% down to 0% in evaluations; see the [Agent Evaluations Guide](docs/agent-evals.md) and [evals/agents/REPORT.md](evals/agents/REPORT.md)).
 - **LLMs and agents native.** Standard machine-readable documentation for models at [llms.txt](llms.txt) and [llms-full.txt](llms-full.txt), backed by an official MCP server and agent skills.
 - **Zero dependencies.** Pure ESM with zero runtime dependencies. Instant installs, zero supply-chain risk.
 - **Compact footprint.** ~268 KB packed tarball with a strict 500 KB budget enforced in CI ([docs/SIZE.md](docs/SIZE.md)).
@@ -404,7 +404,7 @@ These pages are also published as a site, built with [Mizzen](https://velella.sh
 - [Stale rule review](docs/stale.md): find rules past their review window and the weekly maintainer issue.
 - [Agent Skills](docs/skills.md): guardrails for AI coding agents via skills.sh.
 - [MCP server](docs/mcp.md): connect Ebb over standard stdio JSON-RPC 2.0.
-- [Agent Evaluations](evals/agents/REPORT.md): benchmark report measuring agent accuracy with and without Ebb.
+- [Agent Evaluations](docs/agent-evals.md): methodology, benchmarks, and report measuring agent accuracy with and without Ebb.
 - [llms.txt](llms.txt) & [llms-full.txt](llms-full.txt): LLM-optimized documentation according to the llms.txt standard.
 - [Writing a rule](docs/RULES.md): the format, the evidence policy, and the review workflow.
 - [Importers](docs/IMPORTERS.md): tools that draft rules from authoritative sources for a maintainer to review.

@@ -1,0 +1,55 @@
+name: Agent evaluations
+
+# Real evaluation of AI coding agents (Claude Code, Codex) with and without Ebb.
+# Runs only on manual dispatch and uses secrets for real API calls.
+# Never runs on a schedule or on pull requests from forks.
+on:
+  workflow_dispatch:
+    inputs:
+      repetitions:
+        description: Number of repetitions per task and mode
+        type: number
+        default: 3
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-evals
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    if: github.repository == 'velella-sh/ebb'
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run real agent evaluations
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          node dist/tools/eval-agents.js --real --repetitions ${{ inputs.repetitions }}
+
+      - name: Upload evaluation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-evals-artifacts
+          path: |
+            evals/agents/results.json
+            evals/agents/REPORT.md

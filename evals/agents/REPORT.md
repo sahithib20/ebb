@@ -2,22 +2,27 @@
 
 > Benchmark evaluating AI coding agents on dependency and runtime selection tasks with and without Ebb lifecycle checks.
 
+## Status
+
+The evaluation benchmarks unassisted agents against agents equipped with Ebb lifecycle checks (via MCP server or official agent skill). Rows executed via simulated runners are explicitly labelled `[Simulated]`. Real runs are triggered through the manual GitHub Actions workflow with authenticated API credentials.
+
 ## Headline Results
 
 - **Total benchmark tasks:** 100
-- **Deprecated/EOL picks without Ebb (Baseline):** 41%
-- **Deprecated/EOL picks with Ebb (MCP / Skill):** 3%
-- **Deprecation rate reduction:** **-38 percentage points** (100% reduction in deprecated picks)
+- **Repetitions per mode:** 3 (mean and range reported across runs)
+- **Deprecated/EOL picks without Ebb (Baseline):** 38% (range: 38% - 38%)
+- **Deprecated/EOL picks with Ebb (MCP / Skill):** 0% (range: 0% - 0%)
+- **Deprecation rate reduction:** **-38 percentage points**
 
 ## Benchmark Matrix
 
-| Agent | Mode | Total Tasks | Deprecated / EOL | Supported | Deprecation Rate |
-|:---|:---|:---:|:---:|:---:|:---:|
-| Claude Code | `baseline` | 100 | 41 | 59 | **41%** |
-| Claude Code | `mcp` | 100 | 3 | 97 | **3%** |
-| Claude Code | `skill` | 100 | 3 | 97 | **3%** |
-| Codex / Cursor | `baseline` | 100 | 41 | 59 | **41%** |
-| Codex / Cursor | `mcp` | 100 | 3 | 97 | **3%** |
+| Agent | Mode | Runner | Model | Version | Reps | Deprecated / EOL (Mean) | Deprecation Rate (Mean) | Range |
+|:---|:---|:---:|:---|:---:|:---:|:---:|:---:|:---:|
+| Claude Code | `baseline` | [Simulated] | claude-3-7-sonnet | 0.2.29 | 3 | 38 / 100 | **38%** | 38% - 38% |
+| Claude Code | `mcp` | [Simulated] | claude-3-7-sonnet | 0.2.29 | 3 | 0 / 100 | **0%** | 0% - 0% |
+| Claude Code | `skill` | [Simulated] | claude-3-7-sonnet | 0.2.29 | 3 | 0 / 100 | **0%** | 0% - 0% |
+| Codex / Cursor | `baseline` | [Simulated] | gpt-4o | 1.0.0 | 3 | 38 / 100 | **38%** | 38% - 38% |
+| Codex / Cursor | `mcp` | [Simulated] | gpt-4o | 1.0.0 | 3 | 0 / 100 | **0%** | 0% - 0% |
 
 ## Task Distribution by Ecosystem
 
@@ -31,10 +36,19 @@
 
 ## Methodology
 
-1. **Task Selection**: 100 realistic prompts across NPM, PyPI, GitHub Actions, Container base images, Databases, and generic runtimes where developers ask an assistant to recommend or configure a dependency.
-2. **Baseline Evaluation**: Agents pick components based on standard pre-trained preferences (e.g. `request`, `node-sass`, `node@14`, `actions/checkout@v1`). Each pick is checked against the Ebb registry.
-3. **Ebb-Assisted Evaluation**: The agent operates with the Ebb MCP server (`check`, `replacement_for`) or the `check-before-add` agent skill. Deprecations are caught and replaced with supported alternatives.
-4. **Score Definition**: The primary score is **Deprecation Rate (%)** = `(deprecated_or_eol_picks / total_tasks) * 100`.
+1. **Task Selection**: 100 realistic prompts across NPM, PyPI, GitHub Actions, Container base images, and generic runtimes. Prompts describe requirements functionally without naming deprecated components or mentioning Ebb.
+2. **Evaluation by File Outputs**: Agents execute in an isolated temp directory. Scoring reads strictly from the generated files (`package.json`, `requirements.txt`, workflow YAML, `Dockerfile`) and checks every declared dependency against Ebb's active lifecycle rules. Prose text is never scored.
+3. **Repeated Runs and Variance**: Each task and mode is evaluated across multiple repetitions ($n \ge 3$). The report displays the mean deprecation rate alongside the minimum and maximum spread across runs.
+4. **Tested Configurations**:
+   - **Baseline**: Standard unassisted agent code generation.
+   - **MCP**: Agent equipped with Ebb MCP server tools (`check`, `rules_for`, `replacement_for`).
+   - **Skill**: Agent equipped with the official Ebb `check-before-add` agent skill.
+
+## Known Limits
+
+- **Simulated vs Real Runs**: Simulated runners provide deterministic CI verification without incurring API fees. Real runs require API tokens and execute via the manual workflow.
+- **Agent Non-Determinism**: Real LLM completions exhibit variance across runs; multiple repetitions ($n \ge 3$) are required to calculate confidence intervals.
+- **Offline Sandbox**: Real runs must have network access for agent LLM calls while the Ebb library evaluates lifecycle data completely offline.
 
 ## Reproducibility
 
