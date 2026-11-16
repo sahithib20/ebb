@@ -111,6 +111,22 @@ export function buildPermalinkMap(docsDir: string): Map<string, string> {
   return permalinks;
 }
 
+/**
+ * Determines whether a URL is an internal repository/site link or an external URI.
+ * Returns 'internal' for relative/anchor paths, 'http' for http(s) links, and 'other' for external URI schemes.
+ */
+export function categorizeUrl(url: string): "internal" | "http" | "other" {
+  if (!url) return "other";
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return "http";
+  }
+  // Check for any URI scheme (e.g. mailto:, data:, javascript:, tel:)
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url)) {
+    return "other";
+  }
+  return "internal";
+}
+
 /** Extracts all markdown links [text](url) with line numbers from markdown text. */
 export function extractMarkdownLinks(content: string, filePath: string): MarkdownLink[] {
   const links: MarkdownLink[] = [];
@@ -142,17 +158,15 @@ export function extractMarkdownLinks(content: string, filePath: string): Markdow
         url = url.slice(0, spaceIdx).trim();
       }
 
-      // Ignore mailto, empty links, or protocol schemes other than http(s)
-      if (!url || url.startsWith("mailto:") || url.startsWith("javascript:")) continue;
-
-      const isInternal = !url.startsWith("http://") && !url.startsWith("https://");
+      const category = categorizeUrl(url);
+      if (category === "other") continue;
 
       links.push({
         file: filePath,
         line: i + 1,
         text,
         url,
-        isInternal,
+        isInternal: category === "internal",
       });
     }
 
@@ -160,14 +174,15 @@ export function extractMarkdownLinks(content: string, filePath: string): Markdow
     let imgMatch: RegExpExecArray | null;
     while ((imgMatch = imgRegex.exec(line)) !== null) {
       const url = imgMatch[1]?.trim() ?? "";
-      if (!url) continue;
-      const isInternal = !url.startsWith("http://") && !url.startsWith("https://");
+      const category = categorizeUrl(url);
+      if (category === "other") continue;
+
       links.push({
         file: filePath,
         line: i + 1,
         text: "img",
         url,
-        isInternal,
+        isInternal: category === "internal",
       });
     }
   }
