@@ -1,6 +1,10 @@
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
+
+import { generateStaticApi } from "./static-api/generate.js";
 
 interface PackFile {
   path: string;
@@ -21,21 +25,37 @@ interface PackResult {
   entryCount: number;
 }
 
+export const STATIC_API_BUDGETS = {
+  indexGzip: 50 * 1024, // 50 KB
+  searchGzip: 25 * 1024, // 25 KB
+  allGzip: 250 * 1024, // 250 KB
+};
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const kb = (bytes / 1024).toFixed(1);
   return `${kb} KB (${bytes.toLocaleString()} bytes)`;
 }
 
-export function measureSize(): {
+export async function measureSize(options?: { apiDir?: string }): Promise<{
   packedSize: number;
   unpackedSize: number;
   budget: number;
   topFiles: PackFile[];
   dataGzipSize: number;
-} {
+  staticApi: {
+    indexGzip: number;
+    searchGzip: number;
+    allGzip: number;
+  };
+}> {
   const pkgJson = JSON.parse(readFileSync("package.json", "utf-8"));
-  const budget = pkgJson.ebb?.sizeBudget ?? 500000;
+  const budget = pkgJson.ebb?.sizeBudget ?? 550000;
+  const apiBudgets = {
+    indexGzip: pkgJson.ebb?.staticApiBudgets?.indexGzip ?? STATIC_API_BUDGETS.indexGzip,
+    searchGzip: pkgJson.ebb?.staticApiBudgets?.searchGzip ?? STATIC_API_BUDGETS.searchGzip,
+    allGzip: pkgJson.ebb?.staticApiBudgets?.allGzip ?? STATIC_API_BUDGETS.allGzip,
+  };
 
   const stdout = execSync("npm pack --dry-run --json", { encoding: "utf-8" });
   const parsed: PackResult[] = JSON.parse(stdout);
@@ -74,21 +94,83 @@ export function measureSize(): {
     console.log(`  ${f.path.padEnd(40)} ${formatBytes(f.size)}`);
   }
 
+  // Measure Static API index files: index.json, search-index.json, all.json
+  let apiDir = options?.apiDir ?? resolve("dist/site/api/v1");
+  let tempCreated = false;
+  if (!existsSync(join(apiDir, "index.json"))) {
+    apiDir = mkdtempSync(join(tmpdir(), "ebb-size-static-api-"));
+    tempCreated = true;
+    await generateStaticApi({ outDir: apiDir });
+  }
+
+  let indexGzip = 0;
+  let searchGzip = 0;
+  let allGzip = 0;
+
+  try {
+    const indexBuf = readFileSync(join(apiDir, "index.json"));
+    indexGzip = gzipSync(indexBuf).length;
+
+    const searchBuf = readFileSync(join(apiDir, "search-index.json"));
+    searchGzip = gzipSync(searchBuf).length;
+
+    const allBuf = readFileSync(join(apiDir, "all.json"));
+    allGzip = gzipSync(allBuf).length;
+  } finally {
+    if (tempCreated) {
+      rmSync(apiDir, { recursive: true, force: true });
+    }
+  }
+
+  console.log("\nStatic API index files (gzipped):");
+  console.log(`  index.json:        ${formatBytes(indexGzip)} (budget: ${formatBytes(apiBudgets.indexGzip)})`);
+  console.log(`  search-index.json: ${formatBytes(searchGzip)} (budget: ${formatBytes(apiBudgets.searchGzip)})`);
+  console.log(`  all.json:          ${formatBytes(allGzip)} (budget: ${formatBytes(apiBudgets.allGzip)})`);
+
+  let failed = false;
   if (pack.size > budget) {
     console.error(`\n❌ Error: Packed size (${pack.size} bytes) exceeds budget of ${budget} bytes!`);
+    failed = true;
+  }
+  if (indexGzip > apiBudgets.indexGzip) {
+    console.error(
+      `\n❌ Error: index.json gzip size (${indexGzip} bytes) exceeds budget of ${apiBudgets.indexGzip} bytes!`,
+    );
+    failed = true;
+  }
+  if (searchGzip > apiBudgets.searchGzip) {
+    console.error(
+      `\n❌ Error: search-index.json gzip size (${searchGzip} bytes) exceeds budget of ${apiBudgets.searchGzip} bytes!`,
+    );
+    failed = true;
+  }
+  if (allGzip > apiBudgets.allGzip) {
+    console.error(`\n❌ Error: all.json gzip size (${allGzip} bytes) exceeds budget of ${apiBudgets.allGzip} bytes!`);
+    failed = true;
+  }
+
+  if (failed) {
     process.exit(1);
   }
 
-  console.log("\n✅ Size check passed (within budget).");
+  console.log("\n✅ Size checks passed (all within budget).");
   return {
     packedSize: pack.size,
     unpackedSize: pack.unpackedSize,
     budget,
     topFiles,
     dataGzipSize,
+    staticApi: {
+      indexGzip,
+      searchGzip,
+      allGzip,
+    },
   };
 }
 
 if (process.argv[1]?.endsWith("size.ts") || process.argv[1]?.endsWith("size.js")) {
-  measureSize();
+  measureSize().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
 }

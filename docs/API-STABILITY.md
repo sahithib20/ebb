@@ -96,3 +96,12 @@ Every source module shipped in `0.1.0` resolves in `0.x` via `"./*"` so existing
 1. **Keep `0.1.x` subpaths working during `0.x`.** Every `0.1.0` subpath above continues to resolve via `"./*"` and load from the packed npm tarball across `0.x` releases.
 2. **Surface `@deprecated` in editors.** TypeScript consumers importing legacy subpaths see `@deprecated` diagnostics pointing to `@velella/ebb`; imports from `@velella/ebb` itself produce none.
 3. **Remove `"./*"` in `1.0.0`.** Only intentionally exposed entry points (`"."` and `"./package.json"`, plus any explicitly promoted subpaths added with API coverage before release) remain in `1.0.0`. Internal modules and deprecated `0.1.x` subpaths will stop resolving directly at that major boundary.
+
+## Static JSON API (v1) stability promise
+
+The static API hosted under `https://velella.sh/ebb/api/v1/` adheres to a strict additive-only contract:
+
+1. **v1 only gains fields and endpoints.** Existing endpoints and field names will never be removed, renamed, or change type in `v1`.
+2. **Backward-compatible evolution.** Additions (such as new optional metadata fields or new endpoints) may occur in minor releases without breaking existing consumers.
+3. **Major version isolation.** Any breaking change or redesigned data shape will only ever be introduced under a new versioned base path (such as `/api/v2/`).
+4. **Automated CI enforcement.** The shape of every v1 endpoint is locked by snapshot in `tests/static-api-compat.test.ts`. Any pull request that drops a field or endpoint fails CI.

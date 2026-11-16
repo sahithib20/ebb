@@ -4,13 +4,14 @@ import { dirname, join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
 import { purlToApiPath } from "../../src/api.js";
+import { confidenceOf } from "../../src/confidence.js";
 import { OFFING_HINT_TEXT } from "../../src/hint.js";
 import { supportedVersions } from "../../src/pick-version.js";
 import { parsePurl, purlIdentity } from "../../src/purl.js";
 import type { RegistryV2, RegistryV2Rule } from "../../src/registry.js";
-import { confidenceOf } from "../../src/confidence.js";
 import { sourcesOf } from "../../src/sources-of.js";
 import { writeCalendars } from "./calendar.js";
+import { generateOpenApi } from "./openapi.js";
 
 export const API_SCHEMA_VERSION = "ebb.api.v1" as const;
 
@@ -21,10 +22,12 @@ export interface GenerateStaticApiOptions {
   outDir: string;
   /** Public base URL for the API. Defaults to "https://velella.sh/ebb/api/v1". */
   baseUrl?: string | undefined;
-  /** Deterministic creation timestamp. Defaults to current ISO timestamp. */
+  /** Deterministic creation timestamp. Defaults to latest date from the data. */
   createdAt?: string | undefined;
   /** Path to the latest source check report. If omitted or not found, source status fields are left out. */
   reportPath?: string | undefined;
+  /** Size budget for search-index gzip before splitting (bytes). Defaults to 25KB (25600 bytes). */
+  searchBudget?: number | undefined;
 }
 
 export interface GenerateStaticApiResult {
@@ -38,26 +41,42 @@ export interface GenerateStaticApiResult {
   indexGzipBytes: number;
   searchRawBytes: number;
   searchGzipBytes: number;
+  metaRawBytes?: number;
 }
 
 export function sha256Hex(data: string | Buffer): string {
   return createHash("sha256").update(data).digest("hex");
 }
 
+/** Recursively sorts object keys alphabetically to ensure deterministic JSON serialization. */
+export function sortKeys<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map(sortKeys) as unknown as T;
+  }
+  if (value !== null && typeof value === "object") {
+    const sorted: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      sorted[key] = sortKeys((value as Record<string, unknown>)[key]);
+    }
+    return sorted as T;
+  }
+  return value;
+}
+
 export async function generateStaticApi(options: GenerateStaticApiOptions): Promise<GenerateStaticApiResult> {
   const root = resolve(options.root ?? ".");
   const outDir = resolve(options.outDir);
-  const baseUrl = (options.baseUrl ?? "https://velella.sh/ebb/api/v1").replace(/\/+$/, "");
-  const createdAt = options.createdAt ?? new Date().toISOString();
-  const createdDate = new Date(createdAt);
-  const asOf = createdDate.toISOString().slice(0, 10);
+  let baseUrl = options.baseUrl ?? "https://velella.sh/ebb/api/v1";
+  while (baseUrl.endsWith("/")) {
+    baseUrl = baseUrl.slice(0, -1);
+  }
 
   // Read package.json version
   const pkgJsonPath = join(root, "package.json");
   const pkgJson = JSON.parse(await readFile(pkgJsonPath, "utf8")) as { version: string };
   const version = pkgJson.version;
 
-  // Read optional source-check report (Sub-issue 9)
+  // Read optional source-check report
   const reportPath = options.reportPath ?? join(root, "source-report.json");
   let reportCheckedAt: string | undefined;
   const ruleStatusMap = new Map<string, string>();
@@ -111,6 +130,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     const updated: RegistryV2Rule = {
       ...rule,
       confidence,
+      url: `${baseUrl}/rules/${encodeURIComponent(rule.id)}.json`,
     };
     if (reportCheckedAt) {
       updated.sourceCheckedAt = reportCheckedAt;
@@ -167,8 +187,39 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     }
   }
 
+  // Derive dates deterministically from the data, not the clock
+  let maxDataDate = "1970-01-01";
+  for (const rule of allRules) {
+    const d = rule.provenance?.reviewedAt ?? rule.provenance?.observedAt;
+    if (d && d > maxDataDate) {
+      maxDataDate = d;
+    }
+  }
+  const createdAt = options.createdAt ?? `${maxDataDate}T00:00:00.000Z`;
+  const createdDate = new Date(createdAt);
+  const asOf = createdDate.toISOString().slice(0, 10);
+  const dataVersion = maxDataDate.replace(/-/g, ".");
+
   // Ensure output directory exists
   await mkdir(outDir, { recursive: true });
+
+  // Copy published JSON Schemas to /schemas/
+  const schemasDir = join(outDir, "schemas");
+  await mkdir(schemasDir, { recursive: true });
+  const schemaFilesToCopy = [
+    "static-api.v1.schema.json",
+    "rule.v2.schema.json",
+    "registry.v2.schema.json",
+    "result.v1.schema.json",
+  ];
+  for (const schemaFile of schemaFilesToCopy) {
+    try {
+      const content = await readFile(join(root, "schemas", schemaFile), "utf8");
+      await writeFile(join(schemasDir, schemaFile), content, "utf8");
+    } catch {
+      // Ignore if missing in tests
+    }
+  }
 
   const calendarFeeds = await writeCalendars({
     outDir,
@@ -177,6 +228,8 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     baseUrl,
     createdAt,
   });
+
+  const schemaUrl = `${baseUrl}/schemas/static-api.v1.schema.json`;
 
   // 1. Generate Component JSON files
   const indexComponents: Record<
@@ -201,12 +254,17 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
 
   const nameSearchItems: Array<{ name: string; purl: string; path: string }> = [];
 
-  for (const [purl, comp] of rulesByComponent.entries()) {
+  const sortedComponentEntries = [...rulesByComponent.entries()].sort(([a], [b]) => a.localeCompare(b));
+
+  for (const [purl, comp] of sortedComponentEntries) {
     const relPath = purlToApiPath(purl);
     const parsed = purl.startsWith("pkg:") ? parsePurl(purl) : null;
     const type = parsed?.type ?? relPath.split("/")[0] ?? "unknown";
     const name = parsed?.name ?? relPath.split("/").pop()?.replace(".json", "") ?? "";
     const namespace = parsed?.namespace;
+
+    // Sort rules deterministically by id
+    comp.rules.sort((a, b) => a.id.localeCompare(b.id));
 
     // Determine events, deadlines, latest review
     const events = Array.from(new Set(comp.rules.map((r) => r.event))).sort();
@@ -226,6 +284,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     });
 
     const compDoc = {
+      $schema: schemaUrl,
       schemaVersion: API_SCHEMA_VERSION,
       version,
       generatedAt: createdAt,
@@ -247,7 +306,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       ...(calendar ? { calendar } : {}),
     };
 
-    const compJson = JSON.stringify(compDoc, null, 2);
+    const compJson = JSON.stringify(sortKeys(compDoc), null, 2);
     const compBytes = Buffer.byteLength(compJson, "utf8");
     const compHash = sha256Hex(compJson);
 
@@ -297,6 +356,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
   }> = [];
 
   for (const [ecoName, ecoRules] of rulesByEcosystem.entries()) {
+    ecoRules.sort((a, b) => a.id.localeCompare(b.id));
     const ecoComponents = new Set(ecoRules.map((r) => purlIdentity(r.purl)));
     const methods = { manual: 0, imported: 0, upstream: 0 };
     const reviewersSet = new Set<string>();
@@ -314,6 +374,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     };
 
     const ecoDoc = {
+      $schema: schemaUrl,
       schemaVersion: API_SCHEMA_VERSION,
       version,
       generatedAt: createdAt,
@@ -324,7 +385,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       rules: ecoRules,
     };
 
-    const ecoJson = JSON.stringify(ecoDoc, null, 2);
+    const ecoJson = JSON.stringify(sortKeys(ecoDoc), null, 2);
     await writeFile(join(outDir, `${ecoName}.json`), ecoJson, "utf8");
 
     // Also in ecosystems/ subdirectory
@@ -345,18 +406,19 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
 
   // 3. Generate ecosystems.json index
   const ecosystemsDoc = {
+    $schema: schemaUrl,
     schemaVersion: API_SCHEMA_VERSION,
     version,
     generatedAt: createdAt,
     ecosystemsCount: ecosystemsSummary.length,
     ecosystems: ecosystemsSummary,
   };
-  await writeFile(join(outDir, "ecosystems.json"), JSON.stringify(ecosystemsDoc, null, 2), "utf8");
+  await writeFile(join(outDir, "ecosystems.json"), JSON.stringify(sortKeys(ecosystemsDoc), null, 2), "utf8");
 
   // 4. Generate all.json and compute its gzip size
-  // Sort rules deterministically by rule id
   const sortedAllRules = [...allRules].sort((a, b) => a.id.localeCompare(b.id));
   const allDoc = {
+    $schema: schemaUrl,
     schemaVersion: API_SCHEMA_VERSION,
     version,
     generatedAt: createdAt,
@@ -365,14 +427,14 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     ecosystemsCount: rulesByEcosystem.size,
     rules: sortedAllRules,
   };
-  const allJson = JSON.stringify(allDoc, null, 2);
+  const allJson = JSON.stringify(sortKeys(allDoc), null, 2);
   const allGzip = gzipSync(Buffer.from(allJson, "utf8"));
   const allWithGzip = {
-    ...allDoc,
+    ...sortKeys(allDoc),
     rawBytes: Buffer.byteLength(allJson, "utf8"),
     gzipBytes: allGzip.length,
   };
-  const finalAllJson = JSON.stringify(allWithGzip, null, 2);
+  const finalAllJson = JSON.stringify(sortKeys(allWithGzip), null, 2);
   await writeFile(join(outDir, "all.json"), finalAllJson, "utf8");
 
   // 5. Generate index.json
@@ -390,6 +452,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
   const stale = ageDays > 30;
 
   const indexDoc = {
+    $schema: schemaUrl,
     schemaVersion: API_SCHEMA_VERSION,
     version,
     generatedAt: createdAt,
@@ -404,7 +467,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     },
     components: indexComponents,
   };
-  const indexJson = JSON.stringify(indexDoc, null, 2);
+  const indexJson = JSON.stringify(sortKeys(indexDoc), null, 2);
   const indexGzip = gzipSync(Buffer.from(indexJson, "utf8"));
   await writeFile(join(outDir, "index.json"), indexJson, "utf8");
 
@@ -436,21 +499,23 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       });
     }
   }
-  // Sort by deadline ascending
+  // Sort by deadline ascending, then ruleId
   upcomingRules.sort((a, b) => {
     const da = a.deadline ?? "9999-99-99";
     const db = b.deadline ?? "9999-99-99";
-    return da.localeCompare(db);
+    const cmp = da.localeCompare(db);
+    return cmp !== 0 ? cmp : a.ruleId.localeCompare(b.ruleId);
   });
 
   const upcomingDoc = {
+    $schema: schemaUrl,
     schemaVersion: API_SCHEMA_VERSION,
     version,
     generatedAt: createdAt,
     count: upcomingRules.length,
     upcoming: upcomingRules,
   };
-  await writeFile(join(outDir, "upcoming.json"), JSON.stringify(upcomingDoc, null, 2), "utf8");
+  await writeFile(join(outDir, "upcoming.json"), JSON.stringify(sortKeys(upcomingDoc), null, 2), "utf8");
 
   // 7. Generate recent.json
   const recentRules: Array<{
@@ -482,23 +547,28 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       });
     }
   }
-  // Sort by reviewedAt descending
+  // Sort by reviewedAt descending, then ruleId
   recentRules.sort((a, b) => {
     const da = a.reviewedAt ?? a.observedAt ?? "0000-00-00";
     const db = b.reviewedAt ?? b.observedAt ?? "0000-00-00";
-    return db.localeCompare(da);
+    const cmp = db.localeCompare(da);
+    return cmp !== 0 ? cmp : a.ruleId.localeCompare(b.ruleId);
   });
 
   const recentDoc = {
+    $schema: schemaUrl,
     schemaVersion: API_SCHEMA_VERSION,
     version,
     generatedAt: createdAt,
     count: recentRules.length,
     recent: recentRules,
   };
-  await writeFile(join(outDir, "recent.json"), JSON.stringify(recentDoc, null, 2), "utf8");
+  await writeFile(join(outDir, "recent.json"), JSON.stringify(sortKeys(recentDoc), null, 2), "utf8");
 
-  // 8. Generate search-index.json (prefix search index)
+  // 8. Generate search-index.json (prefix search index) with budget check and splitting
+  const searchBudget = options.searchBudget ?? 25 * 1024;
+  nameSearchItems.sort((a, b) => a.name.localeCompare(b.name) || a.purl.localeCompare(b.purl));
+
   const prefixes: Record<string, number[]> = {};
   for (let idx = 0; idx < nameSearchItems.length; idx++) {
     const item = nameSearchItems[idx];
@@ -515,30 +585,139 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       }
     }
   }
+  for (const prefix of Object.keys(prefixes)) {
+    prefixes[prefix]?.sort((a, b) => a - b);
+  }
 
   const searchDoc = {
+    $schema: schemaUrl,
     schemaVersion: API_SCHEMA_VERSION,
     version,
     generatedAt: createdAt,
     items: nameSearchItems,
     prefixes,
   };
-  const searchJson = JSON.stringify(searchDoc);
+  const searchJson = JSON.stringify(sortKeys(searchDoc));
   const searchGzip = gzipSync(Buffer.from(searchJson, "utf8"));
-  await writeFile(join(outDir, "search-index.json"), searchJson, "utf8");
 
-  // 9. Generate sources/<rule-id>.json files
+  if (searchGzip.length > searchBudget) {
+    // Split search index by first letter when exceeding budget
+    const splitDir = join(outDir, "search-index");
+    await mkdir(splitDir, { recursive: true });
+    const partitions: Record<string, typeof nameSearchItems> = {};
+    for (const item of nameSearchItems) {
+      const letter = (item.name[0] ?? "_").toLowerCase();
+      if (!partitions[letter]) partitions[letter] = [];
+      partitions[letter].push(item);
+    }
+
+    const partitionMap: Record<string, string> = {};
+    for (const [letter, group] of Object.entries(partitions).sort(([a], [b]) => a.localeCompare(b))) {
+      const partPrefixes: Record<string, number[]> = {};
+      for (let idx = 0; idx < group.length; idx++) {
+        const item = group[idx];
+        if (!item) continue;
+        const lowerName = item.name.toLowerCase();
+        for (let len = 2; len <= Math.min(lowerName.length, 6); len++) {
+          const prefix = lowerName.slice(0, len);
+          if (!partPrefixes[prefix]) partPrefixes[prefix] = [];
+          const list = partPrefixes[prefix];
+          if (list && !list.includes(idx)) list.push(idx);
+        }
+      }
+      for (const p of Object.keys(partPrefixes)) {
+        partPrefixes[p]?.sort((a, b) => a - b);
+      }
+      const partDoc = {
+        $schema: schemaUrl,
+        schemaVersion: API_SCHEMA_VERSION,
+        version,
+        generatedAt: createdAt,
+        letter,
+        items: group,
+        prefixes: partPrefixes,
+      };
+      await writeFile(join(splitDir, `${letter}.json`), JSON.stringify(sortKeys(partDoc)), "utf8");
+      partitionMap[letter] = `search-index/${letter}.json`;
+    }
+
+    const splitIndexDoc = {
+      $schema: schemaUrl,
+      schemaVersion: API_SCHEMA_VERSION,
+      version,
+      generatedAt: createdAt,
+      split: true,
+      partitions: partitionMap,
+    };
+    await writeFile(join(outDir, "search-index.json"), JSON.stringify(sortKeys(splitIndexDoc), null, 2), "utf8");
+  } else {
+    await writeFile(join(outDir, "search-index.json"), searchJson, "utf8");
+  }
+
+  // 9. Generate rules/<rule-id>.json files
+  const rulesDir = join(outDir, "rules");
+  await mkdir(rulesDir, { recursive: true });
+  for (const rule of allRules) {
+    const encodedId = encodeURIComponent(rule.id);
+    const ruleDoc = {
+      $schema: schemaUrl,
+      schemaVersion: API_SCHEMA_VERSION,
+      version,
+      generatedAt: createdAt,
+      rule,
+    };
+    const ruleJson = JSON.stringify(sortKeys(ruleDoc), null, 2);
+    await writeFile(join(rulesDir, `${encodedId}.json`), ruleJson, "utf8");
+    if (encodedId !== rule.id && !rule.id.includes("/")) {
+      await writeFile(join(rulesDir, `${rule.id}.json`), ruleJson, "utf8");
+    }
+  }
+
+  // 10. Generate meta.json (Sub-issue 2) - No dynamic timestamp included
+  const metaDoc = {
+    $schema: schemaUrl,
+    schemaVersion: API_SCHEMA_VERSION,
+    version,
+    dataVersion,
+    rulesCount: allRules.length,
+    componentsCount: rulesByComponent.size,
+    ecosystemsCount: rulesByEcosystem.size,
+    schemaVersions: {
+      api: API_SCHEMA_VERSION,
+      rule: "ebb.rule.v2",
+      result: 1,
+      registry: "ebb.registry.v2",
+    },
+  };
+  const metaJson = JSON.stringify(sortKeys(metaDoc), null, 2);
+  await writeFile(join(outDir, "meta.json"), metaJson, "utf8");
+
+  // 11. Generate openapi.json (Sub-issue 5)
+  const openApiDoc = await generateOpenApi({ root, baseUrl, version });
+  await writeFile(join(outDir, "openapi.json"), JSON.stringify(sortKeys(openApiDoc), null, 2), "utf8");
+
+  // 12. Generate 404.json for unknown components/rules (Sub-issue 6)
+  const notFoundDoc = {
+    $schema: schemaUrl,
+    schemaVersion: API_SCHEMA_VERSION,
+    error: "Not Found",
+    message: "Component or rule not found. A 404 does not mean supported; it means Ebb has no lifecycle data for it.",
+  };
+  await writeFile(join(outDir, "404.json"), JSON.stringify(sortKeys(notFoundDoc), null, 2), "utf8");
+
+  // 13. Generate sources/<rule-id>.json files
   const sourcesDir = join(outDir, "sources");
   await mkdir(sourcesDir, { recursive: true });
   for (const rule of allRules) {
     const res = sourcesOf(rule.id, { rules: allRules });
     const ruleSourcesDoc = {
+      $schema: schemaUrl,
       schemaVersion: API_SCHEMA_VERSION,
       version,
       generatedAt: createdAt,
       ...res,
     };
-    await writeFile(join(sourcesDir, `${rule.id}.json`), JSON.stringify(ruleSourcesDoc, null, 2), "utf8");
+    await writeFile(join(sourcesDir, `${rule.id}.json`), JSON.stringify(sortKeys(ruleSourcesDoc), null, 2), "utf8");
   }
 
   return {
@@ -552,5 +731,6 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
     indexGzipBytes: indexGzip.length,
     searchRawBytes: Buffer.byteLength(searchJson, "utf8"),
     searchGzipBytes: searchGzip.length,
+    metaRawBytes: Buffer.byteLength(metaJson, "utf8"),
   };
 }

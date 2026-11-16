@@ -11,7 +11,9 @@
     { "$ref": "#/$defs/ecosystemsDocument" },
     { "$ref": "#/$defs/upcomingDocument" },
     { "$ref": "#/$defs/recentDocument" },
-    { "$ref": "#/$defs/searchIndexDocument" }
+    { "$ref": "#/$defs/searchIndexDocument" },
+    { "$ref": "#/$defs/metaDocument" },
+    { "$ref": "#/$defs/ruleDocument" }
   ],
   "$defs": {
     "rule": { "$ref": "registry.v2.schema.json#/$defs/rule" },
@@ -20,6 +22,7 @@
       "required": ["schemaVersion", "version", "generatedAt", "purl", "type", "name", "ecosystems", "rules"],
       "additionalProperties": false,
       "properties": {
+        "$schema": { "type": "string" },
         "schemaVersion": { "const": "ebb.api.v1" },
         "version": { "type": "string" },
         "generatedAt": { "type": "string" },
@@ -89,6 +92,7 @@
       "required": ["schemaVersion", "version", "generatedAt", "ecosystem", "rulesCount", "componentsCount", "rules"],
       "additionalProperties": false,
       "properties": {
+        "$schema": { "type": "string" },
         "schemaVersion": { "const": "ebb.api.v1" },
         "version": { "type": "string" },
         "generatedAt": { "type": "string" },
@@ -124,6 +128,7 @@
       "required": ["schemaVersion", "version", "generatedAt", "rulesCount", "componentsCount", "ecosystemsCount", "rules"],
       "additionalProperties": false,
       "properties": {
+        "$schema": { "type": "string" },
         "schemaVersion": { "const": "ebb.api.v1" },
         "version": { "type": "string" },
         "generatedAt": { "type": "string" },
@@ -170,6 +175,7 @@
       "required": ["schemaVersion", "version", "generatedAt", "rulesCount", "componentsCount", "ecosystemsCount", "components"],
       "additionalProperties": false,
       "properties": {
+        "$schema": { "type": "string" },
         "schemaVersion": { "const": "ebb.api.v1" },
         "version": { "type": "string" },
         "generatedAt": { "type": "string" },
@@ -198,6 +204,7 @@
       "required": ["schemaVersion", "version", "generatedAt", "ecosystemsCount", "ecosystems"],
       "additionalProperties": false,
       "properties": {
+        "$schema": { "type": "string" },
         "schemaVersion": { "const": "ebb.api.v1" },
         "version": { "type": "string" },
         "generatedAt": { "type": "string" },
@@ -258,6 +265,7 @@
       "required": ["schemaVersion", "version", "generatedAt", "count", "upcoming"],
       "additionalProperties": false,
       "properties": {
+        "$schema": { "type": "string" },
         "schemaVersion": { "const": "ebb.api.v1" },
         "version": { "type": "string" },
         "generatedAt": { "type": "string" },
@@ -290,6 +298,7 @@
       "required": ["schemaVersion", "version", "generatedAt", "count", "recent"],
       "additionalProperties": false,
       "properties": {
+        "$schema": { "type": "string" },
         "schemaVersion": { "const": "ebb.api.v1" },
         "version": { "type": "string" },
         "generatedAt": { "type": "string" },
@@ -305,6 +314,7 @@
       "required": ["schemaVersion", "version", "generatedAt", "items", "prefixes"],
       "additionalProperties": false,
       "properties": {
+        "$schema": { "type": "string" },
         "schemaVersion": { "const": "ebb.api.v1" },
         "version": { "type": "string" },
         "generatedAt": { "type": "string" },
@@ -328,6 +338,45 @@
             "items": { "type": "integer" }
           }
         }
+      }
+    },
+    "metaDocument": {
+      "type": "object",
+      "required": ["schemaVersion", "version", "dataVersion", "rulesCount", "componentsCount", "ecosystemsCount", "schemaVersions"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "schemaVersion": { "const": "ebb.api.v1" },
+        "version": { "type": "string" },
+        "dataVersion": { "type": "string" },
+        "rulesCount": { "type": "integer", "minimum": 0 },
+        "componentsCount": { "type": "integer", "minimum": 0 },
+        "ecosystemsCount": { "type": "integer", "minimum": 0 },
+        "schemaVersions": {
+          "type": "object",
+          "required": ["api", "rule", "result"],
+          "additionalProperties": {
+            "anyOf": [{ "type": "string" }, { "type": "integer" }]
+          },
+          "properties": {
+            "api": { "type": "string" },
+            "rule": { "type": "string" },
+            "result": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "registry": { "type": "string" }
+          }
+        }
+      }
+    },
+    "ruleDocument": {
+      "type": "object",
+      "required": ["schemaVersion", "version", "generatedAt", "rule"],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": { "type": "string" },
+        "schemaVersion": { "const": "ebb.api.v1" },
+        "version": { "type": "string" },
+        "generatedAt": { "type": "string" },
+        "rule": { "$ref": "#/$defs/rule" }
       }
     }
   }
