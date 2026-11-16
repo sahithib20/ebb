@@ -18,7 +18,15 @@
           "pointer": "/v22/end"
         }
       ],
-      "reviewedAt": "2026-10-24"
+      "reviewedAt": "2026-10-24",
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=24.0.0|<25.0.0",
+          "name": "Node.js 24 LTS",
+          "kind": "upgrade"
+        }
+      ]
     }
   ],
   "version": "22.11.0",

@@ -129,6 +129,18 @@ export interface ReplacementRequirements {
   python?: string;
 }
 
+/** The relationship between a deprecated component and its suggested replacement. */
+export type ReplacementKind = "successor" | "alternative" | "upgrade";
+
+/** A structured replacement target: package URL, optional version/constraint, name, kind, and optional note. */
+export interface ReplacementItem {
+  purl: string;
+  vers?: string;
+  name: string;
+  kind: ReplacementKind;
+  note?: string;
+}
+
 /** Which lifecycle data a result was produced with, and how fresh its evidence is. */
 export interface DataInfo {
   source: "bundled" | "cache" | "pinned";

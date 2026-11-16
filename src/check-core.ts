@@ -219,6 +219,9 @@ function toCheckMatch(rule: RegistryV2Rule, asOf: string | undefined): CheckMatc
   if (endOfLifeMonth !== undefined) {
     match.datePrecision = "month";
   }
+  if (rule.replacements && rule.replacements.length > 0) {
+    match.replacements = rule.replacements;
+  }
   return match;
 }
 

@@ -191,3 +191,65 @@ test("tentative confidence with confidenceNote passes lint", async () => {
   const result = await lintRuleFiles([join(directory, "npm.json")]);
   assert.deepEqual(result.issues, []);
 });
+
+test("a replacement with an unparseable or invalid purl fails lint", async () => {
+  const rule = validRule();
+  rule.replacements = [
+    {
+      purl: "not-a-valid-pkg-url",
+      name: "invalid",
+      kind: "successor",
+    },
+  ];
+  const text = registry([rule]);
+  const directory = await registryDirectory({ "npm.json": text });
+
+  const result = await lintRuleFiles([join(directory, "npm.json")]);
+  assert.ok(result.issues.some((issue) => /purl is invalid/.test(issue.message)));
+  assert.ok(result.issues.some((issue) => /Package URL/i.test(issue.hint)));
+});
+
+test("a replacement that points at something already end-of-life fails lint", async () => {
+  const ruleA = validRule("npm.package.source.deprecated");
+  ruleA.purl = "pkg:npm/source-pkg";
+  ruleA.replacements = [
+    {
+      purl: "pkg:npm/ended-pkg",
+      name: "ended-pkg",
+      kind: "successor",
+    },
+  ];
+
+  const ruleB = validRule("npm.package.ended.eol");
+  ruleB.purl = "pkg:npm/ended-pkg";
+  ruleB.event = "end-of-life";
+  ruleB.vers = "vers:npm/*";
+
+  const text = registry([ruleA, ruleB]);
+  const directory = await registryDirectory({ "npm.json": text });
+
+  const result = await lintRuleFiles([join(directory, "npm.json")]);
+  assert.ok(
+    result.issues.some(
+      (issue) =>
+        issue.ruleId === "npm.package.source.deprecated" &&
+        /replacement "pkg:npm\/ended-pkg" is itself end-of-life/.test(issue.message),
+    ),
+  );
+  assert.ok(result.issues.some((issue) => /active, supported components/i.test(issue.hint)));
+});
+
+test("a rule with text replacement but no structured replacement produces a warning without failing lint", async () => {
+  const rule = validRule();
+  rule.replacement = "Use native fetch or alternative";
+  delete rule.replacements;
+
+  const text = registry([rule]);
+  const directory = await registryDirectory({ "npm.json": text });
+
+  const result = await lintRuleFiles([join(directory, "npm.json")]);
+  assert.equal(result.issues.length, 0, "warnings do not fail lint (issues must be empty)");
+  assert.equal(result.warnings.length, 1);
+  assert.match(result.warnings[0]!.message, /has a text replacement but no structured replacements/);
+  assert.match(result.warnings[0]!.hint, /structured replacements list/);
+});

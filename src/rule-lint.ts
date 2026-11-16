@@ -10,6 +10,8 @@ import { join, relative, resolve } from "node:path";
 
 import { registryV2Issues } from "./registry.js";
 import { required } from "./required.js";
+import { parsePurl, purlIdentity } from "./purl.js";
+import { parseVers } from "./vers/index.js";
 
 export interface RuleLintIssue {
   /** The path as the caller gave it, or repository-relative for files found by {@link defaultRuleFiles}. */
@@ -25,6 +27,7 @@ export interface RuleLintResult {
   files: string[];
   rules: number;
   issues: RuleLintIssue[];
+  warnings: RuleLintIssue[];
 }
 
 /** Files under `registry/` that are not lifecycle registries. */
@@ -162,6 +165,12 @@ function hintFor(message: string): string {
       /^confirmed confidence requires/,
       "Record the date the rule was verified in provenance.reviewedAt before setting confirmed.",
     ],
+    [
+      /is itself (deprecated|end-of-life|removed)/,
+      "Point replacements to active, supported components; do not recommend a component that is already deprecated or end-of-life.",
+    ],
+    [/has a text replacement but no structured/, "Add a structured replacements list with purl, name, and kind."],
+    [/replacements\[\d+\]\.purl/, "See the Package URL specification for valid Package URLs."],
   ];
   for (const [pattern, hint] of hints) if (pattern.test(message)) return hint;
   return "See the field reference in docs/RULES.md.";
@@ -214,8 +223,10 @@ function syntaxErrorLine(text: string, starts: readonly number[], message: strin
 interface FileResult {
   rules: number;
   issues: RuleLintIssue[];
+  warnings: RuleLintIssue[];
   /** Rule ids with their line, for the cross-file duplicate check. */
   ids: Array<{ id: string; line: number }>;
+  parsedRules: Array<{ rule: Record<string, unknown>; line: number }>;
 }
 
 interface LintView {
@@ -265,6 +276,8 @@ async function lintFile(file: string): Promise<FileResult> {
     return {
       rules: 0,
       ids: [],
+      parsedRules: [],
+      warnings: [],
       issues: [
         {
           file: shown,
@@ -284,6 +297,8 @@ async function lintFile(file: string): Promise<FileResult> {
     return {
       rules: 0,
       ids: [],
+      parsedRules: [],
+      warnings: [],
       issues: [
         {
           file: shown,
@@ -300,11 +315,33 @@ async function lintFile(file: string): Promise<FileResult> {
   const issues = registryIssueList(value, { shown, text, starts, rules, spans });
 
   const ids: FileResult["ids"] = [];
+  const parsedRules: FileResult["parsedRules"] = [];
+  const warnings: RuleLintIssue[] = [];
+
   rules.forEach((candidate, index) => {
-    if (!isRecord(candidate) || typeof candidate.id !== "string") return;
-    ids.push({ id: candidate.id, line: lineAt(starts, required(spans[index], "the span").start) });
+    if (!isRecord(candidate)) return;
+    const line = lineAt(starts, required(spans[index], "the span").start);
+    if (typeof candidate.id === "string") {
+      ids.push({ id: candidate.id, line });
+    }
+    parsedRules.push({ rule: candidate, line });
+
+    if (
+      typeof candidate.replacement === "string" &&
+      candidate.replacement.trim() !== "" &&
+      (!Array.isArray(candidate.replacements) || candidate.replacements.length === 0)
+    ) {
+      warnings.push({
+        file: shown,
+        line: lineFor(text, starts, required(spans[index], "the span"), "replacement"),
+        ...(typeof candidate.id === "string" ? { ruleId: candidate.id } : {}),
+        message: `rule "${candidate.id ?? index}": has a text replacement but no structured replacements`,
+        hint: hintFor("has a text replacement but no structured"),
+      });
+    }
   });
-  return { rules: rules.length, issues, ids };
+
+  return { rules: rules.length, issues, warnings, ids, parsedRules };
 }
 
 /**
@@ -315,6 +352,7 @@ async function lintFile(file: string): Promise<FileResult> {
 export async function lintRuleFiles(files: readonly string[]): Promise<RuleLintResult> {
   const results = await Promise.all(files.map((file) => lintFile(file)));
   const issues = results.flatMap((result) => result.issues);
+  const warnings = results.flatMap((result) => result.warnings);
 
   const firstUse = new Map<string, { file: string; line: number }>();
   results.forEach((result, index) => {
@@ -336,10 +374,83 @@ export async function lintRuleFiles(files: readonly string[]): Promise<RuleLintR
     }
   });
 
+  // Cross-rule check: fail when a replacement points at something already deprecated, end-of-life or removed
+  const allRulesByIdentity = new Map<string, Array<{ rule: Record<string, unknown>; file: string; line: number }>>();
+  results.forEach((result, fileIndex) => {
+    const file = required(files[fileIndex], "the file");
+    for (const { rule, line } of result.parsedRules) {
+      if (typeof rule.purl === "string") {
+        try {
+          const id = purlIdentity(parsePurl(rule.purl));
+          const list = allRulesByIdentity.get(id);
+          if (list) list.push({ rule, file, line });
+          else allRulesByIdentity.set(id, [{ rule, file, line }]);
+        } catch {
+          // invalid purls already reported by schema
+        }
+      }
+    }
+  });
+
+  results.forEach((result, fileIndex) => {
+    const file = required(files[fileIndex], "the file");
+    for (const { rule, line } of result.parsedRules) {
+      if (!Array.isArray(rule.replacements)) continue;
+      for (const item of rule.replacements) {
+        if (!isRecord(item) || typeof item.purl !== "string") continue;
+        let identity: string;
+        try {
+          identity = purlIdentity(parsePurl(item.purl));
+        } catch {
+          continue;
+        }
+        const candidates = allRulesByIdentity.get(identity) ?? [];
+        for (const target of candidates) {
+          const targetRule = target.rule;
+          if (["deprecated", "end-of-life", "removed"].includes(targetRule.event as string)) {
+            let matchesEnding = false;
+            if (typeof targetRule.vers === "string") {
+              try {
+                const targetVers = parseVers(targetRule.vers);
+                if (targetVers.all) {
+                  matchesEnding = true;
+                } else if (typeof item.vers === "string") {
+                  const itemVers = parseVers(item.vers);
+                  if (itemVers.all) {
+                    matchesEnding = true;
+                  }
+                } else {
+                  matchesEnding = true;
+                }
+              } catch {
+                matchesEnding = true;
+              }
+            } else {
+              matchesEnding = true;
+            }
+            if (matchesEnding) {
+              issues.push({
+                file: displayPath(file),
+                line,
+                ...(typeof rule.id === "string" ? { ruleId: rule.id } : {}),
+                message: `rule "${rule.id}": replacement "${item.purl}" is itself ${targetRule.event} (rule "${targetRule.id}")`,
+                hint: hintFor(`is itself ${targetRule.event}`),
+              });
+            }
+          }
+        }
+      }
+    }
+  });
+
   return {
     files: files.map((file) => displayPath(file)),
     rules: results.reduce((total, result) => total + result.rules, 0),
     issues: issues.sort(
+      (left, right) =>
+        left.file.localeCompare(right.file) || left.line - right.line || left.message.localeCompare(right.message),
+    ),
+    warnings: warnings.sort(
       (left, right) =>
         left.file.localeCompare(right.file) || left.line - right.line || left.message.localeCompare(right.message),
     ),

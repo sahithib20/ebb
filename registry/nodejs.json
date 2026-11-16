@@ -68,7 +68,15 @@
       },
       "x-nodejs": {
         "major": 20
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=22.0.0|<23.0.0",
+          "name": "Node.js 22 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "nodejs.runtime.eol-18",
@@ -136,7 +144,15 @@
       },
       "x-nodejs": {
         "major": 18
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=22.0.0|<23.0.0",
+          "name": "Node.js 22 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "nodejs.runtime.legacy",
@@ -208,7 +224,15 @@
       },
       "x-nodejs": {
         "maximumMajor": 17
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=22.0.0|<23.0.0",
+          "name": "Node.js 22 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "nodejs.runtime.eol-19",
@@ -277,7 +301,15 @@
       },
       "x-nodejs": {
         "major": 19
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=22.0.0|<23.0.0",
+          "name": "Node.js 22 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "nodejs.runtime.eol-21",
@@ -346,7 +378,15 @@
       },
       "x-nodejs": {
         "major": 21
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=22.0.0|<23.0.0",
+          "name": "Node.js 22 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "nodejs.runtime.eol-23",
@@ -415,7 +455,15 @@
       },
       "x-nodejs": {
         "major": 23
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=22.0.0|<23.0.0",
+          "name": "Node.js 22 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "nodejs.runtime.eol-25",
@@ -484,7 +532,15 @@
       },
       "x-nodejs": {
         "major": 25
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=22.0.0|<23.0.0",
+          "name": "Node.js 22 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "nodejs.runtime.eol-24",
@@ -546,7 +602,15 @@
       },
       "x-nodejs": {
         "major": 24
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=24.0.0|<25.0.0",
+          "name": "Node.js 24 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "nodejs.runtime.eol-26",
@@ -608,7 +672,15 @@
       },
       "x-nodejs": {
         "major": 26
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=24.0.0|<25.0.0",
+          "name": "Node.js 24 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "nodejs.symbol.fs.exists",
@@ -5541,7 +5613,15 @@
       "x-nodejs": {
         "major": 22,
         "scheduled": true
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/nodejs",
+          "vers": "vers:semver/>=24.0.0|<25.0.0",
+          "name": "Node.js 24 LTS",
+          "kind": "upgrade"
+        }
+      ]
     }
   ]
 }

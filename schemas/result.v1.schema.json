@@ -52,6 +52,21 @@
         "replacement": {
           "oneOf": [{ "$ref": "#/$defs/nonEmpty" }, { "type": "null" }]
         },
+        "replacements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["purl", "name", "kind"],
+            "additionalProperties": false,
+            "properties": {
+              "purl": { "type": "string" },
+              "vers": { "type": "string" },
+              "name": { "type": "string" },
+              "kind": { "enum": ["successor", "alternative", "upgrade"] },
+              "note": { "type": "string" }
+            }
+          }
+        },
         "sources": {
           "type": "array",
           "minItems": 1,

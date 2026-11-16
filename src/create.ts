@@ -76,7 +76,7 @@ function statusFromMatches(matches: readonly CheckMatch[]): CheckStatus {
 
 function toCheckMatch(rule: RegistryV2Rule, asOf: string | undefined): CheckMatch {
   const date = rule.deadline ?? null;
-  return {
+  const match: CheckMatch = {
     ruleId: rule.id,
     event: checkEventByLifecycle[rule.event],
     date,
@@ -86,6 +86,10 @@ function toCheckMatch(rule: RegistryV2Rule, asOf: string | undefined): CheckMatc
     reviewedAt: rule.provenance.reviewedAt,
     confidence: confidenceOf(rule),
   };
+  if (rule.replacements && rule.replacements.length > 0) {
+    match.replacements = rule.replacements;
+  }
+  return match;
 }
 
 /**

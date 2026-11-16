@@ -8,7 +8,7 @@ import { confidenceOf } from "../../src/confidence.js";
 import { OFFING_HINT_TEXT } from "../../src/hint.js";
 import { supportedVersions } from "../../src/pick-version.js";
 import { parsePurl, purlIdentity } from "../../src/purl.js";
-import type { RegistryV2, RegistryV2Rule } from "../../src/registry.js";
+import type { RegistryV2, RegistryV2Rule, ReplacementItem } from "../../src/registry.js";
 import { sourcesOf } from "../../src/sources-of.js";
 import { writeCalendars } from "./calendar.js";
 import { generateOpenApi } from "./openapi.js";
@@ -283,6 +283,18 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       rules: comp.rules,
     });
 
+    const compReplacements: ReplacementItem[] = [];
+    const seenReplacements = new Set<string>();
+    for (const rule of comp.rules) {
+      for (const rep of rule.replacements ?? []) {
+        const key = `${rep.purl}::${rep.vers ?? ""}::${rep.name}::${rep.kind}`;
+        if (!seenReplacements.has(key)) {
+          seenReplacements.add(key);
+          compReplacements.push(rep);
+        }
+      }
+    }
+
     const compDoc = {
       $schema: schemaUrl,
       schemaVersion: API_SCHEMA_VERSION,
@@ -294,6 +306,7 @@ export async function generateStaticApi(options: GenerateStaticApiOptions): Prom
       ...(namespace ? { namespace } : {}),
       ecosystems: Array.from(comp.ecosystems).sort(),
       rules: comp.rules,
+      ...(compReplacements.length > 0 ? { replacements: compReplacements } : {}),
       versions: {
         asOf: versionReport.asOf,
         complete: versionReport.complete,

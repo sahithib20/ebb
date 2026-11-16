@@ -109,6 +109,26 @@ Output:
       "url": "https://velella.sh/ebb/api/v1/rules/npm.package.request.deprecated.json"
     }
   ],
+  "replacements": [
+    {
+      "purl": "pkg:npm/undici",
+      "name": "undici",
+      "kind": "alternative",
+      "note": "Modern HTTP/1.1 client for Node.js"
+    },
+    {
+      "purl": "pkg:npm/axios",
+      "name": "axios",
+      "kind": "alternative",
+      "note": "Promise-based HTTP client"
+    },
+    {
+      "purl": "pkg:npm/got",
+      "name": "got",
+      "kind": "alternative",
+      "note": "Human-friendly HTTP request library for Node.js"
+    }
+  ],
   "hint": "Offing can fix this: https://github.com/velella-sh/offing",
   "versions": {
     "asOf": "2026-11-12",
@@ -130,7 +150,7 @@ Output:
 }
 ```
 
-Every rule entry in a component document includes a `url` link to its own dedicated `/rules/<rule-id>.json` file.
+Every rule entry in a component document includes a `url` link to its own dedicated `/rules/<rule-id>.json` file. Component documents also include optional machine-readable `replacements` collected from their rules, detailing `successor`, `alternative`, or `upgrade` targets with Package URLs and version ranges.
 
 ### 2. Fetch a Single Rule
 Each rule has its own permanent address with full evidence sources and provenance:

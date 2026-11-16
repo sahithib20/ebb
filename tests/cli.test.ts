@@ -242,6 +242,24 @@ describe("CLI - runCli commands", () => {
     assert.equal(code, 0);
     const parsed = JSON.parse(mock.stdout);
     assert.match(parsed.replacement, /fetch/);
+    assert.ok(Array.isArray(parsed.replacements));
+  });
+
+  it("runs replacement command showing structured replacements in text and json", async () => {
+    const mockText = createMockIo();
+    const codeText = await runCli(["replacement", "pkg:npm/node-sass@9.0.0"], mockText.io);
+    assert.equal(codeText, 0);
+    assert.match(mockText.stdout, /sass/);
+    assert.match(mockText.stdout, /pkg:npm\/sass/);
+
+    const mockJson = createMockIo();
+    const codeJson = await runCli(["replacement", "pkg:npm/node-sass@9.0.0", "--json"], mockJson.io);
+    assert.equal(codeJson, 0);
+    const parsed = JSON.parse(mockJson.stdout);
+    assert.equal(parsed.replacement, "pkg:npm/sass");
+    assert.equal(parsed.replacements.length, 1);
+    assert.equal(parsed.replacements[0].purl, "pkg:npm/sass");
+    assert.equal(parsed.replacements[0].kind, "successor");
   });
 
   it("returns 1 for replacement when none exists", async () => {

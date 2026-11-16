@@ -40,7 +40,29 @@
         },
         "hint": { "type": "string" },
         "calendar": { "type": "string" },
-        "versions": { "$ref": "#/$defs/versionsSection" }
+        "versions": { "$ref": "#/$defs/versionsSection" },
+        "replacements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/replacementItem" }
+        }
+      }
+    },
+    "replacementItem": {
+      "type": "object",
+      "required": ["purl", "name", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "purl": {
+          "type": "string",
+          "pattern": "^pkg:[a-z][a-z0-9.+-]*/[^@?#\\s]+$"
+        },
+        "vers": {
+          "type": "string",
+          "pattern": "^vers:[a-z][a-z0-9.+-]*/\\S+$"
+        },
+        "name": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["successor", "alternative", "upgrade"] },
+        "note": { "type": "string", "minLength": 1 }
       }
     },
     "versionsSection": {

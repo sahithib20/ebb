@@ -3,6 +3,7 @@
  */
 
 import { check, resolveCandidateRules } from "./check-core.js";
+import type { ReplacementItem } from "./domain.js";
 import { normalizePurl, parsePurl } from "./purl.js";
 
 const NPM_PACKAGE_PATTERN = /^(?:@[a-z0-9-~][a-z0-9._~-]*\/)?[a-z0-9-~][a-z0-9._~-]*(?:@[A-Za-z0-9._+-]+)?$/;
@@ -91,4 +92,17 @@ export function replacementFor(purl: string, version: string): string | null {
   if (!match || match.replacement === null) return null;
   const formatted = formatReplacement(purl, match.ruleId, match.replacement);
   return formatted === null || formatted.trim() === "" ? null : formatted;
+}
+
+/**
+ * Returns the structured replacement items named by the highest-precedence
+ * matching lifecycle rule for `purl` at `version`, or an empty array when no matching
+ * rule provides structured replacements.
+ * Delegates rule resolution, ordering, and version matching to {@link check}.
+ */
+export function replacementsFor(purl: string, version: string): ReplacementItem[] {
+  const { matches } = check(purl, version);
+  const match = matches.find((entry) => entry.replacements && entry.replacements.length > 0);
+  if (!match || !match.replacements) return [];
+  return [...match.replacements];
 }

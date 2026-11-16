@@ -119,4 +119,29 @@ describe("MCP replacement_for tool", () => {
     assert.equal(toolResult.isError, true);
     assert.ok(toolResult.content[0]?.text.includes("version is required"));
   });
+
+  it("returns structured replacements for a rule that has them", async () => {
+    const resp = await server.handleMessage({
+      jsonrpc: "2.0",
+      id: 7,
+      method: "tools/call",
+      params: {
+        name: "replacement_for",
+        arguments: {
+          purl: "pkg:npm/node-sass",
+          version: "9.0.0",
+        },
+      },
+    });
+
+    assert.ok(resp);
+    const toolResult = resp.result as McpToolResult;
+    assert.equal(toolResult.isError, false);
+    const parsed = JSON.parse(toolResult.content[0]?.text ?? "{}");
+    assert.equal(parsed.replacement, "pkg:npm/sass");
+    assert.ok(Array.isArray(parsed.replacements));
+    assert.equal(parsed.replacements.length, 1);
+    assert.equal(parsed.replacements[0].purl, "pkg:npm/sass");
+    assert.equal(parsed.replacements[0].kind, "successor");
+  });
 });

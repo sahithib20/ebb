@@ -84,6 +84,10 @@ test("static API generation produces valid files matching JSON schema and size b
     assert.ok(requestDoc.rules.length > 0);
     assert.equal(requestDoc.rules[0].confidence, "confirmed");
     assert.equal(requestDoc.rules[0].url, "https://velella.sh/ebb/api/v1/rules/npm.package.request.deprecated.json");
+    assert.ok(Array.isArray(requestDoc.replacements));
+    assert.equal(requestDoc.replacements[0].purl, "pkg:npm/undici");
+    assert.equal(requestDoc.replacements[0].name, "undici");
+    assert.equal(requestDoc.replacements[0].kind, "alternative");
     assert.equal(requestDoc.calendar, undefined);
     await assert.rejects(readFile(join(tempDir, "calendar/npm/request.ics"), "utf8"));
 
