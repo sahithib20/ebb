@@ -114,7 +114,7 @@ export function compareBundleVersions(left: string, right: string): number {
   const a = parts(left);
   const b = parts(right);
   for (let index = 0; index < Math.max(a.nums.length, b.nums.length); index++) {
-    const difference = (a.nums[index] ?? 1) - (b.nums[index] ?? 1);
+    const difference = (a.nums[index] ?? 0) - (b.nums[index] ?? 0);
     if (difference !== 0) return difference;
   }
   if (a.pre === null && b.pre !== null) return 1; // stable is newer than prerelease of same version

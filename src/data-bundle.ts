@@ -115,13 +115,15 @@ export interface BuildOptions {
   ecosystem?: BundledEcosystem;
 }
 
-export function bundleVersion(createdAt: string, revision = 1): string {
+export function bundleVersion(createdAt: string, revision?: number): string {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(createdAt)) {
     throw new DataBundleError(`createdAt must be UTC like 2026-10-16T09:30:00Z, received "${createdAt}".`);
   }
-  if (!Number.isInteger(revision) || revision < 1) throw new DataBundleError("revision must be a positive integer.");
+  if (revision !== undefined && (!Number.isInteger(revision) || revision < 1)) {
+    throw new DataBundleError("revision must be a positive integer.");
+  }
   const day = createdAt.slice(0, 10).replaceAll("-", ".");
-  return revision === 1 ? day : `${day}.${revision}`;
+  return revision === undefined ? day : `${day}.${revision}`;
 }
 
 async function readJson(root: string, path: string): Promise<Record<string, unknown>> {

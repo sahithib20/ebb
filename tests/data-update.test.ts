@@ -96,6 +96,13 @@ test("compareBundleVersions orders dates and same-day revisions numerically", ()
   assert.ok(compareBundleVersions("2026.10.16", "2026.10.16.2") < 0);
   assert.ok(compareBundleVersions("2026.10.16.2", "2026.10.16") > 0);
   assert.ok(compareBundleVersions("2026.10.17", "2026.10.16.9") > 0);
+  // data-release-3: orders unadorned date, same-day revision .1, and next day correctly
+  assert.ok(compareBundleVersions("2026.11.20", "2026.11.20.1") < 0);
+  assert.ok(compareBundleVersions("2026.11.20.1", "2026.11.21") < 0);
+  assert.ok(compareBundleVersions("2026.11.20", "2026.11.21") < 0);
+  const versions = ["2026.11.21", "2026.11.20", "2026.11.20.1"];
+  versions.sort(compareBundleVersions);
+  assert.deepEqual(versions, ["2026.11.20", "2026.11.20.1", "2026.11.21"]);
 });
 
 test("latestDataRelease skips drafts, non-data tags, and incomplete releases", () => {

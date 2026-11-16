@@ -50,7 +50,13 @@ jobs:
           if [ "$(npm view @velella/ebb@$VERSION version 2>/dev/null)" = "$VERSION" ]; then
             echo "@velella/ebb@$VERSION is already published to npm, skipping."
           else
-            npm publish --provenance --access public
+            if [[ "$VERSION" =~ - ]]; then
+              npm publish --provenance --access public --tag next
+            else
+              npm publish --provenance --access public --tag latest
+              # Clean up stale next dist-tag or point to current stable
+              npm dist-tag rm @velella/ebb next 2>/dev/null || npm dist-tag add @velella/ebb@$VERSION next 2>/dev/null || true
+            fi
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

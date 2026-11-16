@@ -6,6 +6,8 @@ name: Data release
 # Push a tag named data-vYYYY.MM.DD (or data-vYYYY.MM.DD.N for a second bundle on the same day) to release.
 # A manual run is a dry run unless you turn it off: it builds and signs, and keeps the files as a workflow artifact.
 on:
+  schedule:
+    - cron: "0 7 * * 3" # Wednesdays, 07:00 UTC, after the Monday source check and Tuesday importers
   push:
     tags: ["data-v*"]
   workflow_dispatch:
@@ -29,6 +31,12 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      issues: write
+      pull-requests: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      needed: ${{ steps.check_needed.outputs.needed }}
+      published: ${{ steps.publish.outputs.published }}
     env:
       IDENTITY_PATTERN: ^https://github\.com/velella-sh/ebb/\.github/workflows/data-release\.yml@refs/(?:tags/data-v\d{4}\.\d{2}\.\d{2}(?:\.\d+)?|heads/main)$
       OIDC_ISSUER: https://token.actions.githubusercontent.com
@@ -36,25 +44,86 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+
+      - name: Verify branch on scheduled run
+        if: github.event_name == 'schedule'
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "Cannot release from a branch other than main." >&2
+            exit 1
+          fi
+
       - uses: $/.github/actions/setup
         with:
           package-manager-cache: false
-      - run: npm run check
+
+      - name: Quality gate - tests and rule lint
+        run: |
+          npm run check
+          npm run lint:rules
+
+      - name: Quality gate - source report date-changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Read latest source report from source-freshness workflow
+          mkdir -p previous-source-report
+          gh run download -w sources.yml -n source-report --dir previous-source-report 2>/dev/null || true
+          if [ -f previous-source-report/source-report.json ]; then
+            DATE_CHANGED_COUNT=$(node -p "const r = require('./previous-source-report/source-report.json'); Array.isArray(r['date-changed']) ? r['date-changed'].length : 0" 2>/dev/null || echo "0")
+            if [ "$DATE_CHANGED_COUNT" -gt 0 ]; then
+              echo "### Release stopped" >> "$GITHUB_STEP_SUMMARY"
+              echo "The latest source freshness report contains $DATE_CHANGED_COUNT date-changed findings. Data release is gated on data quality." >> "$GITHUB_STEP_SUMMARY"
+              echo "Gate failed: $DATE_CHANGED_COUNT date-changed findings in latest source report." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Fetch previous release log and check if data changed
+        id: check_needed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PREVIOUS_TAG=$(gh release list --limit 200 --json tagName --jq '[.[].tagName | select(startswith("data-v"))] | sort | last // empty')
+          : > previous-log.jsonl
+          if [ -n "${PREVIOUS_TAG}" ]; then
+            gh release download "${PREVIOUS_TAG}" --pattern release-log.jsonl --dir previous-release 2>/dev/null \
+              && mv previous-release/release-log.jsonl previous-log.jsonl || echo "${PREVIOUS_TAG} has no release log; starting one."
+          fi
+          STATUS=$(node dist/tools/data-release-needed.js previous-log.jsonl)
+          echo "needed=${STATUS}" >> "$GITHUB_OUTPUT"
+          if [ "${STATUS}" = "unchanged" ]; then
+            echo "Data is unchanged since last release."
+            echo "### Release skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "Data is unchanged since last release; no new data release needed." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Work out the version
         id: version
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         run: |
           # The bundle is dated by the commit being released, never by the clock.
           CREATED_AT=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ)
+          DAY=$(echo "$CREATED_AT" | cut -dT -f1 | tr '-' '.')
+          REVISION=""
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             TAG="${GITHUB_REF_NAME}"
-            REVISION=1
             case "${TAG}" in
               data-v????.??.??.*) REVISION="${TAG##*.}" ;;
             esac
+          elif [ "${GITHUB_EVENT_NAME}" = "schedule" ] || [ "${{ github.event.inputs.dry_run }}" = "false" ]; then
+            # Find if a release for today already exists in the release log
+            TODAY_COUNT=$(grep -c "^.*\"version\":\"${DAY}" previous-log.jsonl 2>/dev/null || echo "0")
+            if [ "$TODAY_COUNT" -eq 0 ]; then
+              TAG="data-v${DAY}"
+              REVISION=""
+            else
+              TAG="data-v${DAY}.${TODAY_COUNT}"
+              REVISION="${TODAY_COUNT}"
+            fi
           else
             TAG="data-dry-run"
-            REVISION=1
+            REVISION=""
           fi
           {
             echo "created_at=${CREATED_AT}"
@@ -63,6 +132,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Build the bundle twice and require identical bytes
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         env:
           CREATED_AT: ${{ steps.version.outputs.created_at }}
           REVISION: ${{ steps.version.outputs.revision }}
@@ -71,7 +141,7 @@ jobs:
           for run in a b; do
             node dist/tools/build-data-bundle.js \
               --created-at "$CREATED_AT" \
-              --revision "$REVISION" \
+              ${REVISION:+--revision "$REVISION"} \
               --out "out/${run}.json"
           done
           cmp out/a.json out/b.json
@@ -84,29 +154,34 @@ jobs:
           rm out/b.json
           echo "BUNDLE=out/ebb-data-${VERSION}.json" >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Build per-ecosystem bundles and compress with gzip
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         env:
           CREATED_AT: ${{ steps.version.outputs.created_at }}
           REVISION: ${{ steps.version.outputs.revision }}
         run: |
           gzip -k -9 "${BUNDLE}"
-          # Build per-ecosystem v2 bundles
-          for eco in npm python pypi cargo golang maven nuget rubygems; do
+          # Build per-ecosystem v2 bundles for package-manager ecosystems
+          for eco in npm python rust go java dotnet ruby; do
             node dist/tools/build-data-bundle.js \
               --created-at "$CREATED_AT" \
-              --revision "$REVISION" \
+              ${REVISION:+--revision "$REVISION"} \
               --ecosystem "$eco" \
               --gzip \
               --out "out/ebb-data-${VERSION}-${eco}.json"
           done
 
       - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
 
       - name: Sign the bundle (keyless)
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         run: cosign sign-blob --yes --bundle "${BUNDLE}.sigstore.json" "${BUNDLE}"
 
       - name: Verify what was just signed
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         run: |
           cosign verify-blob \
             --bundle "${BUNDLE}.sigstore.json" \
@@ -115,23 +190,19 @@ jobs:
             "${BUNDLE}"
 
       - name: Extend the release log
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           # The log is hash-chained: each entry holds the hash of the one before it. Start from the newest earlier
           # data release's log (if it has one), refuse a log that does not verify, add this bundle, and require the
           # result to extend what was published before. Docs: docs/DATA.md, "Release log".
-          PREVIOUS_TAG=$(gh release list --limit 200 --json tagName --jq '[.[].tagName | select(startswith("data-v"))] | map(select(. != "'"${GITHUB_REF_NAME}"'")) | sort | last // empty')
-          : > previous-log.jsonl
-          if [ -n "${PREVIOUS_TAG}" ]; then
-            gh release download "${PREVIOUS_TAG}" --pattern release-log.jsonl --dir previous-release 2>/dev/null \
-              && mv previous-release/release-log.jsonl previous-log.jsonl || echo "${PREVIOUS_TAG} has no release log; starting one."
-          fi
           node dist/tools/data-release-log.js check previous-log.jsonl
           node dist/tools/data-release-log.js append previous-log.jsonl --bundle "${BUNDLE}" --out out/release-log.jsonl
           node dist/tools/data-release-log.js check out/release-log.jsonl --previous previous-log.jsonl
 
       - name: Sign the release log (keyless, recorded in the public transparency log)
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         run: |
           cosign sign-blob --yes --bundle out/release-log.jsonl.sigstore.json out/release-log.jsonl
           cosign verify-blob \
@@ -141,8 +212,10 @@ jobs:
             out/release-log.jsonl
 
       - name: Generate release notes and diff asset
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         run: |
           PREVIOUS_BUNDLE=""
+          PREVIOUS_TAG=$(gh release list --limit 200 --json tagName --jq '[.[].tagName | select(startswith("data-v"))] | map(select(. != "'"${GITHUB_REF_NAME}"'")) | sort | last // empty')
           if [ -n "${PREVIOUS_TAG}" ]; then
             gh release download "${PREVIOUS_TAG}" --pattern "ebb-data-*.json" --dir previous-data 2>/dev/null \
               && PREVIOUS_BUNDLE=$(find previous-data -name "ebb-data-*.json" | grep -v "sigstore" | head -n 1) || true
@@ -156,8 +229,10 @@ jobs:
           cat out/release-notes.md
 
       - name: Generate data changelog and Atom feed
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         run: |
           PREVIOUS_BUNDLE=""
+          PREVIOUS_TAG=$(gh release list --limit 200 --json tagName --jq '[.[].tagName | select(startswith("data-v"))] | map(select(. != "'"${GITHUB_REF_NAME}"'")) | sort | last // empty')
           if [ -n "${PREVIOUS_TAG}" ]; then
             gh release download "${PREVIOUS_TAG}" --pattern "ebb-data-*.json" --dir previous-data 2>/dev/null \
               && PREVIOUS_BUNDLE=$(find previous-data -name "ebb-data-*.json" | grep -v "sigstore" | head -n 1) || true
@@ -171,24 +246,99 @@ jobs:
             --out-feed out/data-changelog.atom
 
       - name: Checksums
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         run: (cd out && sha256sum ebb-data-*.json ebb-data-*.sigstore.json release-log.jsonl release-log.jsonl.sigstore.json > SHA256SUMS)
 
       - name: Keep the files as an artifact
+        if: steps.check_needed.outputs.needed == 'changed' || github.event_name != 'schedule'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: data-bundle-${{ env.VERSION }}
           path: out/
           retention-days: 30
 
+      - name: Create tag if scheduled
+        if: github.event_name == 'schedule' && steps.check_needed.outputs.needed == 'changed'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG}"
+          git push origin "${TAG}"
+
       - name: Publish the release
-        if: github.ref_type == 'tag'
+        id: publish
+        if: github.ref_type == 'tag' || (github.event_name == 'schedule' && steps.check_needed.outputs.needed == 'changed')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          RELEASE_TAG="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_REF_TYPE}" != "tag" ]; then
+            RELEASE_TAG="${TAG}"
+          fi
           # A data bundle is not a release of the code, so it must never become the repository's "Latest"
           # release: that label is what the GitHub Marketplace listing and visitors read as the Action's version.
-          gh release create "${GITHUB_REF_NAME}" out/* \
+          gh release create "${RELEASE_TAG}" out/* \
             --title "Lifecycle data ${VERSION}" \
             --notes-file out/release-notes.md \
             --verify-tag \
             --latest=false
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request for package patch release
+        if: github.ref_type == 'tag' || (github.event_name == 'schedule' && steps.check_needed.outputs.needed == 'changed')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="chore/data-${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          npm version patch --no-git-tag-version
+          git add package.json package-lock.json
+          git commit -m "chore(release): bump package version for data release ${VERSION}"
+          git push --force origin "$branch"
+          title="chore: patch release with data ${VERSION}"
+          if gh pr view "$branch" --json number >/dev/null 2>&1; then
+            gh pr edit "$branch" --title "$title" --body-file out/release-notes.md
+          else
+            gh pr create --head "$branch" --base main --title "$title" --body-file out/release-notes.md
+          fi
+
+      - name: Manage failure issue on scheduled runs
+        if: always() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          MARKER="<!-- data-release-failure -->"
+          existing="$(gh issue list --state open --limit 50 --json number,body --jq ".[] | select(.body | contains(\"$MARKER\")) | .number" | head -n 1)"
+          if [ "$JOB_STATUS" != "success" ]; then
+            title="Data release failed for run ${{ github.run_id }}"
+            body="The scheduled data release workflow failed.\n\n- Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\n- Status: $JOB_STATUS\n\n$MARKER"
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --body "Scheduled run failed again: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            else
+              gh issue create --title "$title" --body "$body" --label "area: release,priority: P0"
+            fi
+          else
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" --comment "Scheduled data release succeeded: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            fi
+          fi
+
+  verify:
+    name: Verify published release from clean machine
+    needs: release
+    if: github.ref_type == 'tag' || (github.event_name == 'schedule' && needs.release.outputs.needed == 'changed')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 22
+      - name: Verify release with ebb update and ebb verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npm install -g @velella/ebb
+          ebb update
+          ebb verify
