@@ -5,7 +5,7 @@ layout: home
 hero:
   eyebrow: Open software lifecycle data
   title: Nothing ships forever. Everything ebbs.
-  lead: The open almanac of software end-of-life: what is deprecated, unsupported, or removed, and what to move to.
+  lead: "The open almanac of software end-of-life: what is deprecated, unsupported, or removed, and what to move to."
 actions:
   - label: Quickstart (5 min)
     url: quickstart/

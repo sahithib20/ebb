@@ -2,6 +2,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, extname, join, resolve } from "node:path";
+import { parse as parseYaml } from "yaml";
 
 /**
  * Escape text for one Markdown table cell.
@@ -256,6 +257,24 @@ export function checkInternalLinks(files: string[], repoRoot: string): BrokenLin
   for (const file of files) {
     if (!existsSync(file)) continue;
     const content = readFileSync(file, "utf8");
+
+    // Validate YAML frontmatter if present
+    if (content.startsWith("---")) {
+      const parts = content.split("---");
+      if (parts.length >= 3 && parts[1]) {
+        try {
+          parseYaml(parts[1]);
+        } catch (err: unknown) {
+          broken.push({
+            file,
+            line: 1,
+            url: "frontmatter",
+            reason: `Invalid YAML frontmatter: ${err instanceof Error ? err.message : String(err)}`,
+          });
+        }
+      }
+    }
+
     const links = extractMarkdownLinks(content, file);
 
     for (const link of links) {
