@@ -17,6 +17,7 @@ import {
   type ResultMatch,
   type ResultStatus,
 } from "./result.js";
+import { confidenceOf, type RuleConfidence } from "./confidence.js";
 
 const eventByLifecycle: Record<LifecycleEvent, ResultEvent> = {
   deprecated: "deprecated",
@@ -31,6 +32,7 @@ interface ActiveRuleMeta {
   reviewedAt: string;
   order: number;
   datePrecision?: "day" | "month";
+  confidence?: RuleConfidence;
 }
 
 let ruleMetaById: Map<string, ActiveRuleMeta> | undefined;
@@ -54,7 +56,7 @@ function activeRuleMeta(): Map<string, ActiveRuleMeta> {
     const rules = validateRegistryV2(data.readSync(`registry/${ecosystem}.json`)).rules;
     for (const rule of rules) {
       const month = endOfLifeMonthFromRule(rule as unknown as { [key: string]: unknown });
-      const meta: ActiveRuleMeta = { reviewedAt: rule.provenance.reviewedAt, order };
+      const meta: ActiveRuleMeta = { reviewedAt: rule.provenance.reviewedAt, order, confidence: confidenceOf(rule) };
       if (month !== undefined) meta.datePrecision = "month";
       map.set(rule.id, meta);
       order += 1;
@@ -76,6 +78,7 @@ function toResultMatch(finding: LookupFinding, meta: ActiveRuleMeta, asOf: strin
     sources: finding.sources,
     reviewedAt: meta.reviewedAt,
   };
+  if (meta.confidence !== undefined) match.confidence = meta.confidence;
   if (meta.datePrecision !== undefined) match.datePrecision = meta.datePrecision;
   return match;
 }

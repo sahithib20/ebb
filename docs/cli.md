@@ -365,6 +365,7 @@ ebb mcp --self-test
 - `--no-color` / `NO_COLOR`: Disables ANSI colors, conforming to the [NO_COLOR specification](https://no-color.org/).
 - `--color`: Forces colored output.
 - `--no-hint`: Deprecated (no-op).
+- `--min-confidence <level>`: Minimum confidence level required to report a finding (`tentative`, `likely`, or `confirmed`). Weaker findings are hidden. Defaults to `tentative` (all findings shown).
 
 > [!TIP]
 > In CI workflows, use `--format markdown` to generate clean PR comment summaries, or `--json` to pipe into downstream automation.

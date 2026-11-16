@@ -156,6 +156,12 @@ function hintFor(message: string): string {
     [/^provenance\./i, 'Record who reviewed the rule and when. See docs/RULES.md, "Provenance".'],
     [/^migration is not valid/, "Check migration constraints, steps, and verification commands against docs/RULES.md."],
     [/^usage must be/, "Check each usage matcher: kind, language, and the fields that kind needs."],
+    [/^confidence must be one of/, 'Set confidence to "confirmed", "likely", or "tentative".'],
+    [/^confidenceNote is required/, "Explain why the rule has tentative confidence in confidenceNote."],
+    [
+      /^confirmed confidence requires/,
+      "Record the date the rule was verified in provenance.reviewedAt before setting confirmed.",
+    ],
   ];
   for (const [pattern, hint] of hints) if (pattern.test(message)) return hint;
   return "See the field reference in docs/RULES.md.";

@@ -121,7 +121,8 @@ Every valid entry in `results` has the schema documented in [Result model](resul
           "archivedAt": "2026-10-16"
         }
       ],
-      "reviewedAt": "2026-10-14"
+      "reviewedAt": "2026-10-14",
+      "confidence": "confirmed"
     },
     {
       "ruleId": "npm.package.node-sass.deprecated",
@@ -145,7 +146,8 @@ Every valid entry in `results` has the schema documented in [Result model](resul
           "archivedAt": "2026-10-30"
         }
       ],
-      "reviewedAt": "2026-10-30"
+      "reviewedAt": "2026-10-30",
+      "confidence": "likely"
     }
   ],
   "version": "9.0.0"

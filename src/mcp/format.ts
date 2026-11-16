@@ -2,10 +2,15 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { CheckAllEntry, CheckAllResult, CheckMatch, CheckResult } from "../index.js";
 import { sourcesOf } from "../index.js";
+import { confidenceOf, type RuleConfidence } from "../confidence.js";
+import type { RegistryV2Rule } from "../registry.js";
 import { getOffingHint } from "./hint.js";
 
 export interface FormattedMatch extends CheckMatch {
   reviewer: string | null;
+  confidence: RuleConfidence;
+  confidenceNote?: string | null;
+  verificationAdvice?: string;
 }
 
 export interface FormattedCheckResult extends Omit<CheckResult, "matches"> {
@@ -15,16 +20,24 @@ export interface FormattedCheckResult extends Omit<CheckResult, "matches"> {
     reviewers: string[];
   };
   hint?: string;
+  verificationAdvice?: string;
 }
 
-let provenanceIndex: Map<string, { reviewer: string | null; reviewedAt: string | null }> | undefined;
+interface IndexedRuleMeta {
+  reviewer: string | null;
+  reviewedAt: string | null;
+  confidence?: RuleConfidence | undefined;
+  confidenceNote?: string | null | undefined;
+}
 
-function buildProvenanceIndex(): Map<string, { reviewer: string | null; reviewedAt: string | null }> {
+let provenanceIndex: Map<string, IndexedRuleMeta> | undefined;
+
+function buildProvenanceIndex(): Map<string, IndexedRuleMeta> {
   if (provenanceIndex !== undefined) {
     return provenanceIndex;
   }
 
-  const index = new Map<string, { reviewer: string | null; reviewedAt: string | null }>();
+  const index = new Map<string, IndexedRuleMeta>();
   const candidates = [
     resolve(process.cwd(), "registry"),
     resolve(process.cwd(), "../../registry"),
@@ -55,6 +68,8 @@ function buildProvenanceIndex(): Map<string, { reviewer: string | null; reviewed
             index.set(ruleId, {
               reviewer: prov?.reviewer ?? null,
               reviewedAt: prov?.reviewedAt ?? null,
+              confidence: typeof rule.confidence === "string" ? (rule.confidence as RuleConfidence) : undefined,
+              confidenceNote: typeof rule.confidenceNote === "string" ? rule.confidenceNote : null,
             });
           }
         }
@@ -72,10 +87,11 @@ export function formatCheckResult(result: CheckResult): FormattedCheckResult {
   const index = buildProvenanceIndex();
   const sourceUrls = new Set<string>();
   const reviewerNames = new Set<string>();
+  let hasTentative = false;
 
   const formattedMatches: FormattedMatch[] = result.matches.map((match) => {
-    const prov = index.get(match.ruleId);
-    const reviewer = prov?.reviewer ?? null;
+    const meta = index.get(match.ruleId);
+    const reviewer = meta?.reviewer ?? null;
 
     if (reviewer) {
       reviewerNames.add(reviewer);
@@ -97,11 +113,29 @@ export function formatCheckResult(result: CheckResult): FormattedCheckResult {
       }
     }
 
-    return {
+    const confidence: RuleConfidence =
+      match.confidence ?? meta?.confidence ?? confidenceOf(match as unknown as RegistryV2Rule);
+    const confidenceNote = meta?.confidenceNote ?? null;
+    const isTentative = confidence === "tentative";
+    if (isTentative) {
+      hasTentative = true;
+    }
+
+    const formattedMatch: FormattedMatch = {
       ...match,
       sources: matchSources,
       reviewer,
+      confidence,
+      ...(confidenceNote ? { confidenceNote } : {}),
+      ...(isTentative
+        ? {
+            verificationAdvice:
+              "This finding has tentative confidence. Verify it against primary sources before acting on it.",
+          }
+        : {}),
     };
+
+    return formattedMatch;
   });
 
   const hint = getOffingHint(result.status);
@@ -114,6 +148,12 @@ export function formatCheckResult(result: CheckResult): FormattedCheckResult {
       reviewers: Array.from(reviewerNames),
     },
     ...(hint ? { hint } : {}),
+    ...(hasTentative
+      ? {
+          verificationAdvice:
+            "One or more findings have tentative confidence: please verify them against primary documentation before taking action.",
+        }
+      : {}),
   };
 }
 

@@ -4,7 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { generateDataBadges, STATUS_COUNTS_END, STATUS_COUNTS_START } from "../tools/badges.js";
+import {
+  CONFIDENCE_COUNTS_END,
+  CONFIDENCE_COUNTS_START,
+  generateDataBadges,
+  STATUS_COUNTS_END,
+  STATUS_COUNTS_START,
+  updateConfidenceDoc,
+} from "../tools/badges.js";
 
 test("generateDataBadges writes rules, stale-rules, and sources-verified endpoint JSON", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ebb-badges-"));
@@ -50,6 +57,52 @@ test("generateDataBadges updates status counts in freshness doc", async () => {
     assert.ok(updated.includes("| `ok` |"));
     assert.ok(updated.includes("| `stale` |"));
     assert.ok(!updated.includes("old"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("generateDataBadges counts rules by confidence and updates confidence doc", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ebb-badges-conf-"));
+  try {
+    const docPath = join(dir, "confidence.md");
+    const initialContent = `# Confidence\n\n${CONFIDENCE_COUNTS_START}\nplaceholder\n${CONFIDENCE_COUNTS_END}\n`;
+    await writeFile(docPath, initialContent, "utf8");
+
+    const result = await generateDataBadges(
+      "registry",
+      dir,
+      "2026-11-14",
+      join(dir, "non-existent-freshness.md"),
+      undefined,
+      docPath,
+    );
+
+    assert.ok(result.confidenceCounts.confirmed > 0);
+    assert.ok(result.confidenceCounts.likely > 0);
+    assert.ok(result.confidenceCounts.tentative > 0);
+    assert.equal(
+      result.confidenceCounts.confirmed + result.confidenceCounts.likely + result.confidenceCounts.tentative,
+      result.totalRules,
+    );
+
+    const updated = await readFile(docPath, "utf8");
+    assert.ok(updated.includes("| `confirmed` |"));
+    assert.ok(updated.includes("| `likely` |"));
+    assert.ok(updated.includes("| `tentative` |"));
+    assert.ok(!updated.includes("placeholder"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("updateConfidenceDoc returns false when markers are missing", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ebb-badges-missing-"));
+  try {
+    const docPath = join(dir, "confidence.md");
+    await writeFile(docPath, "No markers here", "utf8");
+    const ok = await updateConfidenceDoc(docPath, { confirmed: 1, likely: 2, tentative: 0 });
+    assert.equal(ok, false);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

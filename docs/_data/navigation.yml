@@ -53,6 +53,8 @@ main:
         url: /rules-for/
       - title: Evidence sources
         url: /sources/
+      - title: Confidence levels
+        url: /confidence/
       - title: Stale rule review
         url: /stale/
       - title: Batch checking

@@ -254,6 +254,8 @@ export interface RecentResult {
 // @public (undocumented)
 export interface RegistryV2Rule {
     [extension: `x-${string}`]: Record<string, unknown>;
+    confidence?: RuleConfidence;
+    confidenceNote?: string;
     // (undocumented)
     deadline?: string;
     // (undocumented)
@@ -330,6 +332,7 @@ export type ResultEvent = Exclude<ResultStatus, "ok">;
 
 // @public
 export interface ResultMatch {
+    confidence?: RuleConfidence;
     date: string | null;
     datePrecision?: "day" | "month";
     daysLeft: number | null;
@@ -347,6 +350,9 @@ export type ResultStatus = (typeof resultStatuses)[number];
 
 // @public
 export type Rule = RegistryV2Rule;
+
+// @public
+export type RuleConfidence = "confirmed" | "likely" | "tentative";
 
 // @public
 export type RuleEvent = LifecycleEvent;

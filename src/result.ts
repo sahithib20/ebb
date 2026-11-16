@@ -6,6 +6,7 @@
 import type { EvidenceSource } from "./domain.js";
 import { EbbError } from "./errors.js";
 import { isIsoDate } from "./registry.js";
+import type { RuleConfidence } from "./confidence.js";
 
 /** Schema version for the v1 result model (#110). Never bump without a decision record. */
 export const RESULT_SCHEMA_VERSION = 1 as const;
@@ -65,6 +66,11 @@ export interface ResultMatch {
    * @stable
    */
   reviewedAt: string;
+  /**
+   * Confidence level of the rule match ("confirmed" | "likely" | "tentative").
+   * @stable
+   */
+  confidence?: RuleConfidence;
 }
 
 /** Result of judging one component version against the active lifecycle rules. */

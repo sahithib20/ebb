@@ -156,3 +156,38 @@ test("an unknown field is reported with a field hint", async () => {
     result.issues.some((issue) => /unknown field "typo"/.test(issue.message) && /x-<ecosystem>/.test(issue.hint)),
   );
 });
+
+test("tentative confidence without confidenceNote is a lint error with a hint", async () => {
+  const rule = validRule();
+  rule.confidence = "tentative";
+  const text = registry([rule]);
+  const directory = await registryDirectory({ "npm.json": text });
+
+  const result = await lintRuleFiles([join(directory, "npm.json")]);
+  assert.equal(result.issues.length, 1);
+  assert.match(result.issues[0]!.message, /confidenceNote is required when confidence is tentative/);
+  assert.match(result.issues[0]!.hint, /confidenceNote/);
+});
+
+test("confirmed confidence without reviewed date fails lint with a hint", async () => {
+  const rule = validRule();
+  rule.confidence = "confirmed";
+  delete (rule.provenance as { reviewedAt?: string }).reviewedAt;
+  const text = registry([rule]);
+  const directory = await registryDirectory({ "npm.json": text });
+
+  const result = await lintRuleFiles([join(directory, "npm.json")]);
+  assert.ok(result.issues.some((issue) => /confirmed confidence requires a valid reviewedAt date/.test(issue.message)));
+  assert.ok(result.issues.some((issue) => /reviewedAt/.test(issue.hint)));
+});
+
+test("tentative confidence with confidenceNote passes lint", async () => {
+  const rule = validRule();
+  rule.confidence = "tentative";
+  rule.confidenceNote = "Upstream documentation does not state exact dates; inferred from cadence.";
+  const text = registry([rule]);
+  const directory = await registryDirectory({ "npm.json": text });
+
+  const result = await lintRuleFiles([join(directory, "npm.json")]);
+  assert.deepEqual(result.issues, []);
+});

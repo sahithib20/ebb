@@ -209,3 +209,30 @@ test("schema and validator agree on symbol matchers", async () => {
     assert.equal(registryV2Issues(registry).length === 0, valid, `validator: ${name}`);
   }
 });
+
+test("schema validates confidence and confidenceNote", async () => {
+  const { example, validate } = await exampleAndValidator();
+
+  for (const level of ["confirmed", "likely", "tentative"]) {
+    const reg = structuredClone(example);
+    reg.rules[0].confidence = level;
+    reg.rules[0].confidenceNote = "Reason for confidence assessment";
+    assert.equal(validate(reg), true, `valid confidence level: ${level}`);
+  }
+
+  // Optionality
+  const regOptional = structuredClone(example);
+  delete regOptional.rules[0].confidence;
+  delete regOptional.rules[0].confidenceNote;
+  assert.equal(validate(regOptional), true, "confidence is optional");
+
+  // Invalid confidence value
+  const regInvalid = structuredClone(example);
+  regInvalid.rules[0].confidence = "unknown-level";
+  assert.equal(validate(regInvalid), false, "rejects unknown confidence value");
+
+  // Empty confidenceNote
+  const regEmptyNote = structuredClone(example);
+  regEmptyNote.rules[0].confidenceNote = "";
+  assert.equal(validate(regEmptyNote), false, "rejects empty confidenceNote");
+});

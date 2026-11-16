@@ -57,17 +57,18 @@ export function formatCheckMarkdown(
     return lines.join("\n");
   }
 
-  lines.push("| Status | Event | Days Left | Replacement | Rule |");
-  lines.push("| :--- | :--- | :--- | :--- | :--- |");
+  lines.push("| Status | Event | Confidence | Days Left | Replacement | Rule |");
+  lines.push("| :--- | :--- | :--- | :--- | :--- | :--- |");
 
   for (const match of result.matches) {
     const statusStr = statusEmoji(result.status);
     const dateStr = match.date ? ` (${match.date})` : "";
     const eventStr = `${match.event}${dateStr}`;
+    const confStr = match.confidence ?? "-";
     const daysStr = match.daysLeft !== null && match.daysLeft !== undefined ? `${match.daysLeft} days` : "-";
     const repStr = match.replacement ? `\`${match.replacement}\`` : "-";
     const ruleStr = `\`${match.ruleId}\``;
-    lines.push(`| ${statusStr} | ${eventStr} | ${daysStr} | ${repStr} | ${ruleStr} |`);
+    lines.push(`| ${statusStr} | ${eventStr} | ${confStr} | ${daysStr} | ${repStr} | ${ruleStr} |`);
   }
 
   // Sources
@@ -133,6 +134,7 @@ export function formatCheckAllMarkdown(
     label: string;
     status: string;
     event: string;
+    confidence: string;
     daysLeft: string;
     replacement: string;
     ruleId: string;
@@ -149,6 +151,7 @@ export function formatCheckAllMarkdown(
         label,
         status: "error",
         event: "error",
+        confidence: "-",
         daysLeft: "-",
         replacement: "-",
         ruleId: "-",
@@ -162,6 +165,7 @@ export function formatCheckAllMarkdown(
           label,
           status: checkRes.status,
           event: `${m.event}${dateStr}`,
+          confidence: m.confidence ?? "-",
           daysLeft: m.daysLeft !== null && m.daysLeft !== undefined ? `${m.daysLeft} days` : "-",
           replacement: m.replacement ? `\`${m.replacement}\`` : "-",
           ruleId: `\`${m.ruleId}\``,
@@ -173,11 +177,11 @@ export function formatCheckAllMarkdown(
 
   if (findings.length > 0) {
     lines.push("\n#### Findings\n");
-    lines.push("| Component | Status | Event | Days Left | Replacement | Rule | Source |");
-    lines.push("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |");
+    lines.push("| Component | Status | Event | Confidence | Days Left | Replacement | Rule | Source |");
+    lines.push("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |");
     for (const f of findings) {
       lines.push(
-        `| \`${f.label}\` | ${statusEmoji(f.status)} | ${f.event} | ${f.daysLeft} | ${f.replacement} | ${f.ruleId} | ${f.source} |`,
+        `| \`${f.label}\` | ${statusEmoji(f.status)} | ${f.event} | ${f.confidence} | ${f.daysLeft} | ${f.replacement} | ${f.ruleId} | ${f.source} |`,
       );
     }
   }
