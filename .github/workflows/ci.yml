@@ -79,6 +79,10 @@ jobs:
           # loudly if dist/src/mcp is missing from package.json "files".
           npm run build --silent
           node --test dist/tests/mcp/packed.test.js
+      - name: Generate site data and validate against schema
+        run: npm run site-data -- --validate
+      - name: Check package and site data sizes
+        run: npm run size
 
   offline:
     name: offline test suite

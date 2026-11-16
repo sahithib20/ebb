@@ -1,9 +1,10 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
+import { generateSiteData } from "./site-data/generate.js";
 import { generateStaticApi } from "./static-api/generate.js";
 
 interface PackFile {
@@ -31,13 +32,15 @@ export const STATIC_API_BUDGETS = {
   allGzip: 250 * 1024, // 250 KB
 };
 
+export const SITE_DATA_BUDGET = 8 * 1024 * 1024; // 8 MB
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const kb = (bytes / 1024).toFixed(1);
   return `${kb} KB (${bytes.toLocaleString()} bytes)`;
 }
 
-export async function measureSize(options?: { apiDir?: string }): Promise<{
+export async function measureSize(options?: { apiDir?: string; siteDataDir?: string }): Promise<{
   packedSize: number;
   unpackedSize: number;
   budget: number;
@@ -47,6 +50,11 @@ export async function measureSize(options?: { apiDir?: string }): Promise<{
     indexGzip: number;
     searchGzip: number;
     allGzip: number;
+  };
+  siteData: {
+    totalBytes: number;
+    budget: number;
+    files: number;
   };
 }> {
   const pkgJson = JSON.parse(readFileSync("package.json", "utf-8"));
@@ -127,6 +135,44 @@ export async function measureSize(options?: { apiDir?: string }): Promise<{
   console.log(`  search-index.json: ${formatBytes(searchGzip)} (budget: ${formatBytes(apiBudgets.searchGzip)})`);
   console.log(`  all.json:          ${formatBytes(allGzip)} (budget: ${formatBytes(apiBudgets.allGzip)})`);
 
+  // Measure Site Data output folder
+  let siteDataDir = options?.siteDataDir ?? resolve("dist/site-data");
+  let siteDataTempCreated = false;
+  if (!existsSync(join(siteDataDir, "index.json"))) {
+    siteDataDir = mkdtempSync(join(tmpdir(), "ebb-size-site-data-"));
+    siteDataTempCreated = true;
+    await generateSiteData({ outDir: siteDataDir });
+  }
+
+  let siteDataTotalBytes = 0;
+  let siteDataTotalFiles = 0;
+  try {
+    function computeDirSize(dirPath: string): void {
+      const entries = readdirSync(dirPath, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+          computeDirSize(full);
+        } else if (entry.isFile()) {
+          siteDataTotalBytes += statSync(full).size;
+          siteDataTotalFiles++;
+        }
+      }
+    }
+    computeDirSize(siteDataDir);
+  } finally {
+    if (siteDataTempCreated) {
+      rmSync(siteDataDir, { recursive: true, force: true });
+    }
+  }
+
+  const siteDataBudget = pkgJson.ebb?.siteDataBudget ?? SITE_DATA_BUDGET;
+
+  console.log("\nSite Data output folder:");
+  console.log(
+    `  Total size:        ${formatBytes(siteDataTotalBytes)} (${siteDataTotalFiles} files) (budget: ${formatBytes(siteDataBudget)})`,
+  );
+
   let failed = false;
   if (pack.size > budget) {
     console.error(`\n❌ Error: Packed size (${pack.size} bytes) exceeds budget of ${budget} bytes!`);
@@ -148,6 +194,12 @@ export async function measureSize(options?: { apiDir?: string }): Promise<{
     console.error(`\n❌ Error: all.json gzip size (${allGzip} bytes) exceeds budget of ${apiBudgets.allGzip} bytes!`);
     failed = true;
   }
+  if (siteDataTotalBytes > siteDataBudget) {
+    console.error(
+      `\n❌ Error: Site data folder size (${siteDataTotalBytes} bytes) exceeds budget of ${siteDataBudget} bytes!`,
+    );
+    failed = true;
+  }
 
   if (failed) {
     process.exit(1);
@@ -164,6 +216,11 @@ export async function measureSize(options?: { apiDir?: string }): Promise<{
       indexGzip,
       searchGzip,
       allGzip,
+    },
+    siteData: {
+      totalBytes: siteDataTotalBytes,
+      budget: siteDataBudget,
+      files: siteDataTotalFiles,
     },
   };
 }
