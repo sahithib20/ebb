@@ -1,4 +1,4 @@
-import { replacementFor } from "../../index.js";
+import { replacementFor, replacementsFor } from "../../index.js";
 import type { McpTool, McpToolResult } from "../types.js";
 import { extractPurlAndVersion } from "./check.js";
 
@@ -28,6 +28,20 @@ export const replacementForTool: McpTool = {
         purl: { type: "string" },
         version: { type: "string" },
         replacement: { type: ["string", "null"] },
+        replacements: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              purl: { type: "string" },
+              vers: { type: "string" },
+              name: { type: "string" },
+              kind: { type: "string", enum: ["successor", "alternative", "upgrade"] },
+              note: { type: "string" },
+            },
+            required: ["purl", "name", "kind"],
+          },
+        },
       },
       required: ["purl", "version"],
     },
@@ -63,10 +77,12 @@ export const replacementForTool: McpTool = {
 
     try {
       const replacement = replacementFor(purl, version);
+      const replacements = replacementsFor(purl, version);
       const payload = {
         purl,
         version,
         replacement,
+        replacements,
       };
       return {
         content: [

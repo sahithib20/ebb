@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-15T10:23:47.634Z",
+  "timestamp": "2026-11-16T08:01:15.039Z",
   "totalTasks": 100,
   "runs": [
     {
@@ -905,7 +905,7 @@
           "taskId": "task-100",
           "purl": "pkg:generic/php",
           "version": "8.3.0",
-          "status": "unsupported",
+          "status": "scheduled",
           "isDeprecatedOrEol": true,
           "replacement": "PHP 8.5 or later",
           "ruleId": "php.runtime.end-of-active-support-8.3"
@@ -1815,7 +1815,7 @@
           "taskId": "task-100",
           "purl": "pkg:generic/php",
           "version": "8.3.0",
-          "status": "unsupported",
+          "status": "scheduled",
           "isDeprecatedOrEol": true,
           "replacement": "PHP 8.5 or later",
           "ruleId": "php.runtime.end-of-active-support-8.3"
@@ -2725,7 +2725,7 @@
           "taskId": "task-100",
           "purl": "pkg:generic/php",
           "version": "8.3.0",
-          "status": "unsupported",
+          "status": "scheduled",
           "isDeprecatedOrEol": true,
           "replacement": "PHP 8.5 or later",
           "ruleId": "php.runtime.end-of-active-support-8.3"
@@ -3635,7 +3635,7 @@
           "taskId": "task-100",
           "purl": "pkg:generic/php",
           "version": "8.3.0",
-          "status": "unsupported",
+          "status": "scheduled",
           "isDeprecatedOrEol": true,
           "replacement": "PHP 8.5 or later",
           "ruleId": "php.runtime.end-of-active-support-8.3"
@@ -4545,7 +4545,7 @@
           "taskId": "task-100",
           "purl": "pkg:generic/php",
           "version": "8.3.0",
-          "status": "unsupported",
+          "status": "scheduled",
           "isDeprecatedOrEol": true,
           "replacement": "PHP 8.5 or later",
           "ruleId": "php.runtime.end-of-active-support-8.3"

@@ -75,7 +75,15 @@
       "x-python": {
         "kind": "runtime",
         "maximumVersion": "3.9"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/python",
+          "vers": "vers:pypi/>=3.12|<3.13",
+          "name": "Python 3.12",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.nose.maintenance-only",
@@ -169,7 +177,19 @@
       "x-python": {
         "kind": "package",
         "package": "nose"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/pytest",
+          "name": "pytest",
+          "kind": "alternative"
+        },
+        {
+          "purl": "pkg:pypi/nose2",
+          "name": "nose2",
+          "kind": "alternative"
+        }
+      ]
     },
     {
       "id": "python.package.django-nose.maintenance-only",
@@ -262,7 +282,14 @@
       "x-python": {
         "kind": "package",
         "package": "django-nose"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/pytest-django",
+          "name": "pytest-django",
+          "kind": "alternative"
+        }
+      ]
     },
     {
       "id": "python.package.pycrypto.obsolete",
@@ -345,7 +372,19 @@
       "x-python": {
         "kind": "package",
         "package": "pycrypto"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/pycryptodome",
+          "name": "pycryptodome",
+          "kind": "alternative"
+        },
+        {
+          "purl": "pkg:pypi/cryptography",
+          "name": "cryptography",
+          "kind": "alternative"
+        }
+      ]
     },
     {
       "id": "python.package.sklearn.deprecated",
@@ -414,7 +453,14 @@
       "x-python": {
         "kind": "package",
         "package": "sklearn"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/scikit-learn",
+          "name": "scikit-learn",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.distribute.deprecated",
@@ -476,7 +522,14 @@
       "x-python": {
         "kind": "package",
         "package": "distribute"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/setuptools",
+          "name": "setuptools",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.pep8.deprecated",
@@ -541,7 +594,14 @@
       "x-python": {
         "kind": "package",
         "package": "pep8"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/pycodestyle",
+          "name": "pycodestyle",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.pyinj.archived",
@@ -620,7 +680,14 @@
       "x-python": {
         "kind": "package",
         "package": "pyinj"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/injx",
+          "name": "injx",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.pytest-runner.deprecated",
@@ -743,7 +810,14 @@
       "x-python": {
         "kind": "package",
         "package": "ipaddr"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/ipaddress",
+          "name": "ipaddress",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.django-celery.deprecated",
@@ -873,7 +947,14 @@
       "x-python": {
         "kind": "package",
         "package": "datacommons"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/datacommons-client",
+          "name": "datacommons-client",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.vsdeband.deprecated",
@@ -938,7 +1019,14 @@
       "x-python": {
         "kind": "package",
         "package": "vsdeband"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/vsjetpack",
+          "name": "vsjetpack",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.multimodal-timesfm.deprecated",
@@ -1003,7 +1091,14 @@
       "x-python": {
         "kind": "package",
         "package": "multimodal-timesfm"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/tsfmx",
+          "name": "tsfmx",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.saroku.deprecated",
@@ -1062,7 +1157,14 @@
       "x-python": {
         "kind": "package",
         "package": "saroku"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/trikesh",
+          "name": "trikesh",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.seofleet-cli.deprecated",
@@ -1114,7 +1216,14 @@
       "x-python": {
         "kind": "package",
         "package": "seofleet-cli"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/llmscout-cli",
+          "name": "llmscout-cli",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.superlinked-server.deprecated",
@@ -1283,7 +1392,14 @@
       "x-python": {
         "kind": "package",
         "package": "imagej"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/pyimagej",
+          "name": "pyimagej",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.poetry-version-plugin.deprecated",
@@ -1394,7 +1510,14 @@
       "x-python": {
         "kind": "package",
         "package": "api-shield"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/waygate",
+          "name": "waygate",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.asyncio-requests.deprecated",
@@ -1453,7 +1576,14 @@
       "x-python": {
         "kind": "package",
         "package": "asyncio-requests"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/asyncio-gateway",
+          "name": "asyncio-gateway",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.opennms-api-wrapper.deprecated",
@@ -1512,7 +1642,14 @@
       "x-python": {
         "kind": "package",
         "package": "opennms-api-wrapper"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/python-opennms",
+          "name": "python-opennms",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.apisec-code-bolt.deprecated",
@@ -1564,7 +1701,14 @@
       "x-python": {
         "kind": "package",
         "package": "apisec-code-bolt"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/apisec-surface",
+          "name": "apisec-surface",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.ghops.eol",
@@ -1623,7 +1767,14 @@
       "x-python": {
         "kind": "package",
         "package": "ghops"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/repoindex",
+          "name": "repoindex",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.mondobrain.eol",
@@ -1682,7 +1833,14 @@
       "x-python": {
         "kind": "package",
         "package": "mondobrain"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/datawhys",
+          "name": "datawhys",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.vsscale.deprecated",
@@ -1741,7 +1899,14 @@
       "x-python": {
         "kind": "package",
         "package": "vsscale"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/vsjetpack",
+          "name": "vsjetpack",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.batchnotebook.deprecated",
@@ -1969,7 +2134,14 @@
       "x-python": {
         "kind": "package",
         "package": "cmip-ref"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/climate-ref",
+          "name": "climate-ref",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.headroom-cli.eol",
@@ -2021,7 +2193,14 @@
       "x-python": {
         "kind": "package",
         "package": "headroom-cli"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/quotagauge",
+          "name": "quotagauge",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.agentops-toolkit.eol",
@@ -2080,7 +2259,14 @@
       "x-python": {
         "kind": "package",
         "package": "agentops-toolkit"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/agentops-accelerator",
+          "name": "agentops-accelerator",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.package.aiohttp-valera-validator.eol",
@@ -2139,7 +2325,14 @@
       "x-python": {
         "kind": "package",
         "package": "aiohttp-valera-validator"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/aiohttp-d42-validator",
+          "name": "aiohttp-d42-validator",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "id": "python.runtime.eol-3.10-and-older",
@@ -2223,7 +2416,15 @@
       "x-python": {
         "kind": "runtime",
         "maximumVersion": "3.10"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:generic/python",
+          "vers": "vers:pypi/>=3.12|<3.13",
+          "name": "Python 3.12",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.runtime.eol-3.11",
@@ -3095,7 +3296,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-1.4.eol",
@@ -3178,7 +3387,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-1.5.eol",
@@ -3261,7 +3478,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-1.6.eol",
@@ -3344,7 +3569,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-1.7.eol",
@@ -3427,7 +3660,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-1.8.eol",
@@ -3517,7 +3758,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-1.9.eol",
@@ -3607,7 +3856,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-1.10.eol",
@@ -3697,7 +3954,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-1.11.eol",
@@ -3787,7 +4052,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-2.0.eol",
@@ -3877,7 +4150,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-2.1.eol",
@@ -3967,7 +4248,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-2.2.eol",
@@ -4057,7 +4346,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-3.0.eol",
@@ -4147,7 +4444,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-3.1.eol",
@@ -4237,7 +4542,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-3.2.eol",
@@ -4327,7 +4640,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-4.0.eol",
@@ -4417,7 +4738,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-4.1.eol",
@@ -4507,7 +4836,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-4.2.eol",
@@ -4597,7 +4934,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-5.0.eol",
@@ -4687,7 +5032,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.package.django-5.1.eol",
@@ -4777,7 +5130,15 @@
       "x-python": {
         "kind": "package",
         "package": "django"
-      }
+      },
+      "replacements": [
+        {
+          "purl": "pkg:pypi/django",
+          "vers": "vers:pypi/>=5.2|<5.3",
+          "name": "Django 5.2 LTS",
+          "kind": "upgrade"
+        }
+      ]
     },
     {
       "id": "python.symbol.datetime.utcnow",

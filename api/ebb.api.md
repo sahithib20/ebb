@@ -275,6 +275,7 @@ export interface RegistryV2Rule {
     renamedFrom?: string;
     // (undocumented)
     replacement?: string;
+    replacements?: ReplacementItem[];
     // Warning: (ae-forgotten-export) The symbol "ReplacementRequirements" needs to be exported by the entry point index.d.ts
     requires?: ReplacementRequirements;
     // (undocumented)
@@ -319,6 +320,26 @@ export type ReleaseLineStatus = "ended" | "ending" | "no-known-end";
 export function replacementFor(purl: string, version: string): string | null;
 
 // @public
+export interface ReplacementItem {
+    // (undocumented)
+    kind: ReplacementKind;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    note?: string;
+    // (undocumented)
+    purl: string;
+    // (undocumented)
+    vers?: string;
+}
+
+// @public
+export type ReplacementKind = "successor" | "alternative" | "upgrade";
+
+// @public
+export function replacementsFor(purl: string, version: string): ReplacementItem[];
+
+// @public
 export interface Result {
     asOf?: string;
     matches: ResultMatch[];
@@ -339,6 +360,7 @@ export interface ResultMatch {
     daysLeft: number | null;
     event: ResultEvent;
     replacement: string | null;
+    replacements?: ReplacementItem[];
     reviewedAt: string;
     ruleId: string;
     sources: EvidenceSource[];

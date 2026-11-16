@@ -102,6 +102,26 @@ Put the evidence link in the description. Rules are reviewed data; a maintainer 
       "summary": "The package is fully deprecated and no new changes are expected.",
       "severity": "high",
       "replacement": "Native fetch or a maintained HTTP client",
+      "replacements": [
+        {
+          "purl": "pkg:npm/undici",
+          "name": "undici",
+          "kind": "alternative",
+          "note": "Modern HTTP/1.1 client for Node.js"
+        },
+        {
+          "purl": "pkg:npm/axios",
+          "name": "axios",
+          "kind": "alternative",
+          "note": "Promise-based HTTP client"
+        },
+        {
+          "purl": "pkg:npm/got",
+          "name": "got",
+          "kind": "alternative",
+          "note": "Human-friendly HTTP request library for Node.js"
+        }
+      ],
       "deadline": "2020-02-11",
       "sources": [
         {
@@ -159,6 +179,7 @@ A second, smaller example lives in [`examples/registry.v2.example.json`](https:/
 | `summary` | yes | One or two sentences stating what the source says, without advice. |
 | `severity` | yes | `info`, `low`, `medium`, `high`, or `critical`. |
 | `replacement` | no | What to move to. |
+| `replacements` | no | Machine-readable replacement candidates (purl, version range, name, kind, note). See [Structured replacements](#structured-replacements). |
 | `requires` | no | The lowest runtime versions the replacement works on, such as `{ "node": "18.0.0" }`. Only `node` and `python` are known. A consumer can warn when a project pins an older runtime. |
 | `deadline` | no | The date from the source, as `YYYY-MM-DD`. Omit it when the source gives none. |
 | `sources` | yes | At least one authoritative source, each with a `title`, an `https` `url`, and the `accessedAt` day you read it (`YYYY-MM-DD`). The date travels with the rule to every consumer. |
@@ -166,6 +187,37 @@ A second, smaller example lives in [`examples/registry.v2.example.json`](https:/
 | `migration` | no | Constraints, ordered steps, and verification commands. Consumers use it to plan the change. Step `targets` are `declaration`, `usages`, or `all`; step ids are unique within the rule. |
 | `usage` | no | Imports, calls, configuration keys, and deprecated symbols that show where a repository depends on the component. See [Symbol-level usage](#symbol-level-usage). |
 | `x-<ecosystem>` | no | Matching hints that consumers read, such as `x-npm.package`, `x-nodejs.major`, `x-python.kind`, or `x-github-actions.supportedFromMajor`. See [Ecosystem hints](#ecosystem-hints). |
+
+### Structured replacements
+
+A rule can declare one or more structured replacement candidates in `replacements`. While `replacement` provides human-readable summary text, `replacements` gives package managers, linters, and agents precise identifiers and relationships they can act on:
+
+| Field | Required | Meaning |
+|---|---|---|
+| `purl` | yes | Canonical Package URL identifying the target package or runtime (e.g. `pkg:npm/undici` or `pkg:generic/nodejs`). |
+| `name` | yes | Human-friendly name of the target package or release line (e.g. `undici`, `Node.js 22 LTS`). |
+| `kind` | yes | Relationship to the deprecated or ending component: `successor` (official follow-up from the same project), `alternative` (separate package with equivalent capabilities), or `upgrade` (newer major or LTS release line of the same package). |
+| `vers` | no | VERS range specifying the recommended target versions, e.g. `vers:generic/>=22.0.0` or `vers:npm/>=7.0.0`. |
+| `note` | no | Brief context explaining the trade-off or migration role. |
+
+Example:
+
+```json
+"replacements": [
+  {
+    "purl": "pkg:npm/undici",
+    "name": "undici",
+    "kind": "alternative",
+    "note": "Modern HTTP/1.1 client for Node.js"
+  },
+  {
+    "purl": "pkg:npm/axios",
+    "name": "axios",
+    "kind": "alternative",
+    "note": "Promise-based HTTP client"
+  }
+]
+```
 
 ### Provenance
 

@@ -31,6 +31,7 @@ Stability tags on `Result` and `ResultMatch` match the JSDoc annotations in `src
 | `datePrecision` | `"day" \| "month"` (optional) | `@experimental` | Vendor announcement precision. `"month"` when the rule carries `x-*.endOfLifeMonth`; omit for day-precision or undated rules. |
 | `daysLeft` | `number \| null` | `@experimental` | Whole UTC days from `asOf` until `date`; `null` when past, undated, or `asOf` is omitted. |
 | `replacement` | `string \| null` | `@stable` | Suggested replacement from the rule, or `null` when none. |
+| `replacements` | `ReplacementItem[]` (optional) | `@experimental` | Structured replacement candidates from the rule, when specified. |
 | `sources` | `EvidenceSource[]` | `@stable` | Authoritative evidence pages the rule cites. |
 | `reviewedAt` | `string` | `@stable` | Date (`YYYY-MM-DD`) a maintainer last reviewed the rule against its sources. |
 | `confidence` | `"confirmed" \| "likely" \| "tentative"` (optional) | `@stable` | Confidence level of the rule match. |
@@ -239,6 +240,25 @@ Example:
 
 ```json
 "Node.js 24 LTS or later"
+```
+
+### `replacements`
+
+- **Stability:** `@experimental` (do not treat this behavior as promised before 1.0)
+- **Type:** array of `ReplacementItem` objects (optional)
+- **Meaning:** Structured replacement candidates pointing to successor, alternative, or upgrade packages or runtimes.
+
+Example:
+
+```json
+[
+  {
+    "purl": "pkg:npm/undici",
+    "name": "undici",
+    "kind": "alternative",
+    "note": "Modern HTTP/1.1 client for Node.js"
+  }
+]
 ```
 
 ### `sources`

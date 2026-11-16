@@ -14,6 +14,8 @@ import {
   type CheckStatus,
   type EbbErrorCode,
   type EvidenceSource,
+  type ReplacementItem,
+  type ReplacementKind,
   type Result,
   type ResultEvent,
   type ResultMatch,
@@ -27,6 +29,7 @@ import {
   preload,
   recent,
   replacementFor,
+  replacementsFor,
   rulesFor,
 } from "../../src/index.js";
 
@@ -39,6 +42,7 @@ test("root entry exports only the public functions at runtime", () => {
     "preload",
     "recent",
     "replacementFor",
+    "replacementsFor",
     "rulesFor",
     "sourcesOf",
     "stale",
@@ -84,6 +88,11 @@ test("root exports evaluate components and expose the public types", () => {
 
   const replacement = replacementFor("pkg:npm/node-sass", "9.0.0");
   assert.equal(replacement, "pkg:npm/sass");
+
+  const replacements: ReplacementItem[] = replacementsFor("pkg:npm/node-sass", "9.0.0");
+  assert.equal(replacements.length, 1);
+  const repKind: ReplacementKind = replacements[0]!.kind;
+  assert.equal(repKind, "successor");
 
   const sources = root.sourcesOf("npm.package.request.deprecated");
   assert.equal(sources.ruleId, "npm.package.request.deprecated");

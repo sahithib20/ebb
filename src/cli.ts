@@ -7,6 +7,7 @@ import {
   check,
   checkAll,
   replacementFor,
+  replacementsFor,
   rulesFor,
   sourcesOf,
   stale,
@@ -626,13 +627,16 @@ export async function runCli(
       }
 
       const replacement = replacementFor(purl, version);
+      const replacements = replacementsFor(purl, version);
 
       if (format === "json") {
-        io.stdout.write(`${JSON.stringify({ purl, version, replacement: replacement ?? null }, null, 2)}\n`);
+        io.stdout.write(
+          `${JSON.stringify({ purl, version, replacement: replacement ?? null, replacements }, null, 2)}\n`,
+        );
       } else if (format === "markdown") {
-        io.stdout.write(formatReplacementMarkdown(purl, version, replacement));
+        io.stdout.write(formatReplacementMarkdown(purl, version, replacement, replacements));
       } else {
-        io.stdout.write(formatReplacementText(purl, version, replacement));
+        io.stdout.write(formatReplacementText(purl, version, replacement, replacements));
       }
 
       return replacement ? 0 : 1;

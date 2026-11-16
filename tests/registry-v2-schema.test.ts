@@ -236,3 +236,82 @@ test("schema validates confidence and confidenceNote", async () => {
   regEmptyNote.rules[0].confidenceNote = "";
   assert.equal(validate(regEmptyNote), false, "rejects empty confidenceNote");
 });
+
+test("schema validates structured replacements", async () => {
+  const { example, validate } = await exampleAndValidator();
+
+  // Valid replacements with successor, alternative, upgrade
+  const validItems = [
+    {
+      purl: "pkg:npm/sass",
+      name: "sass",
+      kind: "successor",
+    },
+    {
+      purl: "pkg:npm/%40babel/preset-env",
+      vers: "vers:npm/>=7.0.0",
+      name: "@babel/preset-env",
+      kind: "upgrade",
+      note: "Standard Babel compiler preset",
+    },
+    {
+      purl: "pkg:npm/terser",
+      name: "terser",
+      kind: "alternative",
+    },
+  ];
+
+  const regValid = structuredClone(example);
+  regValid.rules[0].replacements = validItems;
+  assert.equal(validate(regValid), true, "accepts valid replacements list");
+
+  // Optionality
+  const regWithout = structuredClone(example);
+  delete regWithout.rules[0].replacements;
+  assert.equal(validate(regWithout), true, "replacements is optional");
+
+  // Invalid: missing purl
+  const regMissingPurl = structuredClone(example);
+  regMissingPurl.rules[0].replacements = [{ name: "sass", kind: "successor" }];
+  assert.equal(validate(regMissingPurl), false, "rejects item without purl");
+
+  // Invalid: versioned purl in replacement
+  const regVersionedPurl = structuredClone(example);
+  regVersionedPurl.rules[0].replacements = [{ purl: "pkg:npm/sass@1.0.0", name: "sass", kind: "successor" }];
+  assert.equal(validate(regVersionedPurl), false, "rejects replacement purl with version");
+
+  // Invalid: missing name
+  const regMissingName = structuredClone(example);
+  regMissingName.rules[0].replacements = [{ purl: "pkg:npm/sass", kind: "successor" }];
+  assert.equal(validate(regMissingName), false, "rejects item without name");
+
+  // Invalid: empty name
+  const regEmptyName = structuredClone(example);
+  regEmptyName.rules[0].replacements = [{ purl: "pkg:npm/sass", name: "", kind: "successor" }];
+  assert.equal(validate(regEmptyName), false, "rejects item with empty name");
+
+  // Invalid: missing kind
+  const regMissingKind = structuredClone(example);
+  regMissingKind.rules[0].replacements = [{ purl: "pkg:npm/sass", name: "sass" }];
+  assert.equal(validate(regMissingKind), false, "rejects item without kind");
+
+  // Invalid: unknown kind
+  const regUnknownKind = structuredClone(example);
+  regUnknownKind.rules[0].replacements = [{ purl: "pkg:npm/sass", name: "sass", kind: "invalid-kind" }];
+  assert.equal(validate(regUnknownKind), false, "rejects unknown kind");
+
+  // Invalid: vers without scheme
+  const regBadVers = structuredClone(example);
+  regBadVers.rules[0].replacements = [{ purl: "pkg:npm/sass", name: "sass", kind: "successor", vers: "^1.0.0" }];
+  assert.equal(validate(regBadVers), false, "rejects vers without scheme");
+
+  // Invalid: unknown additional property
+  const regExtra = structuredClone(example);
+  regExtra.rules[0].replacements = [{ purl: "pkg:npm/sass", name: "sass", kind: "successor", extra: 123 }];
+  assert.equal(validate(regExtra), false, "rejects additional properties");
+
+  // Invalid: empty note
+  const regEmptyNote = structuredClone(example);
+  regEmptyNote.rules[0].replacements = [{ purl: "pkg:npm/sass", name: "sass", kind: "successor", note: "" }];
+  assert.equal(validate(regEmptyNote), false, "rejects empty note");
+});

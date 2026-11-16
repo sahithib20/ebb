@@ -5,6 +5,7 @@ import type { RegistryV2Rule } from "../../registry.js";
 import type { RecentResult } from "../../recent.js";
 import type { UpcomingResult } from "../../upcoming.js";
 import type { DataStatus } from "../../data-status.js";
+import type { ReplacementItem } from "../../domain.js";
 import { createColors, type Colors } from "./color.js";
 
 export interface TextFormatOptions {
@@ -168,9 +169,22 @@ export function formatCheckAllText(
   return `${lines.join("\n")}\n`;
 }
 
-export function formatReplacementText(purl: string, version: string, replacement: string | null): string {
+export function formatReplacementText(
+  purl: string,
+  version: string,
+  replacement: string | null,
+  replacements?: readonly ReplacementItem[],
+): string {
   if (replacement) {
-    return `${replacement}\n`;
+    const lines = [replacement];
+    if (replacements && replacements.length > 0) {
+      for (const item of replacements) {
+        const versStr = item.vers ? ` (${item.vers})` : "";
+        const noteStr = item.note ? ` - ${item.note}` : "";
+        lines.push(`  - ${item.name}: ${item.purl}${versStr} [${item.kind}]${noteStr}`);
+      }
+    }
+    return `${lines.join("\n")}\n`;
   }
   return `No suggested replacement for ${purl}@${version}\n`;
 }

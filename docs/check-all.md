@@ -122,7 +122,14 @@ Every valid entry in `results` has the schema documented in [Result model](resul
         }
       ],
       "reviewedAt": "2026-10-14",
-      "confidence": "confirmed"
+      "confidence": "confirmed",
+      "replacements": [
+        {
+          "purl": "pkg:npm/sass",
+          "name": "sass",
+          "kind": "successor"
+        }
+      ]
     },
     {
       "ruleId": "npm.package.node-sass.deprecated",
@@ -147,7 +154,14 @@ Every valid entry in `results` has the schema documented in [Result model](resul
         }
       ],
       "reviewedAt": "2026-10-30",
-      "confidence": "likely"
+      "confidence": "likely",
+      "replacements": [
+        {
+          "purl": "pkg:npm/sass",
+          "name": "sass",
+          "kind": "successor"
+        }
+      ]
     }
   ],
   "version": "9.0.0"

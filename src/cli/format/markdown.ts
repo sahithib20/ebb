@@ -6,6 +6,7 @@ import type { RecentResult } from "../../recent.js";
 import type { StaleResult } from "../../stale.js";
 import type { UpcomingResult } from "../../upcoming.js";
 import type { DataStatus } from "../../data-status.js";
+import type { ReplacementItem } from "../../domain.js";
 
 export interface MarkdownFormatOptions {
   noHint?: boolean | undefined;
@@ -202,11 +203,24 @@ export function formatCheckAllMarkdown(
   return lines.join("\n");
 }
 
-export function formatReplacementMarkdown(purl: string, version: string, replacement: string | null): string {
+export function formatReplacementMarkdown(
+  purl: string,
+  version: string,
+  replacement: string | null,
+  replacements?: readonly ReplacementItem[],
+): string {
   const lines: string[] = [];
   lines.push(`### Replacement for \`${purl}@${version}\`\n`);
   if (replacement) {
     lines.push(`Suggested replacement: **\`${replacement}\`**\n`);
+    if (replacements && replacements.length > 0) {
+      for (const item of replacements) {
+        const versStr = item.vers ? ` \`${item.vers}\`` : "";
+        const noteStr = item.note ? ` - ${item.note}` : "";
+        lines.push(`- **${item.name}**: \`${item.purl}\`${versStr} [${item.kind}]${noteStr}`);
+      }
+      lines.push("");
+    }
   } else {
     lines.push(`No suggested replacement registered for \`${purl}@${version}\`.\n`);
   }

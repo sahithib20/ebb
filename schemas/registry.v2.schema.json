@@ -67,6 +67,27 @@
         "summary": { "$ref": "#/$defs/nonEmpty" },
         "severity": { "enum": ["info", "low", "medium", "high", "critical"] },
         "replacement": { "$ref": "#/$defs/nonEmpty" },
+        "replacements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["purl", "name", "kind"],
+            "additionalProperties": false,
+            "properties": {
+              "purl": {
+                "type": "string",
+                "pattern": "^pkg:[a-z][a-z0-9.+-]*/[^@?#\\s]+$"
+              },
+              "vers": {
+                "type": "string",
+                "pattern": "^vers:[a-z][a-z0-9.+-]*/\\S+$"
+              },
+              "name": { "$ref": "#/$defs/nonEmpty" },
+              "kind": { "enum": ["successor", "alternative", "upgrade"] },
+              "note": { "$ref": "#/$defs/nonEmpty" }
+            }
+          }
+        },
         "requires": {
           "description": "Lowest runtime versions the replacement works on, such as {\"node\": \"18.0.0\"}.",
           "type": "object",

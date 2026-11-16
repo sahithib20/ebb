@@ -69,6 +69,7 @@ assert.deepEqual(Object.keys(root).sort(), [
   "preload",
   "recent",
   "replacementFor",
+  "replacementsFor",
   "rulesFor",
   "sourcesOf",
   "stale",

@@ -6,6 +6,7 @@
 import { orderMatches } from "./check.js";
 import { BUNDLED_ECOSYSTEMS } from "./data-bundle.js";
 import { type ActiveData, getActiveDataSync } from "./data-source.js";
+import type { ReplacementItem } from "./domain.js";
 import { EbbError } from "./errors.js";
 import type { LookupFinding, LookupResult } from "./lookup.js";
 import { type LifecycleEvent, validateRegistryV2 } from "./registry.js";
@@ -33,6 +34,7 @@ interface ActiveRuleMeta {
   order: number;
   datePrecision?: "day" | "month";
   confidence?: RuleConfidence;
+  replacements?: ReplacementItem[];
 }
 
 let ruleMetaById: Map<string, ActiveRuleMeta> | undefined;
@@ -58,6 +60,7 @@ function activeRuleMeta(): Map<string, ActiveRuleMeta> {
       const month = endOfLifeMonthFromRule(rule as unknown as { [key: string]: unknown });
       const meta: ActiveRuleMeta = { reviewedAt: rule.provenance.reviewedAt, order, confidence: confidenceOf(rule) };
       if (month !== undefined) meta.datePrecision = "month";
+      if (rule.replacements && rule.replacements.length > 0) meta.replacements = rule.replacements;
       map.set(rule.id, meta);
       order += 1;
     }
@@ -80,6 +83,7 @@ function toResultMatch(finding: LookupFinding, meta: ActiveRuleMeta, asOf: strin
   };
   if (meta.confidence !== undefined) match.confidence = meta.confidence;
   if (meta.datePrecision !== undefined) match.datePrecision = meta.datePrecision;
+  if (meta.replacements !== undefined) match.replacements = meta.replacements;
   return match;
 }
 

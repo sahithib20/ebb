@@ -3,7 +3,7 @@
  * Fields may grow; status values are never renamed.
  */
 
-import type { EvidenceSource } from "./domain.js";
+import type { EvidenceSource, ReplacementItem } from "./domain.js";
 import { EbbError } from "./errors.js";
 import { isIsoDate } from "./registry.js";
 import type { RuleConfidence } from "./confidence.js";
@@ -56,6 +56,11 @@ export interface ResultMatch {
    * @stable
    */
   replacement: string | null;
+  /**
+   * Structured replacement targets from the rule.
+   * @experimental
+   */
+  replacements?: ReplacementItem[];
   /**
    * Authoritative evidence pages the rule cites.
    * @stable

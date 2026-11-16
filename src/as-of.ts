@@ -125,7 +125,7 @@ export function asOf(date: string, options?: AsOfOptions): AsOfClient {
       const ruleDate = rule.deadline ?? null;
       const days = ruleDate === null ? null : daysUntil(ruleDate, date);
 
-      matches.push({
+      const matchItem: CheckMatch = {
         ruleId: rule.id,
         event,
         date: ruleDate,
@@ -133,7 +133,12 @@ export function asOf(date: string, options?: AsOfOptions): AsOfClient {
         replacement: rule.replacement ?? null,
         sources: rule.sources,
         reviewedAt: rule.provenance.reviewedAt,
-      });
+      };
+      if (rule.replacements && rule.replacements.length > 0) {
+        matchItem.replacements = rule.replacements;
+      }
+
+      matches.push(matchItem);
     }
 
     const ordered = orderMatches(matches);

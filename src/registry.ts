@@ -1,4 +1,12 @@
-import type { EvidenceSource, MigrationGuidance, ReplacementRequirements, Severity, UsageMatcher } from "./domain.js";
+import type {
+  EvidenceSource,
+  MigrationGuidance,
+  ReplacementItem,
+  ReplacementKind,
+  ReplacementRequirements,
+  Severity,
+  UsageMatcher,
+} from "./domain.js";
 import { severityValues } from "./domain.js";
 import type { RuleConfidence } from "./confidence.js";
 import { parsePurl, purlIdentity } from "./purl.js";
@@ -58,7 +66,7 @@ export function isCalendarSequence(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 2_147_483_647;
 }
 
-export type { RuleConfidence };
+export type { RuleConfidence, ReplacementItem, ReplacementKind };
 
 export interface RegistryV2Rule {
   id: string;
@@ -70,6 +78,8 @@ export interface RegistryV2Rule {
   summary: string;
   severity: Severity;
   replacement?: string;
+  /** Structured replacement targets. */
+  replacements?: ReplacementItem[];
   /** Lowest runtime versions the replacement works on, such as `{ "node": "18.0.0" }`. */
   requires?: ReplacementRequirements;
   deadline?: string;
@@ -110,6 +120,7 @@ export interface StaleRule {
 type UnknownRecord = Record<string, unknown>;
 
 const REQUIRES_RUNTIMES: readonly string[] = ["node", "python"];
+const REPLACEMENT_KINDS = new Set(["successor", "alternative", "upgrade"]);
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const RULE_ID = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const EXTENSION = /^x-[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -123,6 +134,7 @@ const RULE_FIELDS = new Set([
   "summary",
   "severity",
   "replacement",
+  "replacements",
   "requires",
   "deadline",
   "confidence",
@@ -359,6 +371,55 @@ function confidenceIssues(rule: UnknownRecord, problem: Problem): void {
   }
 }
 
+function replacementsIssues(rule: UnknownRecord, problem: Problem): void {
+  if (rule.replacements === undefined) return;
+  if (!Array.isArray(rule.replacements)) {
+    problem("replacements must be an array");
+    return;
+  }
+  for (let i = 0; i < rule.replacements.length; i++) {
+    const item = rule.replacements[i];
+    if (!isRecord(item)) {
+      problem(`replacements[${i}] must be an object`);
+      continue;
+    }
+    if (!isNonEmptyString(item.purl)) {
+      problem(`replacements[${i}].purl is required`);
+    } else {
+      try {
+        parsePurl(item.purl);
+      } catch (err) {
+        problem(`replacements[${i}].purl is invalid: ${(err as Error).message}`);
+      }
+    }
+    if (!isNonEmptyString(item.name)) {
+      problem(`replacements[${i}].name is required`);
+    }
+    if (!isNonEmptyString(item.kind) || !REPLACEMENT_KINDS.has(item.kind)) {
+      problem(`replacements[${i}].kind must be one of "successor", "alternative", "upgrade"`);
+    }
+    if (item.vers !== undefined) {
+      if (!isNonEmptyString(item.vers)) {
+        problem(`replacements[${i}].vers must be a non-empty string`);
+      } else {
+        try {
+          parseVers(item.vers);
+        } catch (err) {
+          problem(`replacements[${i}].vers is invalid: ${(err as Error).message}`);
+        }
+      }
+    }
+    if (item.note !== undefined && !isNonEmptyString(item.note)) {
+      problem(`replacements[${i}].note must be a non-empty string`);
+    }
+    for (const key of Object.keys(item)) {
+      if (!["purl", "vers", "name", "kind", "note"].includes(key)) {
+        problem(`replacements[${i}] has unknown field "${key}"`);
+      }
+    }
+  }
+}
+
 function ruleIssues(rule: unknown, index: number, ecosystem: string | undefined): string[] {
   if (!isRecord(rule)) return [`rules[${index}]: must be an object`];
   const name = isNonEmptyString(rule.id) ? `rule "${rule.id}"` : `rules[${index}]`;
@@ -375,6 +436,7 @@ function ruleIssues(rule: unknown, index: number, ecosystem: string | undefined)
   sourcesIssues(rule, problem);
   provenanceIssues(rule, problem);
   confidenceIssues(rule, problem);
+  replacementsIssues(rule, problem);
 
   if (rule.migration !== undefined && !isMigrationGuidance(rule.migration)) {
     problem("migration is not valid migration guidance");
