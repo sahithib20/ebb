@@ -516,3 +516,21 @@ describe("CLI - end-to-end binary execution", () => {
     assert.equal(stdout.trim(), `ebb ${VERSION}`);
   });
 });
+
+describe("CLI --offline flag (offline-3)", () => {
+  it("runs check --offline without attempting network and prints nothing extra", async () => {
+    const mock = createMockIo();
+    const code = await runCli(["check", "pkg:npm/express@4.18.2", "--offline", "--json"], mock.io);
+    assert.equal(code, 0);
+    assert.equal(mock.stderr, "");
+    const parsed = JSON.parse(mock.stdout);
+    assert.ok(parsed);
+  });
+
+  it("stops update --offline and prints exactly one line on stderr", async () => {
+    const mock = createMockIo();
+    const code = await runCli(["update", "--offline"], mock.io);
+    assert.equal(code, 1);
+    assert.equal(mock.stderr, "Ebb is running in offline mode; network request stopped.\n");
+  });
+});

@@ -99,6 +99,9 @@ Options:
   --color                       Force colored output
   --no-color                    Disable colored output (respects NO_COLOR env)
   --no-hint                     Deprecated (no-op)
+  --offline                     Run in offline mode; block any network requests
+  --from <file>                 Update data from a local bundle file and adjacent signature
+  -q, --quiet                   Silence warnings on stderr
   -h, --help                    Show help
   -v, --version                 Show version
 
@@ -352,6 +355,9 @@ export async function runCli(
         color: { type: "boolean", default: false },
         "no-color": { type: "boolean", default: false },
         "no-hint": { type: "boolean", default: false },
+        offline: { type: "boolean", default: false },
+        from: { type: "string" },
+        quiet: { type: "boolean", short: "q", default: false },
         "print-config": { type: "string" },
         "self-test": { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
@@ -366,6 +372,10 @@ export async function runCli(
   }
 
   const { values, positionals } = parsed;
+
+  if (values.offline) {
+    process.env.EBB_OFFLINE = "1";
+  }
 
   if (values.version) {
     io.stdout.write(`ebb ${VERSION}\n`);
@@ -455,7 +465,44 @@ export async function runCli(
     }
   }
 
+  let warnedStale = false;
+  const emitStaleWarningIfNeeded = () => {
+    if (warnedStale || values.quiet) return;
+    try {
+      const status = dataStatus();
+      if (status.stale) {
+        warnedStale = true;
+        io.stderr.write(
+          `Warning: Data is ${status.ageDays} days old (exceeds ${status.staleAfterDays}d freshness threshold). Run 'ebb update' to refresh.\n`,
+        );
+      }
+    } catch {
+      // Ignore
+    }
+  };
+
   try {
+    if (
+      [
+        "check",
+        "as-of",
+        "check-all",
+        "replacement",
+        "versions",
+        "rules",
+        "upcoming",
+        "forecast",
+        "recent",
+        "stale",
+        "sources",
+        "diff",
+      ].includes(first) ||
+      first.toLowerCase().startsWith("pkg:") ||
+      first.includes("/")
+    ) {
+      emitStaleWarningIfNeeded();
+    }
+
     if (first === "check" || first.toLowerCase().startsWith("pkg:") || first.includes("/")) {
       const isCheckSubcommand = first === "check";
       const purlArg = isCheckSubcommand ? positionals[1] : first;
@@ -986,10 +1033,16 @@ export async function runCli(
           return 0;
         }
 
+        const fromPath = values.from as string | undefined;
+        const signaturePath = values.signature as string | undefined;
+
         const updateOpts: Parameters<typeof update>[0] = {
           check: checkFlag,
           allowDowngrade,
           channel,
+          from: fromPath,
+          signature: signaturePath,
+          offline: Boolean(values.offline),
         };
         if (targetVersion) {
           updateOpts.version = targetVersion;
@@ -1018,6 +1071,10 @@ export async function runCli(
         }
         return 0;
       } catch (err) {
+        if (err instanceof EbbError && err.code === "offline") {
+          io.stderr.write("Ebb is running in offline mode; network request stopped.\n");
+          return 1;
+        }
         const msg = err instanceof Error ? err.message : String(err);
         if (format === "json") {
           io.stdout.write(`${JSON.stringify({ ok: false, error: msg }, null, 2)}\n`);

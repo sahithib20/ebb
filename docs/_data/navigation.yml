@@ -29,6 +29,8 @@ main:
         url: /static-api/
       - title: Calendar
         url: /calendar/
+      - title: Offline operation
+        url: /offline/
   - title: Runtimes
     children:
       - title: Browser

@@ -97,6 +97,51 @@ describe("error codes reachable", () => {
     coveredCodes.add(err.code);
   });
 
+  it("offline is reachable", () => {
+    const err = catchEbb(() => {
+      throw new DataUpdateError("offline mode", "offline");
+    });
+    assert.equal(err.code, "offline");
+    assert(err instanceof EbbError);
+    coveredCodes.add(err.code);
+  });
+
+  it("no-network is reachable", () => {
+    const err = catchEbb(() => {
+      throw new DataUpdateError("no network", "no-network");
+    });
+    assert.equal(err.code, "no-network");
+    assert(err instanceof EbbError);
+    coveredCodes.add(err.code);
+  });
+
+  it("dns-failure is reachable", () => {
+    const err = catchEbb(() => {
+      throw new DataUpdateError("dns failure", "dns-failure");
+    });
+    assert.equal(err.code, "dns-failure");
+    assert(err instanceof EbbError);
+    coveredCodes.add(err.code);
+  });
+
+  it("proxy-error is reachable", () => {
+    const err = catchEbb(() => {
+      throw new DataUpdateError("proxy error", "proxy-error");
+    });
+    assert.equal(err.code, "proxy-error");
+    assert(err instanceof EbbError);
+    coveredCodes.add(err.code);
+  });
+
+  it("rate-limited is reachable", () => {
+    const err = catchEbb(() => {
+      throw new DataUpdateError("rate limit", "rate-limited");
+    });
+    assert.equal(err.code, "rate-limited");
+    assert(err instanceof EbbError);
+    coveredCodes.add(err.code);
+  });
+
   it("every code in EBB_ERROR_CODES is covered", () => {
     for (const code of EBB_ERROR_CODES) {
       assert.ok(coveredCodes.has(code), `Code "${code}" must have a reachability test`);

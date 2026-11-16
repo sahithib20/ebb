@@ -280,6 +280,12 @@ Updates lifecycle data safely, atomically, and reversibly without upgrading the 
 # Update to the latest verified data release
 ebb update
 
+# Update from a local bundle file and adjacent signature (offline / air-gapped)
+ebb update --from path/to/ebb-data-2026.10.16.json
+
+# Explicit offline mode preventing any network requests
+ebb update --offline
+
 # Check for updates without downloading
 ebb update --check
 
@@ -365,6 +371,9 @@ ebb mcp --self-test
 - `--no-color` / `NO_COLOR`: Disables ANSI colors, conforming to the [NO_COLOR specification](https://no-color.org/).
 - `--color`: Forces colored output.
 - `--no-hint`: Deprecated (no-op).
+- `--offline`: Run in offline mode; blocks any network requests.
+- `--from <file>`: Update data from a local bundle file and adjacent signature (used with `ebb update`).
+- `-q`, `--quiet`: Silence warnings on stderr.
 - `--min-confidence <level>`: Minimum confidence level required to report a finding (`tentative`, `likely`, or `confirmed`). Weaker findings are hidden. Defaults to `tentative` (all findings shown).
 
 > [!TIP]

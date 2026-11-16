@@ -745,3 +745,18 @@ test("static API build with and without a source report", async () => {
     await rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test("EBB_OFFLINE=1 blocks static API client requests with offline code", async () => {
+  const prev = process.env.EBB_OFFLINE;
+  try {
+    process.env.EBB_OFFLINE = "1";
+    await assert.rejects(
+      () => fetchMeta(),
+      // biome-ignore lint/suspicious/noExplicitAny: error code inspection
+      (err: any) => err?.code === "offline",
+    );
+  } finally {
+    if (prev === undefined) delete process.env.EBB_OFFLINE;
+    else process.env.EBB_OFFLINE = prev;
+  }
+});
