@@ -47,6 +47,10 @@
           }
         },
         "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+        "url": {
+          "description": "Canonical URL for this rule in the static API.",
+          "type": "string"
+        },
         "ecosystem": { "$ref": "#/$defs/slug" },
         "purl": {
           "description": "Package URL identifying the affected component without a version, for example pkg:npm/request.",

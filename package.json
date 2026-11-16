@@ -159,7 +159,12 @@
     "node": ">=22"
   },
   "ebb": {
-    "sizeBudget": 500000
+    "sizeBudget": 550000,
+    "staticApiBudgets": {
+      "indexGzip": 51200,
+      "searchGzip": 25600,
+      "allGzip": 256000
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.7",

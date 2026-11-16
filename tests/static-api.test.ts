@@ -1,17 +1,32 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
 
-import { fetchComponent, fetchRule, purlToApiPath } from "../src/api.js";
+import { fetchComponent, fetchMeta, fetchRule, fetchSingleRule, fetchUpcoming, purlToApiPath } from "../src/api.js";
 import { VERSION } from "../src/version.js";
 import { generateStaticApi } from "../tools/static-api/generate.js";
+import { runSmokeTest } from "../tools/static-api/smoke.js";
 
 function sha256Hex(data: string | Buffer): string {
   return createHash("sha256").update(data).digest("hex");
+}
+
+async function getAllFiles(dir: string, base = ""): Promise<string[]> {
+  const entries = await readdir(join(dir, base), { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const rel = base ? `${base}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      files.push(...(await getAllFiles(dir, rel)));
+    } else {
+      files.push(rel);
+    }
+  }
+  return files.sort();
 }
 
 test("purlToApiPath maps package URLs to correct static API relative paths", () => {
@@ -64,9 +79,11 @@ test("static API generation produces valid files matching JSON schema and size b
     assert.equal(requestDoc.schemaVersion, "ebb.api.v1");
     assert.equal(requestDoc.version, VERSION);
     assert.equal(requestDoc.generatedAt, "2026-11-12T00:00:00.000Z");
+    assert.equal(requestDoc.$schema, "https://velella.sh/ebb/api/v1/schemas/static-api.v1.schema.json");
     assert.ok(requestDoc.hint?.includes("velella-sh/offing"));
     assert.ok(requestDoc.rules.length > 0);
     assert.equal(requestDoc.rules[0].confidence, "confirmed");
+    assert.equal(requestDoc.rules[0].url, "https://velella.sh/ebb/api/v1/rules/npm.package.request.deprecated.json");
     assert.equal(requestDoc.calendar, undefined);
     await assert.rejects(readFile(join(tempDir, "calendar/npm/request.ics"), "utf8"));
 
@@ -166,6 +183,51 @@ test("static API generation produces valid files matching JSON schema and size b
     const matchedNames = reqIndices.map((i: number) => searchDoc.items[i].name);
     assert.ok(matchedNames.includes("request"), "Prefix 'req' should match 'request'");
 
+    // Validate meta.json (Sub-issue 2 / #477)
+    const metaRaw = await readFile(join(tempDir, "meta.json"), "utf8");
+    const metaDoc = JSON.parse(metaRaw);
+    assert.equal(validate(metaDoc), true, `meta.json validation failed: ${JSON.stringify(validate.errors)}`);
+    assert.equal(metaDoc.schemaVersion, "ebb.api.v1");
+    assert.equal(metaDoc.version, VERSION);
+    assert.match(metaDoc.dataVersion, /^\d{4}\.\d{2}\.\d{2}$/);
+    assert.equal(metaDoc.rulesCount, result.ruleCount);
+    assert.equal(metaDoc.componentsCount, result.componentCount);
+    assert.equal(metaDoc.ecosystemsCount, result.ecosystemCount);
+    assert.equal(metaDoc.schemaVersions.api, "ebb.api.v1");
+    assert.equal(metaDoc.schemaVersions.rule, "ebb.rule.v2");
+    assert.equal(metaDoc.schemaVersions.result, 1);
+    assert.equal(metaDoc.generatedAt, undefined, "meta.json must not include a build timestamp");
+
+    // Validate single rule file in /rules/<rule-id>.json (Sub-issue 3 / #478)
+    const ruleFileRaw = await readFile(join(tempDir, "rules/npm.package.request.deprecated.json"), "utf8");
+    const ruleDoc = JSON.parse(ruleFileRaw);
+    assert.equal(validate(ruleDoc), true, `rule file validation failed: ${JSON.stringify(validate.errors)}`);
+    assert.equal(ruleDoc.schemaVersion, "ebb.api.v1");
+    assert.equal(ruleDoc.rule.id, "npm.package.request.deprecated");
+    assert.ok(Array.isArray(ruleDoc.rule.sources));
+    assert.ok(ruleDoc.rule.provenance);
+    assert.equal(ruleDoc.rule.url, "https://velella.sh/ebb/api/v1/rules/npm.package.request.deprecated.json");
+
+    // Validate openapi.json (Sub-issue 5 / #480)
+    const openApiRaw = await readFile(join(tempDir, "openapi.json"), "utf8");
+    const openApiDoc = JSON.parse(openApiRaw);
+    assert.equal(openApiDoc.openapi, "3.1.0");
+    assert.ok(openApiDoc.paths["/meta.json"]);
+    assert.ok(openApiDoc.paths["/rules/{rule-id}.json"]);
+    assert.ok(openApiDoc.paths["/{type}/{name}.json"]);
+
+    // Validate 404.json (Sub-issue 6 / #481)
+    const notFoundRaw = await readFile(join(tempDir, "404.json"), "utf8");
+    const notFoundDoc = JSON.parse(notFoundRaw);
+    assert.equal(notFoundDoc.error, "Not Found");
+    assert.ok(notFoundDoc.message.includes("404 does not mean supported"));
+
+    // Validate published JSON Schemas (Sub-issue 4 / #479)
+    assert.ok((await readFile(join(tempDir, "schemas/static-api.v1.schema.json"), "utf8")).length > 0);
+    assert.ok((await readFile(join(tempDir, "schemas/rule.v2.schema.json"), "utf8")).length > 0);
+    assert.ok((await readFile(join(tempDir, "schemas/registry.v2.schema.json"), "utf8")).length > 0);
+    assert.ok((await readFile(join(tempDir, "schemas/result.v1.schema.json"), "utf8")).length > 0);
+
     // Validate sources/<rule-id>.json
     const ruleSourcesRaw = await readFile(join(tempDir, "sources/npm.package.request.deprecated.json"), "utf8");
     const ruleSourcesDoc = JSON.parse(ruleSourcesRaw);
@@ -179,6 +241,95 @@ test("static API generation produces valid files matching JSON schema and size b
     assert.ok(encodedCheck.length > 0);
     const aliasCheck = await readFile(join(tempDir, "npm/%40types/form-data.json"), "utf8");
     assert.equal(aliasCheck, encodedCheck);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("static API generation is deterministic across two runs on identical data", async () => {
+  const dir1 = await mkdtemp(join(tmpdir(), "ebb-determ-1-"));
+  const dir2 = await mkdtemp(join(tmpdir(), "ebb-determ-2-"));
+
+  try {
+    // Neither run passes createdAt, so both derive dates entirely from the data
+    await generateStaticApi({ outDir: dir1 });
+    await generateStaticApi({ outDir: dir2 });
+
+    const files1 = await getAllFiles(dir1);
+    const files2 = await getAllFiles(dir2);
+
+    assert.deepEqual(files1, files2, "File lists between two runs must be identical");
+    assert.ok(files1.length > 500, `Expected > 500 files, got ${files1.length}`);
+
+    // Check byte-for-byte identity of every single generated file
+    for (const file of files1) {
+      const buf1 = await readFile(join(dir1, file));
+      const buf2 = await readFile(join(dir2, file));
+      assert.deepEqual(buf1, buf2, `File ${file} differed across deterministic runs!`);
+    }
+  } finally {
+    await rm(dir1, { recursive: true, force: true });
+    await rm(dir2, { recursive: true, force: true });
+  }
+});
+
+test("docs table and OpenAPI description list the exact same endpoints", async () => {
+  const docsContent = await readFile("docs/static-api.md", "utf8");
+
+  // Extract endpoints from the URL Layout markdown table in docs/static-api.md
+  const docEndpoints: string[] = [];
+  const lines = docsContent.split("\n");
+  let inTable = false;
+  for (const line of lines) {
+    if (line.includes("| Endpoint | Description | Example |")) {
+      inTable = true;
+      continue;
+    }
+    if (inTable) {
+      if (!line.trim().startsWith("|")) break;
+      const match = line.match(/^\|\s*`([^`]+)`/);
+      if (match && match[1] && !match[1].includes(":---")) {
+        // Normalize <param> to {param} for OpenAPI alignment
+        const normalized = match[1].replace(/<([^>]+)>/g, "{$1}");
+        docEndpoints.push(normalized);
+      }
+    }
+  }
+
+  // Import ENDPOINTS directly from openapi.ts
+  const { ENDPOINTS } = await import("../tools/static-api/openapi.js");
+  const openApiEndpoints = ENDPOINTS.map((e) => e.path);
+
+  assert.ok(docEndpoints.length >= 15, `Expected >= 15 endpoints in docs, found ${docEndpoints.length}`);
+  assert.deepEqual(
+    docEndpoints.sort(),
+    openApiEndpoints.sort(),
+    "Endpoints in docs/static-api.md must match OpenAPI ENDPOINTS 1:1",
+  );
+});
+
+test("search index splits by first letter when exceeding size budget", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "ebb-split-search-"));
+
+  try {
+    // Pass a very low search budget (500 bytes) to trigger splitting
+    await generateStaticApi({
+      outDir: tempDir,
+      searchBudget: 500,
+    });
+
+    const indexContent = await readFile(join(tempDir, "search-index.json"), "utf8");
+    const indexDoc = JSON.parse(indexContent);
+
+    assert.equal(indexDoc.split, true, "search-index.json must mark split: true");
+    assert.ok(indexDoc.partitions, "search-index.json must contain partitions map");
+    assert.ok(indexDoc.partitions["r"], "Partition for 'r' should exist");
+
+    // Check individual partitioned file
+    const rPartitionRaw = await readFile(join(tempDir, "search-index/r.json"), "utf8");
+    const rDoc = JSON.parse(rPartitionRaw);
+    assert.equal(rDoc.letter, "r");
+    assert.ok(rDoc.items.some((i: { name: string }) => i.name.toLowerCase().startsWith("r")));
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }
@@ -245,7 +396,7 @@ test("fetchComponent and fetchRule query static API correctly with mock fetch", 
   assert.ok(allRules);
   assert.equal(allRules?.length, 1);
 
-  // Test fetchComponent not found returns null
+  // Test fetchComponent not found returns null (typed not found)
   const notFound = await fetchComponent("pkg:npm/unknown-package", { fetch: mockFetch });
   assert.equal(notFound, null);
 
@@ -277,6 +428,262 @@ test("fetchComponent and fetchRule query static API correctly with mock fetch", 
   await assert.rejects(
     () => fetchComponent("pkg:npm/request", { fetch: failingFetch }),
     /Failed to fetch static API component at .* HTTP 500 Internal Server Error/,
+  );
+});
+
+test("bundled client extensions: fetchMeta, fetchUpcoming, fetchSingleRule, timeout, retry, and 404", async () => {
+  const mockDb: Record<string, string> = {
+    "https://velella.sh/ebb/api/v1/meta.json": JSON.stringify({
+      schemaVersion: "ebb.api.v1",
+      version: "0.3.0",
+      dataVersion: "2026.11.12",
+      rulesCount: 830,
+      componentsCount: 420,
+      ecosystemsCount: 26,
+      schemaVersions: { api: "ebb.api.v1", rule: "ebb.rule.v2", result: 1 },
+    }),
+    "https://velella.sh/ebb/api/v1/upcoming.json": JSON.stringify({
+      schemaVersion: "ebb.api.v1",
+      version: "0.3.0",
+      generatedAt: "2026-11-12T00:00:00.000Z",
+      count: 1,
+      upcoming: [
+        {
+          ruleId: "nodejs.runtime.eol-22",
+          purl: "pkg:generic/nodejs",
+          ecosystem: "generic",
+          event: "end-of-life",
+          title: "Node.js 22 reached end of life",
+          deadline: "2027-04-30",
+          path: "generic/nodejs.json",
+        },
+      ],
+    }),
+    "https://velella.sh/ebb/api/v1/rules/npm.package.request.deprecated.json": JSON.stringify({
+      schemaVersion: "ebb.api.v1",
+      version: "0.3.0",
+      generatedAt: "2026-11-12T00:00:00.000Z",
+      rule: {
+        id: "npm.package.request.deprecated",
+        ecosystem: "npm",
+        purl: "pkg:npm/request",
+        vers: "vers:npm/*",
+        event: "deprecated",
+        title: "request is deprecated",
+        severity: "high",
+        sources: [],
+        provenance: { method: "manual", reviewer: "armin" },
+      },
+    }),
+    "https://velella.sh/ebb/api/v1/rules/custom%2Fspecial%40name.json": JSON.stringify({
+      schemaVersion: "ebb.api.v1",
+      version: "0.3.0",
+      generatedAt: "2026-11-12T00:00:00.000Z",
+      rule: {
+        id: "custom/special@name",
+        ecosystem: "npm",
+        purl: "pkg:npm/custom",
+        vers: "vers:npm/*",
+        event: "deprecated",
+        title: "encoded rule",
+        severity: "low",
+        sources: [],
+        provenance: {
+          method: "manual",
+          reviewer: "armin",
+          reviewedAt: "2026-11-12",
+          observedAt: "2026-11-12",
+        },
+      },
+    }),
+  };
+
+  const mockFetch: typeof fetch = async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (mockDb[url]) {
+      return {
+        status: 200,
+        ok: true,
+        json: async () => JSON.parse(mockDb[url]!),
+      } as unknown as Response;
+    }
+    return {
+      status: 404,
+      ok: false,
+      statusText: "Not Found",
+    } as unknown as Response;
+  };
+
+  // 1. fetchMeta
+  const meta = await fetchMeta({ fetch: mockFetch });
+  assert.ok(meta);
+  assert.equal(meta?.dataVersion, "2026.11.12");
+  assert.equal(meta?.rulesCount, 830);
+
+  // 2. fetchUpcoming
+  const up = await fetchUpcoming({ fetch: mockFetch });
+  assert.ok(up);
+  assert.equal(up?.count, 1);
+  assert.equal(up?.upcoming[0]?.ruleId, "nodejs.runtime.eol-22");
+
+  // 3. fetchSingleRule for plain ID and encoded ID (Sub-issue 3)
+  const plainRule = await fetchSingleRule("npm.package.request.deprecated", { fetch: mockFetch });
+  assert.ok(plainRule);
+  assert.equal(plainRule?.rule.id, "npm.package.request.deprecated");
+
+  const encodedRule = await fetchSingleRule("custom/special@name", { fetch: mockFetch });
+  assert.ok(encodedRule);
+  assert.equal(encodedRule?.rule.id, "custom/special@name");
+
+  // 4. 404 returns null (typed not found)
+  assert.equal(await fetchSingleRule("nonexistent.rule", { fetch: mockFetch }), null);
+  assert.equal(await fetchMeta({ fetch: async () => ({ status: 404, ok: false }) as Response }), null);
+  assert.equal(await fetchUpcoming({ fetch: async () => ({ status: 404, ok: false }) as Response }), null);
+
+  // 5. Automatic retry on network failure
+  let attempts = 0;
+  const retryFetch: typeof fetch = async () => {
+    attempts++;
+    if (attempts === 1) {
+      throw new Error("Temporary network disconnection");
+    }
+    return {
+      status: 200,
+      ok: true,
+      json: async () => ({ schemaVersion: "ebb.api.v1", version: "0.3.0", dataVersion: "2026.11.12" }),
+    } as unknown as Response;
+  };
+
+  const recovered = await fetchMeta({ fetch: retryFetch });
+  assert.ok(recovered);
+  assert.equal(attempts, 2, "Should have retried once after initial network failure");
+
+  // 6. Timeout
+  const slowFetch: typeof fetch = async (_input, init) => {
+    return new Promise((resolve, reject) => {
+      const signal = init?.signal;
+      if (signal) {
+        signal.addEventListener("abort", () => {
+          reject(new Error("Request aborted due to timeout"));
+        });
+      }
+      setTimeout(() => {
+        resolve({ status: 200, ok: true, json: async () => ({}) } as Response);
+      }, 500);
+    });
+  };
+
+  await assert.rejects(() => fetchMeta({ fetch: slowFetch, timeout: 50 }), /Request aborted due to timeout|timed out/);
+});
+
+test("runSmokeTest validates target endpoints cleanly and detects broken URLs", async () => {
+  const validDocs: Record<string, object> = {
+    "https://velella.sh/ebb/api/v1/meta.json": {
+      schemaVersion: "ebb.api.v1",
+      version: "0.3.0",
+      dataVersion: "2026.11.12",
+      rulesCount: 1,
+      componentsCount: 1,
+      ecosystemsCount: 1,
+      schemaVersions: { api: "ebb.api.v1", rule: "ebb.rule.v2", result: 1 },
+    },
+    "https://velella.sh/ebb/api/v1/npm/request.json": {
+      schemaVersion: "ebb.api.v1",
+      version: "0.3.0",
+      generatedAt: "2026-11-12T00:00:00.000Z",
+      purl: "pkg:npm/request",
+      type: "npm",
+      name: "request",
+      ecosystems: ["npm"],
+      rules: [
+        {
+          id: "npm.package.request.deprecated",
+          ecosystem: "npm",
+          purl: "pkg:npm/request",
+          vers: "vers:npm/*",
+          event: "deprecated",
+          title: "request is deprecated",
+          summary: "deprecated",
+          severity: "high",
+          sources: [{ title: "npm", url: "https://example.com", accessedAt: "2026-11-12" }],
+          provenance: {
+            method: "manual",
+            reviewer: "armin",
+            reviewedAt: "2026-11-12",
+            observedAt: "2026-11-12",
+          },
+        },
+      ],
+    },
+    "https://velella.sh/ebb/api/v1/rules/npm.package.request.deprecated.json": {
+      schemaVersion: "ebb.api.v1",
+      version: "0.3.0",
+      generatedAt: "2026-11-12T00:00:00.000Z",
+      rule: {
+        id: "npm.package.request.deprecated",
+        ecosystem: "npm",
+        purl: "pkg:npm/request",
+        vers: "vers:npm/*",
+        event: "deprecated",
+        title: "request is deprecated",
+        summary: "deprecated",
+        severity: "high",
+        sources: [{ title: "npm", url: "https://example.com", accessedAt: "2026-11-12" }],
+        provenance: {
+          method: "manual",
+          reviewer: "armin",
+          reviewedAt: "2026-11-12",
+          observedAt: "2026-11-12",
+        },
+      },
+    },
+    "https://velella.sh/ebb/api/v1/upcoming.json": {
+      schemaVersion: "ebb.api.v1",
+      version: "0.3.0",
+      generatedAt: "2026-11-12T00:00:00.000Z",
+      count: 0,
+      upcoming: [],
+    },
+  };
+
+  const smokeMockFetch: typeof fetch = async (input) => {
+    const url = String(input);
+    if (validDocs[url]) {
+      return {
+        status: 200,
+        ok: true,
+        json: async () => validDocs[url],
+      } as Response;
+    }
+    return {
+      status: 404,
+      ok: false,
+      statusText: "Not Found",
+    } as Response;
+  };
+
+  // Smoke test passes on valid responses
+  await runSmokeTest({
+    baseUrl: "https://velella.sh/ebb/api/v1",
+    fetch: smokeMockFetch,
+  });
+
+  // Smoke test fails when a URL is broken and names the URL
+  const brokenFetch: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.includes("upcoming.json")) {
+      return { status: 500, ok: false, statusText: "Server Error" } as Response;
+    }
+    return smokeMockFetch(input);
+  };
+
+  await assert.rejects(
+    () => runSmokeTest({ baseUrl: "https://velella.sh/ebb/api/v1", fetch: brokenFetch }),
+    (err: Error) => {
+      assert.match(err.message, /https:\/\/velella\.sh\/ebb\/api\/v1\/upcoming\.json/);
+      assert.match(err.message, /HTTP 500/);
+      return true;
+    },
   );
 });
 

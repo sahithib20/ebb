@@ -17,10 +17,57 @@ export interface FetchRuleOptions {
   fetch?: typeof fetch | undefined;
   /** Filter rules as-of a specific date (ISO 8601 string or Date). */
   asOf?: string | Date | undefined;
+  /** Request timeout in milliseconds. Defaults to 5000ms. */
+  timeout?: number | undefined;
+}
+
+/** API metadata document served at `/api/v1/meta.json`. */
+export interface ApiMetaDocument {
+  $schema?: string | undefined;
+  schemaVersion: string;
+  version: string;
+  dataVersion: string;
+  rulesCount: number;
+  componentsCount: number;
+  ecosystemsCount: number;
+  schemaVersions: Record<string, string | number>;
+}
+
+/** An upcoming event entry in `/api/v1/upcoming.json`. */
+export interface ApiUpcomingItem {
+  ruleId: string;
+  purl: string;
+  ecosystem: string;
+  event: string;
+  title: string;
+  deadline?: string | undefined;
+  severity?: string | undefined;
+  replacement?: string | undefined;
+  path: string;
+}
+
+/** Upcoming deadlines document served at `/api/v1/upcoming.json`. */
+export interface ApiUpcomingDocument {
+  $schema?: string | undefined;
+  schemaVersion: string;
+  version: string;
+  generatedAt: string;
+  count: number;
+  upcoming: ApiUpcomingItem[];
+}
+
+/** A single rule document served at `/api/v1/rules/<rule-id>.json`. */
+export interface ApiRuleDocument {
+  $schema?: string | undefined;
+  schemaVersion: string;
+  version: string;
+  generatedAt: string;
+  rule: Rule;
 }
 
 /** A component document served at `/api/v1/<type>/<name>.json`. */
 export interface ApiComponentDocument {
+  $schema?: string | undefined;
   schemaVersion: string;
   version: string;
   generatedAt: string;
@@ -111,28 +158,112 @@ export function purlToApiPath(purl: string | PackageUrl): string {
 }
 
 /**
- * Fetches the full component document for a component from the static API.
- * Returns null if the component is not found (404).
+ * Performs a fetch request with timeout and one automatic retry on network failure.
+ * Returns null if the resource returns HTTP 404 (typed "not found" result).
  */
-export async function fetchComponent(purl: string, options?: FetchRuleOptions): Promise<ApiComponentDocument | null> {
+async function fetchWithRetry(url: string, options?: FetchRuleOptions): Promise<Response | null> {
   const fetchFn = options?.fetch ?? globalThis.fetch;
   if (typeof fetchFn !== "function") {
     throw new Error("No global fetch available. Pass a custom fetch implementation in options.fetch.");
   }
 
-  let baseUrl = options?.baseUrl ?? DEFAULT_STATIC_API_BASE_URL;
-  while (baseUrl.endsWith("/")) {
-    baseUrl = baseUrl.slice(0, -1);
-  }
-  const relPath = purlToApiPath(purl);
-  const url = `${baseUrl}/${relPath}`;
+  const timeoutMs = options?.timeout ?? 5000;
 
-  const response = await fetchFn(url);
+  async function executeFetch(): Promise<Response> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let signal: AbortSignal | undefined;
+    if (typeof AbortController !== "undefined" && timeoutMs > 0) {
+      const controller = new AbortController();
+      signal = controller.signal;
+      timer = setTimeout(() => {
+        controller.abort(new Error(`Request timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }
+
+    try {
+      return await fetchFn(url, signal ? { signal } : undefined);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await executeFetch();
+  } catch (err) {
+    // Retry once on network failure or timeout
+    try {
+      response = await executeFetch();
+    } catch {
+      throw err;
+    }
+  }
+
   if (response.status === 404) {
     return null;
   }
   if (!response.ok) {
     throw new Error(`Failed to fetch static API component at ${url}: HTTP ${response.status} ${response.statusText}`);
+  }
+
+  return response;
+}
+
+/**
+ * Fetches the metadata document from `/api/v1/meta.json`.
+ * Clients should call this first to check data version and component/rule counts.
+ * Returns null if not found (404).
+ */
+export async function fetchMeta(options?: FetchRuleOptions): Promise<ApiMetaDocument | null> {
+  let baseUrl = (options?.baseUrl ?? DEFAULT_STATIC_API_BASE_URL).replace(/\/+$/, "");
+  const url = `${baseUrl}/meta.json`;
+  const response = await fetchWithRetry(url, options);
+  if (!response) {
+    return null;
+  }
+  return (await response.json()) as ApiMetaDocument;
+}
+
+/**
+ * Fetches scheduled upcoming deprecations and EOL deadlines from `/api/v1/upcoming.json`.
+ * Returns null if not found (404).
+ */
+export async function fetchUpcoming(options?: FetchRuleOptions): Promise<ApiUpcomingDocument | null> {
+  let baseUrl = (options?.baseUrl ?? DEFAULT_STATIC_API_BASE_URL).replace(/\/+$/, "");
+  const url = `${baseUrl}/upcoming.json`;
+  const response = await fetchWithRetry(url, options);
+  if (!response) {
+    return null;
+  }
+  return (await response.json()) as ApiUpcomingDocument;
+}
+
+/**
+ * Fetches a single rule document by rule id from `/api/v1/rules/<rule-id>.json`.
+ * Returns null if not found (404).
+ */
+export async function fetchSingleRule(ruleId: string, options?: FetchRuleOptions): Promise<ApiRuleDocument | null> {
+  let baseUrl = (options?.baseUrl ?? DEFAULT_STATIC_API_BASE_URL).replace(/\/+$/, "");
+  const url = `${baseUrl}/rules/${encodeURIComponent(ruleId)}.json`;
+  const response = await fetchWithRetry(url, options);
+  if (!response) {
+    return null;
+  }
+  return (await response.json()) as ApiRuleDocument;
+}
+
+/**
+ * Fetches the full component document for a component from the static API.
+ * Returns null if the component is not found (404).
+ */
+export async function fetchComponent(purl: string, options?: FetchRuleOptions): Promise<ApiComponentDocument | null> {
+  let baseUrl = (options?.baseUrl ?? DEFAULT_STATIC_API_BASE_URL).replace(/\/+$/, "");
+  const relPath = purlToApiPath(purl);
+  const url = `${baseUrl}/${relPath}`;
+
+  const response = await fetchWithRetry(url, options);
+  if (!response) {
+    return null;
   }
 
   return (await response.json()) as ApiComponentDocument;

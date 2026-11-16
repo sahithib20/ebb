@@ -87,6 +87,8 @@ export interface RegistryV2Rule {
   sourceCheckedAt?: string;
   /** Automated source check status. */
   sourceStatus?: string;
+  /** Canonical URL for this rule in the static API. */
+  url?: string;
   /** Ecosystem matching hints such as `x-npm` or `x-github-actions`. */
   [extension: `x-${string}`]: Record<string, unknown>;
 }
